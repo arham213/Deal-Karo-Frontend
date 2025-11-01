@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "deal-karo-frontend",
-    "slug": "deal-karo-frontend",
+    "slug": "deal-karo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "70a69589-9bd7-41b3-9c7e-936d38f303ab"
+      }
+    },
+    "owner": "arham1"
   }
 }
