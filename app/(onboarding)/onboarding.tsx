@@ -13,25 +13,25 @@ const onboardingData = [
     id: 1,
     title: "Add your inventory effortlessly.",
     description: "Add and help other dealers to find and contact you easily.",
-    image: require("../assets/images/onboarding/onboarding-1.png"),
+    image: require("../../assets/images/onboarding.png"),
   },
   {
     id: 2,
     title: "Deal Property required for Sale.",
     description: "Easily find the on sale properties through real time authentic listings.",
-    image: require("../assets/images/onboarding/onboarding-1.png"),
+    image: require("../../assets/images/onboarding.png"),
   },
   {
     id: 3,
     title: "Deal Property required for Rent.",
     description: "Easily find the on rent properties through real time authentic listings.",
-    image: require("../assets/images/onboarding/onboarding-1.png"),
+    image: require("../../assets/images/onboarding.png"),
   },
   {
     id: 4,
     title: "Deal Property for Installment Plans.",
     description: "Easily find the properties for installments through real time authentic listings.",
-    image: require("../assets/images/onboarding/onboarding-1.png"),
+    image: require("../../assets/images/onboarding.png"),
   },
 ]
 
@@ -49,7 +49,7 @@ export default function OnboardingScreen() {
         animated: true,
       })
     } else {
-      router.push("/(main)")
+      router.push("/listings")
     }
   }
 
