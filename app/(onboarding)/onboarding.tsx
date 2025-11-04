@@ -103,7 +103,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
   },
   slide: {
     flex: 1,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 300,
+    height: 420,
     borderRadius: 20,
     resizeMode: "cover",
   },

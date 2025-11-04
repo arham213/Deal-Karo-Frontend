@@ -135,7 +135,7 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
   },
   scrollContent: {
     flexGrow: 1,

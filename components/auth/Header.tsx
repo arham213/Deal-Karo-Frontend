@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     gap: 35,
     paddingTop: 90,
     paddingBottom: 15,
-    backgroundColor: Colors.background
+    backgroundColor: Colors.headerBackground
   },
   logo: {
     width: 120,

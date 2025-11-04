@@ -4,16 +4,16 @@ import { Colors } from "@/constants/colors"
 import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native"
-import { TextInput } from "./TextInput"
+import { TextInput } from "../TextInput"
 
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   overlay: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: "90%",

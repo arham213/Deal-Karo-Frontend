@@ -4,6 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { saveToken, saveUser } from "@/utils/secureStore"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useState } from "react"
@@ -38,8 +39,9 @@ export default function SignInScreen() {
       setLoading(false);
 
       if (response?.data.success) {
-        alert("Signin successful");
-        router.push('/(onboarding)/onboarding');
+        await saveToken(response.data.data.token);
+        await saveUser(response.data.data.user);
+        router.push('/onboarding');
       } else {
         alert(response?.data.error.message || "Signin failed");
       }

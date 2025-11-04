@@ -3,6 +3,9 @@
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { AreaSize, ListingType, PropertyType } from "@/types/listings"
+import { getToken, getUser } from "@/utils/secureStore"
+import axios from "axios"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import {
@@ -18,10 +21,6 @@ import {
 
 import { SafeAreaView } from "react-native-safe-area-context"
 
-type PropertyType = "plot" | "house"
-type ListingType = "sale" | "rent" | "installment"
-type AreaSize = "3 Marla" | "5 Marla" | "10 Marla" | "15 Marla" | "1 Kanal" | "custom"
-
 interface AddListingState {
   propertyType: PropertyType
   listingType: ListingType
@@ -29,7 +28,7 @@ interface AddListingState {
   houseNo: string
   block: string
   phase: string
-  areaSize: AreaSize
+  area: AreaSize
   additionalArea: string
   price: string
   totalPrice: string
@@ -46,14 +45,15 @@ interface AddListingState {
 export default function AddListingScreen() {
   const router = useRouter()
 
+  const [loading, setLoading] = useState<Boolean>(false);
   const [formData, setFormData] = useState<AddListingState>({
     propertyType: "plot",
-    listingType: "sale",
+    listingType: "cash",
     plotNo: "",
     houseNo: "",
     block: "",
     phase: "",
-    areaSize: "5 Marla",
+    area: "5 Marla",
     additionalArea: "",
     price: "",
     totalPrice: "",
@@ -74,9 +74,71 @@ export default function AddListingScreen() {
     }))
   }
 
-  const handleAddListing = () => {
-    console.log("[v0] Adding listing:", formData)
-    router.back()
+  const BASE_URL = 'http://10.224.131.91:8080/api';
+
+  const handleAddListing = async () => {
+    setLoading(true)
+    try {
+      const user: any = await getUser();
+      const token = await getToken();
+
+      if (!token) throw new Error("Token missing. Please log in again.");
+      if (!user) throw new Error("User not found in storage.");
+
+      const userData = {
+        userId: user?.id,
+        ...(formData.propertyType === "plot" ? { plotNo: formData.plotNo } : { houseNo: formData.houseNo }),
+        propertyType: formData.propertyType,
+        listingType: formData.listingType,
+        block: formData.block,
+        phase: formData.phase,
+        area: formData.area,
+        additionalArea: formData.additionalArea,
+        ...(formData.propertyType === "plot" && formData.listingType === "cash" && {
+          pricePerMarla: formData.pricePerMarla,
+          totalPrice: formData.totalPrice
+        }),
+        ...(formData.propertyType === "house" && (formData.listingType === "cash" || formData.listingType === "installments") && {
+          price: formData.price
+        }),
+        ...(formData.propertyType === "house" && formData.listingType === "rent" && {
+          rentPerMonth: formData.rentPerMonth
+        }),
+        ...(formData.listingType === "installments" && {
+          installment: {
+            perMonth: formData.installmentPerMonth,
+            quarterly: formData.installmentQuarterly
+          }
+        }),
+        description: formData.description,
+        forContact: formData.contact
+      }
+
+      console.log('userData:', userData);
+
+      const response = await axios.post(`${BASE_URL}/properties`, userData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      console.log('response:', response?.data);
+
+      setLoading(false);
+      if (response?.data.success) {
+        router.back()
+      } else {
+        alert("Property creation failed");
+      }
+    } catch (error) {
+      setLoading(false)
+      
+      if (axios.isAxiosError(error)) {
+        alert(error?.response?.data?.error?.message);
+      } else {
+        alert("Something went wrong. Please try again later")
+      }
+    }
   }
 
   const areaSizes: AreaSize[] = ["3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "custom"]
@@ -97,7 +159,7 @@ export default function AddListingScreen() {
                 style={[styles.propertyTab, formData.propertyType === "plot" && styles.activePropertyTab]}
                 onPress={() => {
                   handleInputChange("propertyType", "plot")
-                  handleInputChange("listingType", "sale")
+                  handleInputChange("listingType", "cash")
                 }}
               >
                 <Text
@@ -111,7 +173,7 @@ export default function AddListingScreen() {
                 style={[styles.propertyTab, formData.propertyType === "house" && styles.activePropertyTab]}
                 onPress={() => {
                   handleInputChange("propertyType", "house")
-                  handleInputChange("listingType", "sale")
+                  handleInputChange("listingType", "cash")
                 }}
               >
                 <Text
@@ -128,10 +190,10 @@ export default function AddListingScreen() {
             <Text style={styles.sectionLabel}>What it is for?</Text>
             <View style={styles.listingTypeContainer}>
               <TouchableOpacity
-                style={[styles.listingTypeButton, formData.listingType === "sale" && styles.activeListingType]}
-                onPress={() => handleInputChange("listingType", "sale")}
+                style={[styles.listingTypeButton, formData.listingType === "cash" && styles.activeListingType]}
+                onPress={() => handleInputChange("listingType", "cash")}
               >
-                <Text style={[styles.listingTypeText, formData.listingType === "sale" && styles.activeListingTypeText]}>
+                <Text style={[styles.listingTypeText, formData.listingType === "cash" && styles.activeListingTypeText]}>
                   Sale
                 </Text>
               </TouchableOpacity>
@@ -146,13 +208,13 @@ export default function AddListingScreen() {
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={[styles.listingTypeButton, formData.listingType === "installment" && styles.activeListingType]}
-                onPress={() => handleInputChange("listingType", "installment")}
+                style={[styles.listingTypeButton, formData.listingType === "installments" && styles.activeListingType]}
+                onPress={() => handleInputChange("listingType", "installments")}
               >
                 <Text
                   style={[
                     styles.listingTypeText,
-                    formData.listingType === "installment" && styles.activeListingTypeText,
+                    formData.listingType === "installments" && styles.activeListingTypeText,
                   ]}
                 >
                   Installments
@@ -213,10 +275,10 @@ export default function AddListingScreen() {
               {areaSizes.map((size) => (
                 <TouchableOpacity
                   key={size}
-                  style={[styles.areaButton, formData.areaSize === size && styles.activeAreaButton]}
-                  onPress={() => handleInputChange("areaSize", size)}
+                  style={[styles.areaButton, formData.area === size && styles.activeAreaButton]}
+                  onPress={() => handleInputChange("area", size)}
                 >
-                  <Text style={[styles.areaButtonText, formData.areaSize === size && styles.activeAreaButtonText]}>
+                  <Text style={[styles.areaButtonText, formData.area === size && styles.activeAreaButtonText]}>
                     {size}
                   </Text>
                 </TouchableOpacity>
@@ -236,7 +298,7 @@ export default function AddListingScreen() {
           </View>
 
           {/* Price/Rent - Sale Type */}
-          {formData.listingType === "sale" && (
+          {formData.listingType === "cash" && (
             <>
               {formData.propertyType === "plot" && (
                 <>
@@ -289,8 +351,17 @@ export default function AddListingScreen() {
           )}
 
           {/* Installment Type */}
-          {formData.listingType === "installment" && (
+          {formData.listingType === "installments" && (
             <>
+              <View style={styles.section}>
+                <TextInput
+                  label="Price"
+                  placeholder="25,000,000"
+                  value={formData.price}
+                  onChangeText={(value) => handleInputChange("price", value)}
+                  keyboardType="decimal-pad"
+                />
+              </View>
               <View style={styles.section}>
                 <TextInput
                   label="Installment per month"
@@ -363,7 +434,7 @@ export default function AddListingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
   },
   scrollView: {
     flex: 1,

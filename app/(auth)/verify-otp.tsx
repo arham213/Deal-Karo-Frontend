@@ -7,13 +7,13 @@ import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Platform,
-    TextInput as RNTextInput,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput as RNTextInput,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native"
 
 export default function VerifyOTPScreen() {
@@ -173,7 +173,7 @@ export default function VerifyOTPScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
   },
   scrollContent: {
     flexGrow: 1,

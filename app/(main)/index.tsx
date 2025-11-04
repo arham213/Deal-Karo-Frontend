@@ -16,13 +16,13 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.signUpButton} onPress={() => router.push("/(auth)/sign-up")}>
+        <TouchableOpacity style={styles.signUpButton} onPress={() => router.push("/sign-up")}>
           <Text style={styles.signUpButtonText}>Sign Up</Text>
         </TouchableOpacity>
 
         <View style={styles.signInContainer}>
           <Text style={styles.signInText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/(auth)/sign-in")}>
+          <TouchableOpacity onPress={() => router.push("/sign-in")}>
             <Text style={styles.signInLink}>Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -34,7 +34,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.neutral10,
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 40,
