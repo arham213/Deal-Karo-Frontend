@@ -1,8 +1,11 @@
 "use client"
 
 import { Button } from "@/components/Button"
+import { Dropdown } from "@/components/Dropdown"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { BLOCK_OPTIONS, PHASE_OPTIONS } from "@/constants/listingOptions"
+import { User } from "@/types/auth"
 import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
 import axios from "axios"
@@ -79,39 +82,44 @@ export default function AddListingScreen() {
   const handleAddListing = async () => {
     setLoading(true)
     try {
-      const user: any = await getUser();
+      const user: User = await getUser();
       const token = await getToken();
 
       if (!token) throw new Error("Token missing. Please log in again.");
       if (!user) throw new Error("User not found in storage.");
 
       const userData = {
-        userId: user?.id,
-        ...(formData.propertyType === "plot" ? { plotNo: formData.plotNo } : { houseNo: formData.houseNo }),
+        userId: user?._id,
+        ...((formData.propertyType === "plot" || formData.propertyType === "commercial plot") ? { plotNo: formData.plotNo } : { houseNo: formData.houseNo }),
         propertyType: formData.propertyType,
         listingType: formData.listingType,
         block: formData.block,
         phase: formData.phase,
         area: formData.area,
         additionalArea: formData.additionalArea,
-        ...(formData.propertyType === "plot" && formData.listingType === "cash" && {
+        ...((formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && {
           pricePerMarla: formData.pricePerMarla,
           totalPrice: formData.totalPrice
         }),
-        ...(formData.propertyType === "house" && (formData.listingType === "cash" || formData.listingType === "installments") && {
+        ...(formData.propertyType === "house" && formData.listingType === "cash" && {
           price: formData.price
         }),
-        ...(formData.propertyType === "house" && formData.listingType === "rent" && {
-          rentPerMonth: formData.rentPerMonth
-        }),
+        // ...(formData.propertyType === "house" && formData.listingType === "rent" && {
+        //   rentPerMonth: formData.rentPerMonth
+        // }),
         ...(formData.listingType === "installments" && {
+          price: formData.price,
           installment: {
             perMonth: formData.installmentPerMonth,
             quarterly: formData.installmentQuarterly
           }
         }),
         description: formData.description,
-        forContact: formData.contact
+        forContact: formData.contact,
+        features: JSON.stringify({
+          hasPole: formData.hasPole,
+          hasWire: formData.hasWire
+        })
       }
 
       console.log('userData:', userData);
@@ -122,7 +130,7 @@ export default function AddListingScreen() {
         }
       });
 
-      console.log('response:', response?.data);
+      //console.log('response:', response?.data);
 
       setLoading(false);
       if (response?.data.success) {
@@ -181,50 +189,65 @@ export default function AddListingScreen() {
                 >
                   House
                 </Text>
+              </TouchableOpacity><View style={styles.tabDivider} />
+              <TouchableOpacity
+                style={[styles.propertyTab, formData.propertyType === "commercial plot" && styles.activePropertyTab]}
+                onPress={() => {
+                  handleInputChange("propertyType", "commercial plot")
+                  handleInputChange("listingType", "cash")
+                }}
+              >
+                <Text
+                  style={[styles.propertyTabText, formData.propertyType === "commercial plot" && styles.activePropertyTabText]}
+                >
+                  Commercial plot
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* What is it for? */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>What it is for?</Text>
-            <View style={styles.listingTypeContainer}>
-              <TouchableOpacity
-                style={[styles.listingTypeButton, formData.listingType === "cash" && styles.activeListingType]}
-                onPress={() => handleInputChange("listingType", "cash")}
-              >
-                <Text style={[styles.listingTypeText, formData.listingType === "cash" && styles.activeListingTypeText]}>
-                  Sale
-                </Text>
-              </TouchableOpacity>
-              {formData.propertyType === "house" && (
+          {formData.propertyType !== "house" && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>What it is for?</Text>
+              <View style={styles.listingTypeContainer}>
                 <TouchableOpacity
-                  style={[styles.listingTypeButton, formData.listingType === "rent" && styles.activeListingType]}
-                  onPress={() => handleInputChange("listingType", "rent")}
+                  style={[styles.listingTypeButton, formData.listingType === "cash" && styles.activeListingType]}
+                  onPress={() => handleInputChange("listingType", "cash")}
                 >
-                  <Text style={[styles.listingTypeText, formData.listingType === "rent" && styles.activeListingTypeText]}>
-                    Rent
+                  <Text style={[styles.listingTypeText, formData.listingType === "cash" && styles.activeListingTypeText]}>
+                    Cash
                   </Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.listingTypeButton, formData.listingType === "installments" && styles.activeListingType]}
-                onPress={() => handleInputChange("listingType", "installments")}
-              >
-                <Text
-                  style={[
-                    styles.listingTypeText,
-                    formData.listingType === "installments" && styles.activeListingTypeText,
-                  ]}
+                {/* {formData.propertyType === "house" && (
+                  <TouchableOpacity
+                    style={[styles.listingTypeButton, formData.listingType === "rent" && styles.activeListingType]}
+                    onPress={() => handleInputChange("listingType", "rent")}
+                  >
+                    <Text style={[styles.listingTypeText, formData.listingType === "rent" && styles.activeListingTypeText]}>
+                      Rent
+                    </Text>
+                  </TouchableOpacity>
+                )} */}
+                <TouchableOpacity
+                  style={[styles.listingTypeButton, formData.listingType === "installments" && styles.activeListingType]}
+                  onPress={() => handleInputChange("listingType", "installments")}
                 >
-                  Installments
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.listingTypeText,
+                      formData.listingType === "installments" && styles.activeListingTypeText,
+                    ]}
+                  >
+                    Installments
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
 
           {/* PlotNo/House No */}
-          {formData.propertyType === "plot" && (
+          {(formData.propertyType === "plot" || formData.propertyType === "commercial plot") && (
             <View style={styles.section}>
               <TextInput
                 label="Plot No"
@@ -248,23 +271,25 @@ export default function AddListingScreen() {
             </View>
           )}
 
-          {/* Block */}
+          {/* Phase */}
           <View style={styles.section}>
-            <TextInput
-              label="Block"
-              placeholder="E.g., Block Y"
-              value={formData.block}
-              onChangeText={(value) => handleInputChange("block", value)}
+            <Dropdown
+              label="Phase"
+              placeholder="Select Phase"
+              options={PHASE_OPTIONS}
+              value={formData.phase}
+              onValueChange={(value) => handleInputChange("phase", value)}
             />
           </View>
 
-          {/* Phase */}
+          {/* Block */}
           <View style={styles.section}>
-            <TextInput
-              label="Phase"
-              placeholder="E.g., Phase X"
-              value={formData.phase}
-              onChangeText={(value) => handleInputChange("phase", value)}
+            <Dropdown
+              label="Block"
+              placeholder="Select Block"
+              options={BLOCK_OPTIONS}
+              value={formData.block}
+              onValueChange={(value) => handleInputChange("block", value)}
             />
           </View>
 
@@ -300,7 +325,7 @@ export default function AddListingScreen() {
           {/* Price/Rent - Sale Type */}
           {formData.listingType === "cash" && (
             <>
-              {formData.propertyType === "plot" && (
+              {(formData.propertyType === "plot" || formData.propertyType === "commercial plot") && (
                 <>
                   <View style={styles.section}>
                     <TextInput
@@ -338,7 +363,7 @@ export default function AddListingScreen() {
           )}
 
           {/* Rent Type */}
-          {formData.listingType === "rent" && (
+          {/* {formData.listingType === "rent" && (
             <View style={styles.section}>
               <TextInput
                 label="Rent per month"
@@ -348,7 +373,7 @@ export default function AddListingScreen() {
                 keyboardType="decimal-pad"
               />
             </View>
-          )}
+          )} */}
 
           {/* Installment Type */}
           {formData.listingType === "installments" && (
@@ -477,6 +502,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: Colors.textSecondary,
+    textAlign: "center"
   },
   activePropertyTabText: {
     color: Colors.text,

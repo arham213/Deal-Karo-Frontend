@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
+import { saveOnboardingCompleted } from "@/utils/secureStore"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native"
@@ -40,7 +41,7 @@ export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const scrollViewRef = useRef<ScrollView>(null)
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < onboardingData.length - 1) {
       const nextIndex = currentIndex + 1
       setCurrentIndex(nextIndex)
@@ -49,6 +50,11 @@ export default function OnboardingScreen() {
         animated: true,
       })
     } else {
+      try {
+        await saveOnboardingCompleted("true")
+      } catch (error: any) {
+        alert("Failed to save onboarding completed: " + error.message)
+      }
       router.push("/listings")
     }
   }

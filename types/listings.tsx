@@ -1,4 +1,4 @@
-export type PropertyType = "plot" | "house"
+export type PropertyType = "plot" | "house" | "commercial plot"
 export type ListingType = "cash" | "rent" | "installments"
 export type AreaSize = "3 Marla" | "5 Marla" | "10 Marla" | "15 Marla" | "1 Kanal" | "custom"
 
@@ -29,4 +29,5 @@ export interface ListingState {
   contact: string
   hasPole?: boolean
   hasWire?: boolean
+  moreOptions?: string
 }

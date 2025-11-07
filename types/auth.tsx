@@ -1,10 +1,13 @@
-export interface User {
-  id: string
-  fullName: string
+export type User = {
+  _id: string
+  name: string
   email: string
-  contactNumber: string
+  contactNo: string
   estateName: string
-  createdAt: Date
+  role: "dealer" | "admin"
+  isAccountVerified: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AuthState {

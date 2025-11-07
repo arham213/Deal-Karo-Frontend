@@ -1,3 +1,4 @@
+import { User } from '@/types/auth';
 import * as SecureStore from 'expo-secure-store';
 
 export async function saveToken(token: string) {
@@ -24,7 +25,7 @@ export async function deleteToken() {
   }
 }
 
-export async function saveUser(user: any) {
+export async function saveUser(user: User) {
   try {
     await SecureStore.setItemAsync('user', JSON.stringify(user));
   } catch (error: any) {
@@ -46,5 +47,21 @@ export async function deleteUser() {
     await SecureStore.deleteItemAsync('user');
   } catch (error: any) {
     throw new Error('Failed to delete user: ' + error.message);
+  }
+}
+
+export async function saveOnboardingCompleted(onboardingCompleted: string) {
+  try {
+    await SecureStore.setItemAsync('onboardingCompleted', onboardingCompleted);
+  } catch (error: any) {
+    throw new Error('Failed to save onboarding completed: ' + error.message);
+  }
+}
+
+export async function getOnboardingCompleted() {
+  try {
+    return await SecureStore.getItemAsync('onboardingCompleted');
+  } catch (error: any) {
+    throw new Error('Failed to get onboarding completed: ' + error.message);
   }
 }

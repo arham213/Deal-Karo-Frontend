@@ -25,6 +25,27 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
     }
   }
 
+  // Parse moreOptions to get features
+  const getFeatures = () => {
+    const features: string[] = []
+    if (!listing?.moreOptions) return features
+
+    try {
+      const moreOptions = JSON.parse(listing.moreOptions)
+      if (moreOptions.hasPole) {
+        features.push("Don't have a pole")
+      }
+      if (moreOptions.hasWire) {
+        features.push("No wire")
+      }
+    } catch (error) {
+      console.error("Error parsing moreOptions:", error)
+    }
+    return features
+  }
+
+  const features = getFeatures()
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
@@ -62,7 +83,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
               <Text style={styles.value}>{listing?.description || '---'}</Text>
             </View>
 
-            {listing?.propertyType === "plot" ? (
+            {listing?.propertyType === "plot" || listing?.propertyType === "commercial plot" ? (
                 <View style={styles.detailRow}>
                     <Text style={styles.label}>Plot No</Text>
                     <Text style={styles.value}>{listing?.plotNo}</Text>
@@ -79,7 +100,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
               <Text style={styles.value}>{listing?.additionalArea || '---'}</Text>
             </View>
 
-            {listing?.propertyType === "plot" && listing.listingType === "cash" && (
+            {listing?.propertyType === "plot" || listing?.propertyType === "commercial plot" && listing.listingType === "cash" && (
                 <View style={styles.detailRow}>
                     <Text style={styles.label}>Price Per Marla</Text>
                     <Text style={styles.value}>{listing?.pricePerMarla}</Text>
@@ -113,7 +134,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Address</Text>
-              <Text style={styles.value}>{listing?.block} {listing?.phase}</Text>
+              <Text style={styles.value}>{listing?.phase || '---'}, {listing?.block || '---'}</Text>
             </View>
 
             <View style={styles.detailRow}>
@@ -131,17 +152,19 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
               <Text style={styles.value}>{listing?._id}</Text>
             </View>
 
-            {/* <View style={styles.detailRow}>
-              <Text style={styles.label}>Features</Text>
-              <View style={styles.featuresList}>
-                {listing.features.map((feature, index) => (
-                  <View key={index} style={styles.featureItem}>
-                    <MaterialCommunityIcons name="circle-small" size={20} color={Colors.text} />
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
+            {features.length > 0 && (
+              <View style={styles.featuresSection}>
+                <Text style={styles.featuresLabel}>Features</Text>
+                <View style={styles.featuresList}>
+                  {features.map((feature, index) => (
+                    <View key={index} style={styles.featureItem}>
+                      <View style={styles.bullet} />
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View> */}
+            )}
           </View>
 
           <View style={styles.buttonGroup}>
@@ -193,6 +216,7 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 12,
   },
   label: {
@@ -216,16 +240,30 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.white,
   },
+  featuresSection: {
+    gap: 12,
+  },
+  featuresLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: Colors.text,
+  },
   featuresList: {
     gap: 8,
   },
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
+  },
+  bullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.text,
   },
   featureText: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.text,
   },
   buttonGroup: {

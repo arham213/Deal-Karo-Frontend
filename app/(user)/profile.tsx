@@ -4,21 +4,41 @@ import { AvatarInitials } from "@/components/AvatarInitials"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { User } from "@/types/auth"
+import { getUser } from "@/utils/secureStore"
 import { useRouter } from "expo-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ProfileScreen() {
   const router = useRouter()
-  const [profile, setProfile] = useState({
-    fullName: "M S",
-    contactNumber: "",
+  const [profile, setProfile] = useState<User>({
+    _id: "",
+    name: "",
+    email: "",
+    contactNo: "",
     estateName: "",
+    isAccountVerified: false,
+    role: "dealer",
+    createdAt: "",
+    updatedAt: "",
   })
 
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState(profile)
+
+  useEffect(() => {
+    getUserFromSecureStore()
+  }, [])
+
+  const getUserFromSecureStore = async () => {
+    const user = await getUser()
+    console.log('user:', user)
+    if (user) {
+      setProfile(user)
+    }
+  }
 
   const handleInputChange = (key: keyof typeof editData, value: string) => {
     setEditData((prev) => ({
@@ -39,7 +59,7 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      router.replace("/")
+      router.replace("/sign-in")
     } catch (error) {
       alert("Failed to logout")
     }
@@ -48,38 +68,37 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{paddingBottom: 110}} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.title}>My Profile</Text>
           </View>
 
           <View style={styles.avatarSection}>
-            <AvatarInitials name={profile.fullName} size={80} />
-            <View style={styles.avatarActions}>
-              <TouchableOpacity>
-                <Text style={styles.editText}>Edit</Text>
-              </TouchableOpacity>
-              <Text style={styles.divider}>|</Text>
-              <TouchableOpacity>
-                <Text style={styles.removeText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
+            <AvatarInitials name={profile.name} size={80} />
           </View>
 
           <View style={styles.formSection}>
             <TextInput
               label="Full Name"
               placeholder="Enter your full name"
-              value={isEditing ? editData.fullName : profile.fullName}
-              onChangeText={(value) => isEditing && handleInputChange("fullName", value)}
+              value={isEditing ? editData.name : profile.name}
+              onChangeText={(value) => isEditing && handleInputChange("name", value)}
+              editable={isEditing}
+            />
+
+            <TextInput
+              label="Email"
+              placeholder="Enter your email"
+              value={isEditing ? editData.email : profile.email}
+              onChangeText={(value) => isEditing && handleInputChange("email", value)}
               editable={isEditing}
             />
 
             <TextInput
               label="Contact Number"
               placeholder="Enter your contact number"
-              value={isEditing ? editData.contactNumber : profile.contactNumber}
-              onChangeText={(value) => isEditing && handleInputChange("contactNumber", value)}
+              value={isEditing ? editData.contactNo : profile.contactNo}
+              onChangeText={(value) => isEditing && handleInputChange("contactNo", value)}
               editable={isEditing}
               keyboardType="phone-pad"
             />

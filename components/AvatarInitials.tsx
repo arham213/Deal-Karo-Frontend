@@ -19,7 +19,8 @@ export function AvatarInitials({ name, size = 56 }: AvatarInitialsProps) {
   const initials = getInitials(name)
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"]
   const hashCode = Array.from(initials).reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const backgroundColor = colors[hashCode % colors.length]
+  // const backgroundColor = colors[hashCode % colors.length]
+  const backgroundColor = "#000"
 
   return (
     <View style={[styles.container, { width: size, height: size, borderRadius: size / 2, backgroundColor }]}>

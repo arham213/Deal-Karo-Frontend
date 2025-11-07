@@ -12,7 +12,7 @@ import { useEffect, useState } from "react"
 import { FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
-export default function ListingsScreen() {
+export default function MyListingsScreen() {
   const router = useRouter()
   const [listings, setListings] = useState<ListingState[]>([])
   const [activePropertyTab, setActivePropertyTab] = useState<"Plots" | "Houses">("Plots")
@@ -24,6 +24,7 @@ export default function ListingsScreen() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    console.log('getting listings');
     getListings()
   },[])
 
@@ -36,19 +37,20 @@ export default function ListingsScreen() {
 
     setLoading(true)
     try {
-      const response = await axios.get(`${BASE_URL}/properties`, {
+      const response = await axios.get(`${BASE_URL}/properties/my-properties`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
-      // console.log("response:", response?.data)
+      console.log("response:", response?.data)
 
       setLoading(false)
       if (response?.data.success) {
+        console.log("properties:", response.data.data.properties)
         setListings(response.data.data.properties)
       } else {
-        alert("Failed to fetch listings")
+        alert("Failed to fetch my listings")
       }
     } catch (error) {
       setLoading(false)
@@ -94,25 +96,16 @@ export default function ListingsScreen() {
 
         {/* Meta Information */}
         <View style={styles.propertyMetaRow}>
-          <Text style={styles.metaLabel}>{property.area}</Text>
           <View style={[styles.statusBadge, { backgroundColor: Colors.primary }]}>
             <Text style={styles.statusText}>{property.listingType}</Text>
           </View>
         </View>
-
-        {/* Added By */}
-        <Text>Added by</Text>
-        <Text style={styles.addedBy}>{property.userId.name}</Text>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
             <Text style={styles.actionButtonText}>Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.contactButton}>
-            <Ionicons name="call-outline" size={16} color={Colors.textSecondary} />
-            <Text style={styles.actionButtonText}>Contact</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -126,7 +119,7 @@ export default function ListingsScreen() {
         <View style={styles.userGreeting}>
           <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
           <View style={styles.greetingText}>
-            <Text style={styles.greeting}>Hi, Fahad</Text>
+            <Text style={styles.greeting}>My Listings</Text>
             <Text style={styles.role}>Capital Estate</Text>
           </View>
         </View>
@@ -222,7 +215,7 @@ const styles = StyleSheet.create({
     paddingBottom: 70,
   },
   headerSection: {
-    flexDirection: "row",
+    // flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,

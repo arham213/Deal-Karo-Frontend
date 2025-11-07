@@ -4,7 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
-import { saveToken, saveUser } from "@/utils/secureStore"
+import { getOnboardingCompleted, getUser, saveToken, saveUser } from "@/utils/secureStore"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useState } from "react"
@@ -34,14 +34,22 @@ export default function SignInScreen() {
 
       const response = await axios.post(`${BASE_URL}/users/signin`, userData);
 
-      console.log('response:', response?.data);
+      //console.log('response:', response?.data);
 
       setLoading(false);
 
       if (response?.data.success) {
         await saveToken(response.data.data.token);
         await saveUser(response.data.data.user);
-        router.push('/onboarding');
+
+        const user = await getUser()
+        console.log('user:', user)
+        const onboardingCompleted = await getOnboardingCompleted();
+        if (onboardingCompleted === "true") {
+          router.push('/listings');
+        } else {
+          router.push('/onboarding');
+        }
       } else {
         alert(response?.data.error.message || "Signin failed");
       }

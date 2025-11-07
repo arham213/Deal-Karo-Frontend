@@ -3,110 +3,147 @@
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { getToken } from "@/utils/secureStore"
 import { Ionicons } from "@expo/vector-icons"
-import { useState } from "react"
+import axios from "axios"
+import { useEffect, useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 interface Note {
-  id: string
-  title: string
-  timestamp: string
+  _id: string
+  description: string
   completed: boolean
+  createdAt: any
 }
 
 export default function MyNotesScreen() {
-  const [notes, setNotes] = useState<Note[]>([
-    {
-      id: "1",
-      title: "5 Marla Plot required for client Ali Haider from Bedian road",
-      timestamp: "Today - 04:30 PM",
-      completed: false,
-    },
-    {
-      id: "2",
-      title: "5 Marla Plot required for client Ali Haider from Bedian road",
-      timestamp: "Today - 04:30 PM",
-      completed: false,
-    },
-    {
-      id: "3",
-      title: "5 Marla Plot required for client Ali Haider from Bedian road",
-      timestamp: "Today - 04:30 PM",
-      completed: false,
-    },
-    {
-      id: "4",
-      title: "5 Marla Plot required for client Ali Haider from Bedian road",
-      timestamp: "Today - 04:30 PM",
-      completed: false,
-    },
-    {
-      id: "5",
-      title: "5 Marla Plot required for client Ali Haider from Bedian road",
-      timestamp: "Today - 04:30 PM",
-      completed: false,
-    },
-  ])
+  const [notes, setNotes] = useState<Note[]>([])
 
-  const [newNoteTitle, setNewNoteTitle] = useState("")
+  const [newNoteDescription, setNewNoteDescription] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleAddNote = () => {
-    if (newNoteTitle.trim()) {
-      const newNote: Note = {
-        id: Date.now().toString(),
-        title: newNoteTitle,
-        timestamp: "Just now",
-        completed: false,
+  const BASE_URL = 'http://10.224.131.91:8080/api';
+
+  useEffect(()=> {
+    getNotes();
+  }, [])
+
+  const getNotes = async () => {
+    setLoading(true)
+    try {
+      const token = await getToken()
+      const response = await axios.get(`${BASE_URL}/notes`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      console.log('response:', response.data);
+
+      if (response?.data.success) {
+        setNotes(response.data.data?.notes)
+      } else {
+        alert(response?.data.error.message);
       }
-      setNotes([newNote, ...notes])
-      setNewNoteTitle("")
-      setShowAddModal(false)
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        alert(error?.response?.data?.error?.message);
+      } else {
+        alert("Something went wrong. Please try again later")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddNote = async () => {
+    if (!newNoteDescription) {
+      alert("Please fill in all fields")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const token = await getToken()
+      const response = await axios.post(`${BASE_URL}/notes`, {  description: newNoteDescription }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      console.log('response:', response.data);
+
+      if (response?.data.success) {
+        alert("Note Added Successfully");
+        getNotes()
+        setNewNoteDescription("")
+        setShowAddModal(false)
+      } else {
+        alert(response?.data.error.message);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        alert(error?.response?.data?.error?.message);
+      } else {
+        alert("Something went wrong. Please try again later")
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleMarkAsDone = (id: string) => {
-    setNotes(notes.map((note) => (note.id === id ? { ...note, completed: !note.completed } : note)))
+    setNotes(notes.map((note) => (note?._id === id ? { ...note, completed: !note?.completed } : note)))
   }
 
-  return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Notes</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addButtonText}>Add New Note</Text>
-        </TouchableOpacity>
-      </View>
+  const NotesHeader = () => (
+    <View style={styles.header}>
+          <Text style={styles.title}>My Notes</Text>
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
+            <Text style={styles.addButtonText}>Add New Note</Text>
+          </TouchableOpacity>
+        </View>
+  )
 
-      <ScrollView style={styles.notesList} showsVerticalScrollIndicator={false}>
-        {notes.map((note) => (
-          <View key={note.id} style={styles.noteCard}>
-            <View style={styles.noteContent}>
-              <Text style={styles.noteTitle}>{note.title}</Text>
-              <View style={styles.noteFooter}>
-                <View style={styles.timeContainer}>
-                  <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-                  <Text style={styles.timestamp}>{note.timestamp}</Text>
+  const NoteCard = ({ note }: any) => (
+    <View key={note?._id} style={styles.noteCard}>
+              <View style={styles.noteContent}>
+                <Text style={styles.noteTitle}>{note?.description}</Text>
+                <View style={styles.noteFooter}>
+                  <View style={styles.timeContainer}>
+                    <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+                    <Text style={styles.timestamp}>{note?.createdAt}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleMarkAsDone(note?._id)}>
+                    <Text style={styles.markAsDoneText}>Mark as done</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => handleMarkAsDone(note.id)}>
-                  <Text style={styles.markAsDoneText}>Mark as done</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+  )
 
+  return (
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
+        <FlatList
+          data={notes}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item }) => <NoteCard note={item} />}
+          ListHeaderComponent={<NotesHeader />}
+          contentContainerStyle={styles.container}
+          scrollEnabled
+          showsVerticalScrollIndicator={false}
+        />
+      </KeyboardAvoidingView>
       <Modal visible={showAddModal} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -114,8 +151,8 @@ export default function MyNotesScreen() {
 
             <TextInput
               placeholder="Type your note here..."
-              value={newNoteTitle}
-              onChangeText={setNewNoteTitle}
+              value={newNoteDescription}
+              onChangeText={setNewNoteDescription}
               multiline
               style={styles.noteInput}
             />
@@ -134,12 +171,18 @@ export default function MyNotesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.neutral10,
   },
+  container: {
+    paddingBottom: 120,
+    paddingHorizontal: 16
+  },
+  keyboardView: {
+    flex: 1,
+  },
   header: {
-    paddingHorizontal: 16,
     paddingVertical: 16,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -161,6 +204,9 @@ const styles = StyleSheet.create({
   },
   notesList: {
     paddingHorizontal: 16,
+  },
+  notesListContent: {
+    paddingBottom: 90,
   },
   noteCard: {
     backgroundColor: Colors.inputBackground,
