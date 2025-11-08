@@ -29,5 +29,5 @@ export interface ListingState {
   contact: string
   hasPole?: boolean
   hasWire?: boolean
-  moreOptions?: string
+  features?: string
 }

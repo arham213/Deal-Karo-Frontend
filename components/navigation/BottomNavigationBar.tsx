@@ -1,15 +1,29 @@
 "use client"
 
 import { Colors } from "@/constants/colors"
+import { User } from "@/types/auth"
+import { getUser } from "@/utils/secureStore"
 import { Ionicons } from "@expo/vector-icons"
 import { usePathname, useRouter } from "expo-router"
+import { useEffect, useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export function BottomNavigationBar() {
   const router = useRouter()
   const pathname = usePathname()
+  const [user, setUser] = useState<User | null>(null)
 
+  useEffect(() => {
+    getUserFromSecureStore()
+  }, [])
+
+  const getUserFromSecureStore = async () => {
+    const user = await getUser()
+    if (user) {
+      setUser(user)
+    }
+  }
   const handleNavigation = (route: string) => {
     router.push(route as any)
   }
@@ -42,26 +56,30 @@ export function BottomNavigationBar() {
         <TouchableOpacity 
           style={styles.navButton} 
           onPress={() => handleNavigation("/my-notes")}
+          disabled={!user?.isAccountVerified}
         >
           <Ionicons 
             name={isActive("/my-notes") ? "list" : "list-outline"} 
             size={24} 
-            color={isActive("/my-notes") ? Colors.primary : Colors.text} 
+            color={isActive("/my-notes") ? Colors.primary : Colors.text}
           />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.fabButton} onPress={handleAddListing}>
-          <Text style={styles.fabIcon}>+</Text>
+        <TouchableOpacity style={styles.fabButton} onPress={handleAddListing} disabled={!user?.isAccountVerified}>
+          <Text 
+            style={styles.fabIcon}
+          >+</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={styles.navButton}
           onPress={() => handleNavigation("/my-listings")}
+          disabled={!user?.isAccountVerified}
         >
           <Ionicons 
             name={isActive("/my-listings") ? "list" : "list-outline"} 
             size={24} 
-            color={isActive("/my-listings") ? Colors.primary : Colors.text} 
+            color={isActive("/my-listings") ? Colors.primary : Colors.text}
           />
         </TouchableOpacity>
         

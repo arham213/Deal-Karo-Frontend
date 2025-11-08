@@ -5,7 +5,7 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { User } from "@/types/auth"
-import { getUser } from "@/utils/secureStore"
+import { clearAuthData, getUser } from "@/utils/secureStore"
 import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -59,9 +59,13 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      router.replace("/sign-in")
+      // Clear all auth data from secureStore
+      await clearAuthData()
+      // Navigate to sign-in screen
+      router.replace("/(auth)/sign-in")
     } catch (error) {
-      alert("Failed to logout")
+      console.error("Logout error:", error)
+      alert("Failed to logout. Please try again.")
     }
   }
 

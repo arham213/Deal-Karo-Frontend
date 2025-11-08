@@ -8,18 +8,19 @@ import { BLOCK_OPTIONS, PHASE_OPTIONS } from "@/constants/listingOptions"
 import { User } from "@/types/auth"
 import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
+import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -34,7 +35,6 @@ interface AddListingState {
   area: AreaSize
   additionalArea: string
   price: string
-  totalPrice: string
   pricePerMarla: string
   rentPerMonth: string
   installmentPerMonth: string
@@ -59,7 +59,6 @@ export default function AddListingScreen() {
     area: "5 Marla",
     additionalArea: "",
     price: "",
-    totalPrice: "",
     pricePerMarla: "",
     rentPerMonth: "",
     installmentPerMonth: "",
@@ -69,6 +68,11 @@ export default function AddListingScreen() {
     hasPole: false,
     hasWire: false,
   })
+  const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
+  const [customAreaValue, setCustomAreaValue] = useState("")
+  const [customAreaType, setCustomAreaType] = useState<string>("Marla")
+
+  const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
 
   const handleInputChange = (key: keyof AddListingState, value: string | boolean) => {
     setFormData((prev) => ({
@@ -99,16 +103,12 @@ export default function AddListingScreen() {
         additionalArea: formData.additionalArea,
         ...((formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && {
           pricePerMarla: formData.pricePerMarla,
-          totalPrice: formData.totalPrice
         }),
-        ...(formData.propertyType === "house" && formData.listingType === "cash" && {
-          price: formData.price
-        }),
+        price: formData.price,
         // ...(formData.propertyType === "house" && formData.listingType === "rent" && {
         //   rentPerMonth: formData.rentPerMonth
         // }),
         ...(formData.listingType === "installments" && {
-          price: formData.price,
           installment: {
             perMonth: formData.installmentPerMonth,
             quarterly: formData.installmentQuarterly
@@ -116,10 +116,10 @@ export default function AddListingScreen() {
         }),
         description: formData.description,
         forContact: formData.contact,
-        features: JSON.stringify({
-          hasPole: formData.hasPole,
-          hasWire: formData.hasWire
-        })
+        // features: JSON.stringify({
+        //   hasPole: formData.hasPole,
+        //   hasWire: formData.hasWire
+        // })
       }
 
       console.log('userData:', userData);
@@ -150,6 +150,24 @@ export default function AddListingScreen() {
   }
 
   const areaSizes: AreaSize[] = ["3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "custom"]
+
+  const handleAreaSelect = (size: AreaSize) => {
+    if (size === "custom") {
+      setShowCustomAreaModal(true)
+    } else {
+      handleInputChange("area", size)
+    }
+  }
+
+  const handleCustomAreaSave = () => {
+    if (customAreaValue && customAreaType) {
+      const customArea = `${customAreaValue} ${customAreaType}` as AreaSize
+      handleInputChange("area", customArea)
+      setShowCustomAreaModal(false)
+      setCustomAreaValue("")
+      setCustomAreaType("Marla")
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -301,7 +319,7 @@ export default function AddListingScreen() {
                 <TouchableOpacity
                   key={size}
                   style={[styles.areaButton, formData.area === size && styles.activeAreaButton]}
-                  onPress={() => handleInputChange("area", size)}
+                  onPress={() => handleAreaSelect(size)}
                 >
                   <Text style={[styles.areaButtonText, formData.area === size && styles.activeAreaButtonText]}>
                     {size}
@@ -309,12 +327,29 @@ export default function AddListingScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+            {/* Show custom area if selected */}
+            {formData.area && formData.area !== "custom" && !areaSizes.slice(0, -1).includes(formData.area) && (
+              <View style={styles.customAreaDisplay}>
+                <Text style={styles.customAreaText}>Selected: {formData.area}</Text>
+                <TouchableOpacity onPress={() => {
+                  // Extract value and type from selected area
+                  const parts = formData.area.split(" ")
+                  if (parts.length >= 2) {
+                    setCustomAreaValue(parts[0])
+                    setCustomAreaType(parts.slice(1).join(" "))
+                  }
+                  setShowCustomAreaModal(true)
+                }}>
+                  <Text style={styles.editCustomAreaText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Additional Area */}
           <View style={styles.section}>
             <TextInput
-              label="Additional Area (Sq.ft)"
+              label="Additional Area (Sq/ft)"
               placeholder="E.g., 500"
               value={formData.additionalArea}
               onChangeText={(value) => handleInputChange("additionalArea", value)}
@@ -336,31 +371,20 @@ export default function AddListingScreen() {
                       keyboardType="decimal-pad"
                     />
                   </View>
-                  <View style={styles.section}>
-                    <TextInput
-                      label="Total Price"
-                      placeholder="25,000,000"
-                      value={formData.totalPrice}
-                      onChangeText={(value) => handleInputChange("totalPrice", value)}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
                 </>
-              )}
-
-              {formData.propertyType === "house" && (
-                <View style={styles.section}>
-                  <TextInput
-                    label="Price"
-                    placeholder="25,000,000"
-                    value={formData.price}
-                    onChangeText={(value) => handleInputChange("price", value)}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
               )}
             </>
           )}
+
+          <View style={styles.section}>
+            <TextInput
+              label={ formData.propertyType === "plot" || formData.propertyType === "commercial plot" ? "Total Price" : "Price" }
+              placeholder="25,000,000"
+              value={formData.price}
+              onChangeText={(value) => handleInputChange("price", value)}
+              keyboardType="decimal-pad"
+            />
+          </View>
 
           {/* Rent Type */}
           {/* {formData.listingType === "rent" && (
@@ -378,15 +402,6 @@ export default function AddListingScreen() {
           {/* Installment Type */}
           {formData.listingType === "installments" && (
             <>
-              <View style={styles.section}>
-                <TextInput
-                  label="Price"
-                  placeholder="25,000,000"
-                  value={formData.price}
-                  onChangeText={(value) => handleInputChange("price", value)}
-                  keyboardType="decimal-pad"
-                />
-              </View>
               <View style={styles.section}>
                 <TextInput
                   label="Installment per month"
@@ -420,7 +435,7 @@ export default function AddListingScreen() {
           </View>
 
           {/* More Options */}
-          <View style={styles.section}>
+          {/* <View style={styles.section}>
             <Text style={styles.sectionLabel}>More Options</Text>
             <View style={styles.optionRow}>
               <Text style={styles.optionLabel}>Don't have a pole</Text>
@@ -430,7 +445,7 @@ export default function AddListingScreen() {
               <Text style={styles.optionLabel}>No wire</Text>
               <Switch value={formData.hasWire} onValueChange={(value) => handleInputChange("hasWire", value)} />
             </View>
-          </View>
+          </View> */}
 
           {/* Contact */}
           <View style={styles.section}>
@@ -452,6 +467,64 @@ export default function AddListingScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Area Modal */}
+      <Modal visible={showCustomAreaModal} animationType="slide" transparent={true} onRequestClose={() => setShowCustomAreaModal(false)}>
+        <SafeAreaView style={styles.customModalSafeArea}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.customModalKeyboardView}>
+            <View style={styles.customModalOverlay}>
+              <View style={styles.customModalContent}>
+                {/* Header */}
+                <View style={styles.customModalHeader}>
+                  <Text style={styles.customModalTitle}>Custom Area</Text>
+                  <TouchableOpacity onPress={() => setShowCustomAreaModal(false)}>
+                    <Ionicons name="close" size={24} color={Colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Content */}
+                <View style={styles.customModalBody}>
+                  <View style={styles.customAreaInputRow}>
+                    <View style={styles.customAreaValueContainer}>
+                      <Text style={styles.customAreaLabel}>Area Value</Text>
+                      <TextInput
+                        placeholder="Enter value"
+                        value={customAreaValue}
+                        onChangeText={setCustomAreaValue}
+                        keyboardType="decimal-pad"
+                        style={styles.customAreaValueInput}
+                      />
+                    </View>
+                    <View style={styles.customAreaTypeContainer}>
+                      <Text style={styles.customAreaLabel}>Type</Text>
+                      <Dropdown
+                        placeholder="Select type"
+                        options={AREA_TYPE_OPTIONS}
+                        value={customAreaType}
+                        onValueChange={setCustomAreaType}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {/* Footer */}
+                <View style={styles.customModalFooter}>
+                  <TouchableOpacity style={styles.customModalCancelButton} onPress={() => setShowCustomAreaModal(false)}>
+                    <Text style={styles.customModalCancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.customModalSaveButton, (!customAreaValue || !customAreaType) && styles.customModalSaveButtonDisabled]} 
+                    onPress={handleCustomAreaSave}
+                    disabled={!customAreaValue || !customAreaType}
+                  >
+                    <Text style={styles.customModalSaveButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -591,5 +664,117 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.text,
+  },
+  customAreaDisplay: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  customAreaText: {
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: "500",
+  },
+  editCustomAreaText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: "600",
+  },
+  customModalSafeArea: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  customModalKeyboardView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  customModalOverlay: {
+    width: "90%",
+    maxWidth: 400,
+  },
+  customModalContent: {
+    backgroundColor: Colors.neutral10,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  customModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  customModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  customModalBody: {
+    padding: 16,
+  },
+  customAreaInputRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  customAreaValueContainer: {
+    flex: 1,
+  },
+  customAreaTypeContainer: {
+    flex: 1,
+  },
+  customAreaLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  customAreaValueInput: {
+    // flex: 1,
+  },
+  customModalFooter: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  customModalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: "center",
+  },
+  customModalCancelButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.text,
+  },
+  customModalSaveButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+  },
+  customModalSaveButtonDisabled: {
+    opacity: 0.5,
+  },
+  customModalSaveButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: Colors.white,
   },
 })

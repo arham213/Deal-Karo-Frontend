@@ -28,10 +28,10 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
   // Parse moreOptions to get features
   const getFeatures = () => {
     const features: string[] = []
-    if (!listing?.moreOptions) return features
+    if (!listing?.features) return features
 
     try {
-      const moreOptions = JSON.parse(listing.moreOptions)
+      const moreOptions = JSON.parse(listing.features)
       if (moreOptions.hasPole) {
         features.push("Don't have a pole")
       }
@@ -44,7 +44,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
     return features
   }
 
-  const features = getFeatures()
+  // const features = getFeatures()
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -152,7 +152,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
               <Text style={styles.value}>{listing?._id}</Text>
             </View>
 
-            {features.length > 0 && (
+            {/* {features.length > 0 && (
               <View style={styles.featuresSection}>
                 <Text style={styles.featuresLabel}>Features</Text>
                 <View style={styles.featuresList}>
@@ -164,7 +164,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
                   ))}
                 </View>
               </View>
-            )}
+            )} */}
           </View>
 
           <View style={styles.buttonGroup}>

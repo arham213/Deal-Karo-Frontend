@@ -65,3 +65,14 @@ export async function getOnboardingCompleted() {
     throw new Error('Failed to get onboarding completed: ' + error.message);
   }
 }
+
+// Clear all auth-related data
+export async function clearAuthData() {
+  try {
+    await deleteToken();
+    await deleteUser();
+    // Note: We keep onboardingCompleted so user doesn't see onboarding again after logout
+  } catch (error: any) {
+    throw new Error('Failed to clear auth data: ' + error.message);
+  }
+}
