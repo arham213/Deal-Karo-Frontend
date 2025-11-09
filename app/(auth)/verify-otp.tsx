@@ -7,13 +7,13 @@ import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import {
-  KeyboardAvoidingView,
-  Platform,
-  TextInput as RNTextInput,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    TextInput as RNTextInput,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native"
 
 export default function VerifyOTPScreen() {
@@ -22,20 +22,21 @@ export default function VerifyOTPScreen() {
   const [otp, setOtp] = useState(["", "", "", ""])
   const [loading, setLoading] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
+  const [touched, setTouched] = useState(false)
   const inputRefs = useRef<(RNTextInput | null)[]>([null, null, null, null])
 
   const BASE_URL = 'http://10.224.131.91:8080/api';
 
   const handleOTPChange = (index: number, value: string) => {
-    if (value.length > 1) return
+    const sanitized = value.replace(/\D/g, "").slice(0, 1)
 
     const newOtp = [...otp]
-    newOtp[index] = value
+    newOtp[index] = sanitized
 
     setOtp(newOtp)
 
     // Auto-focus to next input
-    if (value && index < 3) {
+    if (sanitized && index < 3) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -49,7 +50,7 @@ export default function VerifyOTPScreen() {
   const handleVerifyOTP = async () => {
     const otpCode = otp.join("")
     if (otpCode.length !== 4) {
-      alert("Please enter all 4 digits")
+      setTouched(true)
       return
     }
 
@@ -68,6 +69,7 @@ export default function VerifyOTPScreen() {
 
       if (response?.data.success) {
         alert("OTP verified successfully");
+        setTouched(false)
         router.push({
             pathname: '/reset-password',
             params: { userId: response.data.data.userId}
@@ -83,6 +85,8 @@ export default function VerifyOTPScreen() {
       } else {
         alert("Something went wrong. Please try again later")
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -126,6 +130,10 @@ export default function VerifyOTPScreen() {
     }
   }
 
+  const otpCode = otp.join("")
+  const showError = touched && otpCode.length !== 4
+  const isSubmitDisabled = loading || otpCode.length !== 4
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -138,7 +146,7 @@ export default function VerifyOTPScreen() {
               <RNTextInput
                 key={index}
                 ref={(ref) => {inputRefs.current[index] = ref}}
-                style={styles.otpInput}
+                style={[styles.otpInput, showError && styles.otpInputError]}
                 maxLength={1}
                 keyboardType="number-pad"
                 value={digit}
@@ -152,6 +160,7 @@ export default function VerifyOTPScreen() {
               />
             ))}
           </View>
+          {showError && <Text style={styles.errorText}>Enter the 4-digit code sent to your email</Text>}
         </View>
 
         <View style={styles.resendContainer}>
@@ -164,7 +173,7 @@ export default function VerifyOTPScreen() {
           </Text>
         </View>
 
-        <Button title="Continue" onPress={handleVerifyOTP} loading={loading} style={styles.button} />
+        <Button title="Continue" onPress={handleVerifyOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -207,6 +216,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
     backgroundColor: Colors.inputBackground,
   },
+  otpInputError: {
+    borderColor: Colors.error,
+    backgroundColor: "#FFECEC",
+  },
   resendContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -224,6 +237,12 @@ const styles = StyleSheet.create({
   },
   resendDisabled: {
     opacity: 0.5,
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 12,
+    color: Colors.error,
+    textAlign: "center",
   },
   button: {
     marginTop: 20,

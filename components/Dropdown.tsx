@@ -9,9 +9,11 @@ interface DropdownProps {
   options: string[]
   value: string
   onValueChange: (value: string) => void
+  error?: string
+  helperText?: string
 }
 
-export function Dropdown({ label, placeholder = "Select", options, value, onValueChange }: DropdownProps) {
+export function Dropdown({ label, placeholder = "Select", options, value, onValueChange, error, helperText }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSelect = (selectedValue: string) => {
@@ -22,7 +24,7 @@ export function Dropdown({ label, placeholder = "Select", options, value, onValu
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <TouchableOpacity style={styles.dropdown} onPress={() => setIsOpen(true)}>
+      <TouchableOpacity style={[styles.dropdown, error && styles.dropdownError]} onPress={() => setIsOpen(true)}>
         <Text style={[styles.dropdownText, !value && styles.placeholderText]}>
           {value || placeholder}
         </Text>
@@ -60,6 +62,7 @@ export function Dropdown({ label, placeholder = "Select", options, value, onValu
           </View>
         </TouchableOpacity>
       </Modal>
+      {error ? <Text style={styles.errorText}>{error}</Text> : helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
     </View>
   )
 }
@@ -83,6 +86,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.inputBackground || Colors.white,
+  },
+  dropdownError: {
+    borderColor: Colors.error,
+    backgroundColor: "#FFECEC",
   },
   dropdownText: {
     fontSize: 14,
@@ -139,6 +146,16 @@ const styles = StyleSheet.create({
   selectedOptionText: {
     fontWeight: "600",
     color: Colors.primary,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.error,
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
 })
 

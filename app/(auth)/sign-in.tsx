@@ -5,42 +5,141 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { getOnboardingCompleted, getUser, saveToken, saveUser } from "@/utils/secureStore"
+import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
+type SignInField = "email" | "password"
+
+type SignInFormState = Record<SignInField, string>
+
+const createInitialFormState = (): SignInFormState => ({
+  email: "",
+  password: "",
+})
+
+const createTouchedState = (value: boolean) =>
+  ({
+    email: value,
+    password: value,
+  }) as Record<SignInField, boolean>
+
 export default function SignInScreen() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [form, setForm] = useState<SignInFormState>(createInitialFormState)
+  const [errors, setErrors] = useState<ValidationErrors<SignInField>>({})
+  const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
   const BASE_URL = 'http://10.224.131.91:8080/api';
 
+  const validateField = (field: SignInField, value: string) => {
+    const trimmed = value.trim()
+    switch (field) {
+      case "email":
+        if (!Validation.isRequired(trimmed)) return "Email is required"
+        if (!Validation.isEmail(trimmed)) return "Enter a valid email address"
+        return undefined
+      case "password":
+        if (!Validation.isRequired(value)) return "Password is required"
+        return undefined
+      default:
+        return undefined
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: ValidationErrors<SignInField> = {}
+    ;(Object.keys(form) as SignInField[]).forEach((field) => {
+      const errorMessage = validateField(field, form[field])
+      if (errorMessage) {
+        newErrors[field] = errorMessage
+      }
+    })
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleChange =
+    (field: SignInField) =>
+    (value: string) => {
+      setForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+
+      if (touched[field]) {
+        const errorMessage = validateField(field, value)
+        setErrors((prev) => {
+          const next = { ...prev }
+          if (errorMessage) {
+            next[field] = errorMessage
+          } else {
+            delete next[field]
+          }
+          return next
+        })
+      }
+    }
+
+  const handleBlur = (field: SignInField) => () => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }))
+
+    const errorMessage = validateField(field, form[field])
+    setErrors((prev) => {
+      const next = { ...prev }
+      if (errorMessage) {
+        next[field] = errorMessage
+      } else {
+        delete next[field]
+      }
+      return next
+    })
+  }
+
+  const markAllTouched = () => {
+    setTouched(createTouchedState(true))
+  }
+
+  const hasEmptyField = useMemo(
+    () => (Object.keys(form) as SignInField[]).some((field) => !Validation.isRequired(form[field])),
+    [form],
+  )
+
+  const hasAnyError = useMemo(
+    () => (Object.keys(form) as SignInField[]).some((field) => Boolean(validateField(field, form[field]))),
+    [form],
+  )
+
+  const isSubmitDisabled = loading || hasEmptyField || hasAnyError
+
   const handleSignIn = async () => {
-    if (!email || !password) {
-      alert("Please fill in all fields")
+    const isValid = validateForm()
+    if (!isValid) {
+      markAllTouched()
       return
     }
 
     setLoading(true)
     try {
       const userData = {
-        email: email,
-        password: password,
+        email: form.email.trim(),
+        password: form.password,
       }
 
       const response = await axios.post(`${BASE_URL}/users/signin`, userData);
 
-      //console.log('response:', response?.data);
-
-      setLoading(false);
-
       if (response?.data.success) {
         await saveToken(response.data.data.token);
         await saveUser(response.data.data.user);
+        setErrors({})
+        setTouched(createTouchedState(false))
 
         const user = await getUser()
         console.log('user:', user)
@@ -54,13 +153,13 @@ export default function SignInScreen() {
         alert(response?.data.error.message || "Signin failed");
       }
     } catch (error) {
-      setLoading(false)
-      
       if (axios.isAxiosError(error)) {
         alert(error?.response?.data?.error?.message);
       } else {
         alert("Something went wrong. Please try again later")
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -75,24 +174,29 @@ export default function SignInScreen() {
               <TextInput
                 label="Email"
                 placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
+                value={form.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+                autoCapitalize="none"
                 keyboardType="email-address"
+                error={touched.email ? errors.email : undefined}
                 editable={!loading}
               />
 
               <TextInput
                 label="Password"
                 placeholder="Enter your password"
-                value={password}
-                onChangeText={setPassword}
+                value={form.password}
+                onChangeText={handleChange("password")}
+                onBlur={handleBlur("password")}
                 secureTextEntry
+                error={touched.password ? errors.password : undefined}
                 editable={!loading}
               />
             </View>
             
 
-            <Button title="Sign In" onPress={handleSignIn} loading={loading} style={styles.button} />
+            <Button title="Sign In" onPress={handleSignIn} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
             <View style={styles.forgotPasswordContainer}>
               <Text style={styles.forgotPasswordLink} onPress={() => router.push("/forgot-password")}>

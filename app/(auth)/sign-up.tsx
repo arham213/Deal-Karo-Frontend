@@ -4,37 +4,156 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
+type SignUpField = "fullName" | "email" | "contactNo" | "estateName" | "password"
+
+type SignUpFormState = Record<SignUpField, string>
+
+const createInitialFormState = (): SignUpFormState => ({
+  fullName: "",
+  email: "",
+  contactNo: "",
+  estateName: "",
+  password: "",
+})
+
+const createTouchedState = (value: boolean) =>
+  ({
+    fullName: value,
+    email: value,
+    contactNo: value,
+    estateName: value,
+    password: value,
+  }) as Record<SignUpField, boolean>
+
+const PASSWORD_HELPER_TEXT = "Use at least 8 characters with upper, lower case letters and a number"
+
 export default function SignUpScreen() {
   const router = useRouter()
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [contactNo, setContactNo] = useState("")
-  const [estateName, setEstateName] = useState("")
-  const [password, setPassword] = useState("")
+  const [form, setForm] = useState<SignUpFormState>(createInitialFormState)
+  const [errors, setErrors] = useState<ValidationErrors<SignUpField>>({})
+  const [touched, setTouched] = useState<Record<SignUpField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
   const BASE_URL = 'http://10.224.131.91:8080/api';
 
+  const validateField = (field: SignUpField, value: string) => {
+    const trimmed = value.trim()
+    switch (field) {
+      case "fullName":
+        if (!Validation.isRequired(trimmed)) return "Full name is required"
+        if (!Validation.hasMinLength(trimmed, 3)) return "Full name must be at least 3 characters"
+        return undefined
+      case "email":
+        if (!Validation.isRequired(trimmed)) return "Email is required"
+        if (!Validation.isEmail(trimmed)) return "Enter a valid email address"
+        return undefined
+      case "contactNo": {
+        if (!Validation.isRequired(trimmed)) return "Contact number is required"
+        if (!Validation.isPhone(trimmed)) return "Enter a valid phone number with country code"
+        return undefined
+      }
+      case "estateName":
+        if (!Validation.isRequired(trimmed)) return "Estate name is required"
+        return undefined
+      case "password":
+        if (!Validation.isRequired(value)) return "Password is required"
+        if (!Validation.isStrongPassword(value)) return "Password must include upper, lower case letters and a number"
+        return undefined
+      default:
+        return undefined
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors: ValidationErrors<SignUpField> = {}
+    ;(Object.keys(form) as SignUpField[]).forEach((field) => {
+      const errorMessage = validateField(field, form[field])
+      if (errorMessage) {
+        newErrors[field] = errorMessage
+      }
+    })
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleChange =
+    (field: SignUpField) =>
+    (value: string) => {
+      setForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }))
+
+      if (touched[field]) {
+        const errorMessage = validateField(field, value)
+        setErrors((prev) => {
+          const next = { ...prev }
+          if (errorMessage) {
+            next[field] = errorMessage
+          } else {
+            delete next[field]
+          }
+          return next
+        })
+      }
+    }
+
+  const handleBlur = (field: SignUpField) => () => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }))
+
+    const errorMessage = validateField(field, form[field])
+    setErrors((prev) => {
+      const next = { ...prev }
+      if (errorMessage) {
+        next[field] = errorMessage
+      } else {
+        delete next[field]
+      }
+      return next
+    })
+  }
+
+  const markAllTouched = () => {
+    setTouched(createTouchedState(true))
+  }
+
+  const hasEmptyRequiredField = useMemo(
+    () => (Object.keys(form) as SignUpField[]).some((field) => !Validation.isRequired(form[field])),
+    [form],
+  )
+
+  const hasAnyError = useMemo(
+    () => (Object.keys(form) as SignUpField[]).some((field) => Boolean(validateField(field, form[field]))),
+    [form],
+  )
+
+  const isSubmitDisabled = loading || hasEmptyRequiredField || hasAnyError
+
   const handleSignUp = async () => {
-    if (!fullName || !contactNo || !estateName) {
-      alert("Please fill in all fields")
+    const isValid = validateForm()
+    if (!isValid) {
+      markAllTouched()
       return
     }
 
     setLoading(true)
     try {
       const userData = {
-        name: fullName,
-        email: email,
-        contactNo: contactNo,
-        estateName: estateName,
-        password: password,
+        name: form.fullName.trim(),
+        email: form.email.trim(),
+        contactNo: form.contactNo.trim(),
+        estateName: form.estateName.trim(),
+        password: form.password,
         role: "dealer"
       }
 
@@ -42,22 +161,23 @@ export default function SignUpScreen() {
 
       console.log('response:', response.data);
 
-      setLoading(false);
-
       if (response?.data.success) {
         alert("Signup Successful");
         router.push('/sign-in');
+        setForm(createInitialFormState())
+        setErrors({})
+        setTouched(createTouchedState(false))
       } else {
         alert(response?.data.error.message);
       }
     } catch (error) {
-      setLoading(false)
-
       if (axios.isAxiosError(error)) {
         alert(error?.response?.data?.error?.message);
       } else {
         alert("Something went wrong. Please try again later")
       }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -72,46 +192,60 @@ export default function SignUpScreen() {
               <TextInput
                 label="Full Name"
                 placeholder="Type here"
-                value={fullName}
-                onChangeText={setFullName}
+                value={form.fullName}
+                onChangeText={handleChange("fullName")}
+                onBlur={handleBlur("fullName")}
+                error={touched.fullName ? errors.fullName : undefined}
                 editable={!loading}
               />
 
               <TextInput
                 label="Email"
                 placeholder="example@gmail.com"
-                value={email}
-                onChangeText={setEmail}
+                value={form.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={touched.email ? errors.email : undefined}
                 editable={!loading}
               />
 
               <TextInput
                 label="Contact Number"
                 placeholder="+92 300 xxxx xxx"
-                value={contactNo}
-                onChangeText={setContactNo}
+                value={form.contactNo}
+                onChangeText={handleChange("contactNo")}
+                onBlur={handleBlur("contactNo")}
                 keyboardType="phone-pad"
+                error={touched.contactNo ? errors.contactNo : undefined}
                 editable={!loading}
               />
 
               <TextInput
                 label="Estate Name"
                 placeholder="Type here"
-                value={estateName}
-                onChangeText={setEstateName}
+                value={form.estateName}
+                onChangeText={handleChange("estateName")}
+                onBlur={handleBlur("estateName")}
+                error={touched.estateName ? errors.estateName : undefined}
                 editable={!loading}
               />
 
               <TextInput
                 label="Set Password"
                 placeholder="Type here"
-                value={password}
-                onChangeText={setPassword}
+                value={form.password}
+                onChangeText={handleChange("password")}
+                onBlur={handleBlur("password")}
+                error={touched.password ? errors.password : undefined}
+                helperText={PASSWORD_HELPER_TEXT}
+                secureTextEntry
                 editable={!loading}
               />
             </View>
 
-            <Button title="Sign Up" onPress={handleSignUp} loading={loading} style={styles.button} />
+            <Button title="Sign Up" onPress={handleSignUp} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>

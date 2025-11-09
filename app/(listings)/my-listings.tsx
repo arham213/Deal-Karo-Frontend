@@ -546,6 +546,7 @@ export default function MyListingsScreen() {
           setFilters(appliedFilters)
           setShowFilterModal(false)
         }}
+        propertyType={activePropertyTab}
       />
 
       <ListingDetailsModal

@@ -4,14 +4,15 @@ import { Button } from "@/components/Button"
 import { Dropdown } from "@/components/Dropdown"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
-import { BLOCK_OPTIONS, PHASE_OPTIONS } from "@/constants/listingOptions"
+import { COMMERCIAL_BLOCKS, PHASE_OPTIONS, RESEDENTIAL_BLOCKS } from "@/constants/listingOptions"
 import { User } from "@/types/auth"
 import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
+import { Validation, type ValidationErrors } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   KeyboardAvoidingView,
   Modal,
@@ -45,10 +46,43 @@ interface AddListingState {
   hasWire: boolean
 }
 
+type ListingField =
+  | "plotNo"
+  | "houseNo"
+  | "block"
+  | "phase"
+  | "area"
+  | "additionalArea"
+  | "price"
+  | "pricePerMarla"
+  | "installmentPerMonth"
+  | "installmentQuarterly"
+  | "contact"
+
+const FORM_FIELDS: ListingField[] = [
+  "plotNo",
+  "houseNo",
+  "block",
+  "phase",
+  "area",
+  "additionalArea",
+  "price",
+  "pricePerMarla",
+  "installmentPerMonth",
+  "installmentQuarterly",
+  "contact",
+]
+
+const createTouchedState = (value: boolean): Record<ListingField, boolean> =>
+  FORM_FIELDS.reduce((acc, field) => {
+    acc[field] = value
+    return acc
+  }, {} as Record<ListingField, boolean>)
+
 export default function AddListingScreen() {
   const router = useRouter()
 
-  const [loading, setLoading] = useState<Boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<AddListingState>({
     propertyType: "plot",
     listingType: "cash",
@@ -71,19 +105,212 @@ export default function AddListingScreen() {
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
   const [customAreaValue, setCustomAreaValue] = useState("")
   const [customAreaType, setCustomAreaType] = useState<string>("Marla")
+  const [customAreaError, setCustomAreaError] = useState<string | undefined>(undefined)
+  const [errors, setErrors] = useState<ValidationErrors<ListingField>>({})
+  const [touched, setTouched] = useState<Record<ListingField, boolean>>(createTouchedState(false))
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
 
-  const handleInputChange = (key: keyof AddListingState, value: string | boolean) => {
-    setFormData((prev) => ({
+  const isValidatableField = (key: keyof AddListingState): key is ListingField => {
+    return (FORM_FIELDS as string[]).includes(key as string)
+  }
+
+  const validateField = (field: ListingField, value: string, state: AddListingState = formData) => {
+    const trimmed = value.trim()
+    switch (field) {
+      case "plotNo":
+        if (!(state.propertyType === "plot" || state.propertyType === "commercial plot")) return undefined
+        if (!Validation.isRequired(trimmed)) return "Plot number is required"
+        if (!Validation.isNumeric(trimmed)) return "Plot number must be numeric"
+        return undefined
+      case "houseNo":
+        if (state.propertyType !== "house") return undefined
+        if (!Validation.isRequired(trimmed)) return "House number is required"
+        if (!Validation.isNumeric(trimmed)) return "House number must be numeric"
+        return undefined
+      case "block":
+        if (!Validation.isRequired(trimmed)) return "Block is required"
+        return undefined
+      case "phase":
+        if (!Validation.isRequired(trimmed)) return "Phase is required"
+        return undefined
+      case "area":
+        if (!Validation.isRequired(value)) return "Area is required"
+        if (value === "custom") return "Please specify the custom area"
+        return undefined
+      case "additionalArea":
+        if (!trimmed) return undefined
+        if (!Validation.isNumeric(trimmed)) return "Additional area must be numeric"
+        return undefined
+      case "price":
+        if (!Validation.isRequired(trimmed)) return "Price is required"
+        if (!Validation.isNumeric(trimmed)) return "Price must be numeric"
+        if (Validation.toNumber(trimmed) <= 0) return "Price must be greater than 0"
+        return undefined
+      case "pricePerMarla":
+        if (!((state.propertyType === "plot" || state.propertyType === "commercial plot") && state.listingType === "cash"))
+          return undefined
+        if (!Validation.isRequired(trimmed)) return "Price per marla is required"
+        if (!Validation.isNumeric(trimmed)) return "Price per marla must be numeric"
+        if (Validation.toNumber(trimmed) <= 0) return "Price per marla must be greater than 0"
+        return undefined
+      case "installmentPerMonth":
+        if (state.listingType !== "installments") return undefined
+        if (!Validation.isRequired(trimmed)) return "Monthly installment is required"
+        if (!Validation.isNumeric(trimmed)) return "Monthly installment must be numeric"
+        return undefined
+      case "installmentQuarterly":
+        if (state.listingType !== "installments") return undefined
+        if (!Validation.isRequired(trimmed)) return "Quarterly installment is required"
+        if (!Validation.isNumeric(trimmed)) return "Quarterly installment must be numeric"
+        return undefined
+      case "contact":
+        if (!Validation.isRequired(trimmed)) return "Contact number is required"
+        if (!Validation.isPhone(trimmed)) return "Enter a valid phone number with country code"
+        return undefined
+      default:
+        return undefined
+    }
+  }
+
+  const updateTouchedErrors = (state: AddListingState) => {
+    setErrors((prev) => {
+      const nextErrors = { ...prev }
+      FORM_FIELDS.forEach((field) => {
+        if (touched[field]) {
+          const fieldValue = state[field] as string
+          const errorMessage = validateField(field, fieldValue, state)
+          if (errorMessage) {
+            nextErrors[field] = errorMessage
+          } else {
+            delete nextErrors[field]
+          }
+        }
+      })
+      return nextErrors
+    })
+  }
+
+  const updateForm = (updater: (prev: AddListingState) => AddListingState) => {
+    setFormData((prev) => {
+      const next = updater(prev)
+      updateTouchedErrors(next)
+      return next
+    })
+  }
+
+  const handleInputChange = (key: keyof AddListingState, value: string | boolean, options?: { forceValidate?: boolean }) => {
+    if (key === "propertyType") {
+      const propertyType = value as PropertyType
+      updateForm((prev) => {
+        const next: AddListingState = {
+          ...prev,
+          propertyType,
+          listingType: "cash",
+          plotNo: propertyType === "plot" || propertyType === "commercial plot" ? prev.plotNo : "",
+          houseNo: propertyType === "house" ? prev.houseNo : "",
+          pricePerMarla: propertyType === "plot" || propertyType === "commercial plot" ? prev.pricePerMarla : "",
+          installmentPerMonth: "",
+          installmentQuarterly: "",
+        }
+        return next
+      })
+      return
+    }
+
+    if (key === "listingType") {
+      const listingType = value as ListingType
+      updateForm((prev) => ({
+        ...prev,
+        listingType,
+        installmentPerMonth: listingType === "installments" ? prev.installmentPerMonth : "",
+        installmentQuarterly: listingType === "installments" ? prev.installmentQuarterly : "",
+        pricePerMarla:
+          prev.propertyType === "plot" || prev.propertyType === "commercial plot"
+            ? prev.pricePerMarla
+            : "",
+      }))
+      return
+    }
+
+    updateForm((prev) => ({
       ...prev,
       [key]: value,
     }))
+
+    if (typeof value === "string" && isValidatableField(key) && (options?.forceValidate || touched[key])) {
+      const nextState = {
+        ...formData,
+        [key]: value,
+      } as AddListingState
+      const errorMessage = validateField(key, value, nextState)
+      setErrors((prev) => {
+        const nextErrors = { ...prev }
+        if (errorMessage) {
+          nextErrors[key] = errorMessage
+        } else {
+          delete nextErrors[key]
+        }
+        return nextErrors
+      })
+    }
   }
 
+  const handleFieldBlur = (field: ListingField) => () => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }))
+
+    const value = (formData[field] as unknown as string) || ""
+    const errorMessage = validateField(field, value, formData)
+    setErrors((prev) => {
+      const nextErrors = { ...prev }
+      if (errorMessage) {
+        nextErrors[field] = errorMessage
+      } else {
+        delete nextErrors[field]
+      }
+      return nextErrors
+    })
+  }
+
+  const validateFormState = (state: AddListingState = formData) => {
+    const newErrors: ValidationErrors<ListingField> = {}
+    FORM_FIELDS.forEach((field) => {
+      const value = (state[field] as unknown as string) || ""
+      const errorMessage = validateField(field, value, state)
+      if (errorMessage) {
+        newErrors[field] = errorMessage
+      }
+    })
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const markAllTouched = () => {
+    setTouched(createTouchedState(true))
+  }
+
+  const hasBlockingErrors = useMemo(
+    () =>
+      FORM_FIELDS.some((field) => {
+        const value = (formData[field] as unknown as string) || ""
+        return Boolean(validateField(field, value, formData))
+      }),
+    [formData],
+  )
+
+  const isSubmitDisabled = loading || hasBlockingErrors
   const BASE_URL = 'http://10.224.131.91:8080/api';
 
   const handleAddListing = async () => {
+    const isValid = validateFormState()
+    if (!isValid) {
+      markAllTouched()
+      return
+    }
+
     setLoading(true)
     try {
       const user: User = await getUser();
@@ -132,41 +359,57 @@ export default function AddListingScreen() {
 
       //console.log('response:', response?.data);
 
-      setLoading(false);
       if (response?.data.success) {
         router.back()
       } else {
         alert("Property creation failed");
       }
     } catch (error) {
-      setLoading(false)
-      
       if (axios.isAxiosError(error)) {
         alert(error?.response?.data?.error?.message);
       } else {
         alert("Something went wrong. Please try again later")
       }
+    } finally {
+      setLoading(false)
     }
   }
 
   const areaSizes: AreaSize[] = ["3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "custom"]
 
   const handleAreaSelect = (size: AreaSize) => {
+    setTouched((prev) => ({
+      ...prev,
+      area: true,
+    }))
     if (size === "custom") {
+      setCustomAreaError(undefined)
       setShowCustomAreaModal(true)
     } else {
-      handleInputChange("area", size)
+      handleInputChange("area", size, { forceValidate: true })
     }
   }
 
   const handleCustomAreaSave = () => {
-    if (customAreaValue && customAreaType) {
-      const customArea = `${customAreaValue} ${customAreaType}` as AreaSize
-      handleInputChange("area", customArea)
-      setShowCustomAreaModal(false)
-      setCustomAreaValue("")
-      setCustomAreaType("Marla")
+    const trimmedValue = customAreaValue.trim()
+    if (!trimmedValue) {
+      setCustomAreaError("Area value is required")
+      return
     }
+    if (!Validation.isNumeric(trimmedValue)) {
+      setCustomAreaError("Area value must be numeric")
+      return
+    }
+    const customArea = `${trimmedValue} ${customAreaType}` as AreaSize
+    setTouched((prev) => ({
+      ...prev,
+      area: true,
+    }))
+    handleInputChange("area", customArea, { forceValidate: true })
+    setCustomAreaError(undefined)
+    setShowCustomAreaModal(false)
+    setCustomAreaValue("")
+    setCustomAreaType("Marla")
   }
 
   return (
@@ -183,10 +426,7 @@ export default function AddListingScreen() {
             <View style={styles.tabsContainer}>
               <TouchableOpacity
                 style={[styles.propertyTab, formData.propertyType === "plot" && styles.activePropertyTab]}
-                onPress={() => {
-                  handleInputChange("propertyType", "plot")
-                  handleInputChange("listingType", "cash")
-                }}
+                onPress={() => handleInputChange("propertyType", "plot")}
               >
                 <Text
                   style={[styles.propertyTabText, formData.propertyType === "plot" && styles.activePropertyTabText]}
@@ -197,10 +437,7 @@ export default function AddListingScreen() {
               <View style={styles.tabDivider} />
               <TouchableOpacity
                 style={[styles.propertyTab, formData.propertyType === "house" && styles.activePropertyTab]}
-                onPress={() => {
-                  handleInputChange("propertyType", "house")
-                  handleInputChange("listingType", "cash")
-                }}
+                onPress={() => handleInputChange("propertyType", "house")}
               >
                 <Text
                   style={[styles.propertyTabText, formData.propertyType === "house" && styles.activePropertyTabText]}
@@ -210,10 +447,7 @@ export default function AddListingScreen() {
               </TouchableOpacity><View style={styles.tabDivider} />
               <TouchableOpacity
                 style={[styles.propertyTab, formData.propertyType === "commercial plot" && styles.activePropertyTab]}
-                onPress={() => {
-                  handleInputChange("propertyType", "commercial plot")
-                  handleInputChange("listingType", "cash")
-                }}
+                onPress={() => handleInputChange("propertyType", "commercial plot")}
               >
                 <Text
                   style={[styles.propertyTabText, formData.propertyType === "commercial plot" && styles.activePropertyTabText]}
@@ -272,7 +506,9 @@ export default function AddListingScreen() {
                 placeholder="Eg., 101"
                 value={formData.plotNo}
                 onChangeText={(value) => handleInputChange("plotNo", value)}
+                onBlur={handleFieldBlur("plotNo")}
                 keyboardType="decimal-pad"
+                error={touched.plotNo ? errors.plotNo : undefined}
               />
             </View>
           )}
@@ -284,7 +520,9 @@ export default function AddListingScreen() {
                 placeholder="Eg., 101"
                 value={formData.houseNo}
                 onChangeText={(value) => handleInputChange("houseNo", value)}
+                onBlur={handleFieldBlur("houseNo")}
                 keyboardType="decimal-pad"
+                error={touched.houseNo ? errors.houseNo : undefined}
               />
             </View>
           )}
@@ -296,7 +534,11 @@ export default function AddListingScreen() {
               placeholder="Select Phase"
               options={PHASE_OPTIONS}
               value={formData.phase}
-              onValueChange={(value) => handleInputChange("phase", value)}
+              onValueChange={(value) => {
+                setTouched((prev) => ({ ...prev, phase: true }))
+                handleInputChange("phase", value, { forceValidate: true })
+              }}
+              error={touched.phase ? errors.phase : undefined}
             />
           </View>
 
@@ -305,9 +547,13 @@ export default function AddListingScreen() {
             <Dropdown
               label="Block"
               placeholder="Select Block"
-              options={BLOCK_OPTIONS}
+              options={formData.propertyType === "commercial plot" ? COMMERCIAL_BLOCKS : RESEDENTIAL_BLOCKS}
               value={formData.block}
-              onValueChange={(value) => handleInputChange("block", value)}
+              onValueChange={(value) => {
+                setTouched((prev) => ({ ...prev, block: true }))
+                handleInputChange("block", value, { forceValidate: true })
+              }}
+              error={touched.block ? errors.block : undefined}
             />
           </View>
 
@@ -338,12 +584,14 @@ export default function AddListingScreen() {
                     setCustomAreaValue(parts[0])
                     setCustomAreaType(parts.slice(1).join(" "))
                   }
+                  setCustomAreaError(undefined)
                   setShowCustomAreaModal(true)
                 }}>
                   <Text style={styles.editCustomAreaText}>Edit</Text>
                 </TouchableOpacity>
               </View>
             )}
+            {touched.area && errors.area && <Text style={styles.errorText}>{errors.area}</Text>}
           </View>
 
           {/* Additional Area */}
@@ -353,7 +601,9 @@ export default function AddListingScreen() {
               placeholder="E.g., 500"
               value={formData.additionalArea}
               onChangeText={(value) => handleInputChange("additionalArea", value)}
+              onBlur={handleFieldBlur("additionalArea")}
               keyboardType="decimal-pad"
+              error={touched.additionalArea ? errors.additionalArea : undefined}
             />
           </View>
 
@@ -368,7 +618,9 @@ export default function AddListingScreen() {
                       placeholder="2,50,000"
                       value={formData.pricePerMarla}
                       onChangeText={(value) => handleInputChange("pricePerMarla", value)}
+                      onBlur={handleFieldBlur("pricePerMarla")}
                       keyboardType="decimal-pad"
+                      error={touched.pricePerMarla ? errors.pricePerMarla : undefined}
                     />
                   </View>
                 </>
@@ -382,7 +634,9 @@ export default function AddListingScreen() {
               placeholder="25,000,000"
               value={formData.price}
               onChangeText={(value) => handleInputChange("price", value)}
+              onBlur={handleFieldBlur("price")}
               keyboardType="decimal-pad"
+              error={touched.price ? errors.price : undefined}
             />
           </View>
 
@@ -408,7 +662,9 @@ export default function AddListingScreen() {
                   placeholder="60,000"
                   value={formData.installmentPerMonth}
                   onChangeText={(value) => handleInputChange("installmentPerMonth", value)}
+                  onBlur={handleFieldBlur("installmentPerMonth")}
                   keyboardType="decimal-pad"
+                  error={touched.installmentPerMonth ? errors.installmentPerMonth : undefined}
                 />
               </View>
               <View style={styles.section}>
@@ -417,7 +673,9 @@ export default function AddListingScreen() {
                   placeholder="160,000"
                   value={formData.installmentQuarterly}
                   onChangeText={(value) => handleInputChange("installmentQuarterly", value)}
+                  onBlur={handleFieldBlur("installmentQuarterly")}
                   keyboardType="decimal-pad"
+                  error={touched.installmentQuarterly ? errors.installmentQuarterly : undefined}
                 />
               </View>
             </>
@@ -454,13 +712,15 @@ export default function AddListingScreen() {
               placeholder="+92 "
               value={formData.contact}
               onChangeText={(value) => handleInputChange("contact", value)}
+              onBlur={handleFieldBlur("contact")}
               keyboardType="phone-pad"
+              error={touched.contact ? errors.contact : undefined}
             />
           </View>
 
           {/* Buttons */}
           <View style={styles.buttonGroup}>
-            <Button title="Add" onPress={handleAddListing} />
+            <Button title="Add" onPress={handleAddListing} loading={loading} disabled={isSubmitDisabled} />
             <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -469,7 +729,15 @@ export default function AddListingScreen() {
       </KeyboardAvoidingView>
 
       {/* Custom Area Modal */}
-      <Modal visible={showCustomAreaModal} animationType="slide" transparent={true} onRequestClose={() => setShowCustomAreaModal(false)}>
+      <Modal
+        visible={showCustomAreaModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setCustomAreaError(undefined)
+          setShowCustomAreaModal(false)
+        }}
+      >
         <SafeAreaView style={styles.customModalSafeArea}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.customModalKeyboardView}>
             <View style={styles.customModalOverlay}>
@@ -477,7 +745,12 @@ export default function AddListingScreen() {
                 {/* Header */}
                 <View style={styles.customModalHeader}>
                   <Text style={styles.customModalTitle}>Custom Area</Text>
-                  <TouchableOpacity onPress={() => setShowCustomAreaModal(false)}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCustomAreaError(undefined)
+                      setShowCustomAreaModal(false)
+                    }}
+                  >
                     <Ionicons name="close" size={24} color={Colors.text} />
                   </TouchableOpacity>
                 </View>
@@ -490,8 +763,14 @@ export default function AddListingScreen() {
                       <TextInput
                         placeholder="Enter value"
                         value={customAreaValue}
-                        onChangeText={setCustomAreaValue}
+                        onChangeText={(value) => {
+                          setCustomAreaValue(value)
+                          if (customAreaError) {
+                            setCustomAreaError(undefined)
+                          }
+                        }}
                         keyboardType="decimal-pad"
+                        error={customAreaError}
                         style={styles.customAreaValueInput}
                       />
                     </View>
@@ -509,7 +788,13 @@ export default function AddListingScreen() {
 
                 {/* Footer */}
                 <View style={styles.customModalFooter}>
-                  <TouchableOpacity style={styles.customModalCancelButton} onPress={() => setShowCustomAreaModal(false)}>
+                  <TouchableOpacity
+                    style={styles.customModalCancelButton}
+                    onPress={() => {
+                      setCustomAreaError(undefined)
+                      setShowCustomAreaModal(false)
+                    }}
+                  >
                     <Text style={styles.customModalCancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
@@ -636,6 +921,11 @@ const styles = StyleSheet.create({
   },
   activeAreaButtonText: {
     color: Colors.white,
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: Colors.error,
   },
   optionRow: {
     flexDirection: "row",

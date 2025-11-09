@@ -3,13 +3,22 @@ import { TextInput as RNTextInput, StyleSheet, Text, View, type TextInputProps }
 
 interface CustomTextInputProps extends TextInputProps {
   label?: string
+  error?: string
+  helperText?: string
 }
 
-export function TextInput({ label, style, ...props }: CustomTextInputProps) {
+export function TextInput({ label, error, helperText, style, ...props }: CustomTextInputProps) {
+  const showHelperText = !error && helperText
+
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <RNTextInput style={[styles.input, style]} placeholderTextColor={Colors.placeholder} {...props} />
+      <RNTextInput
+        style={[styles.input, error && styles.inputError, style]}
+        placeholderTextColor={Colors.placeholder}
+        {...props}
+      />
+      {error ? <Text style={styles.errorText}>{error}</Text> : showHelperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
     </View>
   )
 }
@@ -31,5 +40,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     color: Colors.text,
+  },
+  inputError: {
+    borderColor: Colors.error,
+    backgroundColor: "#FFECEC",
+  },
+  errorText: {
+    fontSize: 12,
+    color: Colors.error,
+  },
+  helperText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
 })

@@ -2,7 +2,8 @@
 
 import { Dropdown } from "@/components/Dropdown"
 import { Colors } from "@/constants/colors"
-import { BLOCK_OPTIONS, PHASE_OPTIONS } from "@/constants/listingOptions"
+import { COMMERCIAL_BLOCKS, PHASE_OPTIONS, RESEDENTIAL_BLOCKS } from "@/constants/listingOptions"
+import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import {
@@ -23,15 +24,16 @@ interface FilterModalProps {
   visible: boolean
   onClose: () => void
   onApply: (filters: Record<string, any>) => void
+  propertyType: string
 }
 
-export default function FilterModal({ visible, onClose, onApply }: FilterModalProps) {
+export default function FilterModal({ visible, onClose, onApply, propertyType }: FilterModalProps) {
   const [typeOfPlot, setTypeOfPlot] = useState<string | null>("On Cash")
   const [phase, setPhase] = useState<string | null>(null)
   const [block, setBlock] = useState<string | null>(null)
   const [selectedArea, setSelectedArea] = useState<string>("5 Marla")
-  const [minPrice, setMinPrice] = useState("Rs.1 Crore")
-  const [maxPrice, setMaxPrice] = useState("Rs. 2 Crore")
+  const [minPrice, setMinPrice] = useState("")
+  const [maxPrice, setMaxPrice] = useState("")
   // const [features, setFeatures] = useState<Record<string, boolean>>({
   //   pole: false,
   //   wire: false,
@@ -39,29 +41,113 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
   const [customAreaValue, setCustomAreaValue] = useState("")
   const [customAreaType, setCustomAreaType] = useState<string>("Marla")
+  const [errors, setErrors] = useState<{ minPrice?: string; maxPrice?: string }>({})
+  const [touched, setTouched] = useState({ minPrice: false, maxPrice: false })
+  const [customAreaError, setCustomAreaError] = useState<string | undefined>(undefined)
 
   const AREA_OPTIONS = ["All", "3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "Custom"]
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
+
+  const computePriceErrors = (min: string, max: string) => {
+    const validation: { minPrice?: string; maxPrice?: string } = {}
+
+    if (min) {
+      if (!Validation.isNumeric(min)) {
+        validation.minPrice = "Min price must be numeric"
+      } else if (Validation.toNumber(min) < 0) {
+        validation.minPrice = "Min price cannot be negative"
+      }
+    }
+
+    if (max) {
+      if (!Validation.isNumeric(max)) {
+        validation.maxPrice = "Max price must be numeric"
+      } else if (Validation.toNumber(max) < 0) {
+        validation.maxPrice = "Max price cannot be negative"
+      }
+    }
+
+    if (!validation.minPrice && !validation.maxPrice && min && max) {
+      const minValue = Validation.toNumber(min)
+      const maxValue = Validation.toNumber(max)
+      if (!Number.isNaN(minValue) && !Number.isNaN(maxValue) && minValue > maxValue) {
+        validation.minPrice = "Min price cannot exceed max price"
+        validation.maxPrice = "Max price must be greater than min price"
+      }
+    }
+
+    return validation
+  }
+
+  const handlePriceChange = (field: "minPrice" | "maxPrice") => (value: string) => {
+    if (field === "minPrice") {
+      setMinPrice(value)
+    } else {
+      setMaxPrice(value)
+    }
+
+    const nextMin = field === "minPrice" ? value : minPrice
+    const nextMax = field === "maxPrice" ? value : maxPrice
+    const validation = computePriceErrors(nextMin, nextMax)
+
+    setErrors((prev) => ({
+      ...prev,
+      ...(field === "minPrice"
+        ? { minPrice: touched.minPrice ? validation.minPrice : undefined }
+        : { maxPrice: touched.maxPrice ? validation.maxPrice : undefined }),
+      ...(touched.minPrice && field === "maxPrice" ? { minPrice: validation.minPrice } : {}),
+      ...(touched.maxPrice && field === "minPrice" ? { maxPrice: validation.maxPrice } : {}),
+    }))
+  }
+
+  const handlePriceBlur = (field: "minPrice" | "maxPrice") => () => {
+    setTouched((prev) => ({
+      ...prev,
+      [field]: true,
+    }))
+    const validation = computePriceErrors(minPrice, maxPrice)
+    setErrors(validation)
+  }
 
   const handleAreaSelect = (area: string) => {
     if (area === "Custom") {
       setShowCustomAreaModal(true)
     } else {
       setSelectedArea(area)
+      setCustomAreaError(undefined)
     }
   }
 
   const handleCustomAreaSave = () => {
-    if (customAreaValue && customAreaType) {
-      const customArea = `${customAreaValue} ${customAreaType}`
-      setSelectedArea(customArea)
-      setShowCustomAreaModal(false)
-      setCustomAreaValue("")
-      setCustomAreaType("Marla")
+    const trimmedValue = customAreaValue.trim()
+
+    if (!trimmedValue) {
+      setCustomAreaError("Area value is required")
+      return
     }
+
+    if (!Validation.isNumeric(trimmedValue)) {
+      setCustomAreaError("Area value must be numeric")
+      return
+    }
+
+    const customArea = `${trimmedValue} ${customAreaType}`
+    setSelectedArea(customArea)
+    setShowCustomAreaModal(false)
+    setCustomAreaValue("")
+    setCustomAreaType("Marla")
+    setCustomAreaError(undefined)
   }
 
   const handleApplyFilters = () => {
+    const validation = computePriceErrors(minPrice, maxPrice)
+    setErrors(validation)
+    setTouched({ minPrice: true, maxPrice: true })
+
+    if (validation.minPrice || validation.maxPrice || customAreaError) {
+      return
+    }
+
     const filters = {
       typeOfPlot,
       phase: phase || null,
@@ -80,14 +166,17 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
     setPhase(null)
     setBlock(null)
     setSelectedArea("5 Marla")
-    setMinPrice("Rs.1 Crore")
-    setMaxPrice("Rs. 2 Crore")
+    setMinPrice("")
+    setMaxPrice("")
     // setFeatures({
     //   pole: false,
     //   wire: false,
     // })
     setCustomAreaValue("")
     setCustomAreaType("Marla")
+    setErrors({})
+    setTouched({ minPrice: false, maxPrice: false })
+    setCustomAreaError(undefined)
     // Apply empty filters to reset
     onApply({})
   }
@@ -141,7 +230,8 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
                 <Dropdown
                   label="Block"
                   placeholder="Select Block"
-                  options={BLOCK_OPTIONS}
+                  // options={BLOCK_OPTIONS}
+                  options={propertyType === "Commercial Plots" ? COMMERCIAL_BLOCKS : RESEDENTIAL_BLOCKS}
                   value={block || ""}
                   onValueChange={(value) => setBlock(value)}
                 />
@@ -191,14 +281,22 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
                   <TextInput
                     placeholder="Min Price"
                     value={minPrice}
-                    onChangeText={setMinPrice}
+                    onChangeText={handlePriceChange("minPrice")}
+                    onBlur={handlePriceBlur("minPrice")}
                     style={styles.priceInput}
+                    keyboardType="decimal-pad"
+                    error={touched.minPrice ? errors.minPrice : undefined}
+                    helperText={!errors.minPrice ? "PKR" : undefined}
                   />
                   <TextInput
                     placeholder="Max Price"
                     value={maxPrice}
-                    onChangeText={setMaxPrice}
+                    onChangeText={handlePriceChange("maxPrice")}
+                    onBlur={handlePriceBlur("maxPrice")}
                     style={styles.priceInput}
+                    keyboardType="decimal-pad"
+                    error={touched.maxPrice ? errors.maxPrice : undefined}
+                    helperText={!errors.maxPrice ? "PKR" : undefined}
                   />
                 </View>
               </View>
@@ -247,7 +345,15 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
       </SafeAreaView>
 
       {/* Custom Area Modal */}
-      <Modal visible={showCustomAreaModal} animationType="slide" transparent={true} onRequestClose={() => setShowCustomAreaModal(false)}>
+      <Modal
+        visible={showCustomAreaModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setCustomAreaError(undefined)
+          setShowCustomAreaModal(false)
+        }}
+      >
         <SafeAreaView style={styles.customModalSafeArea}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.customModalKeyboardView}>
             <View style={styles.customModalOverlay}>
@@ -255,7 +361,12 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
                 {/* Header */}
                 <View style={styles.customModalHeader}>
                   <Text style={styles.customModalTitle}>Custom Area</Text>
-                  <TouchableOpacity onPress={() => setShowCustomAreaModal(false)}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCustomAreaError(undefined)
+                      setShowCustomAreaModal(false)
+                    }}
+                  >
                     <Ionicons name="close" size={24} color={Colors.text} />
                   </TouchableOpacity>
                 </View>
@@ -268,9 +379,15 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
                       <TextInput
                         placeholder="Enter value"
                         value={customAreaValue}
-                        onChangeText={setCustomAreaValue}
+                        onChangeText={(value) => {
+                          setCustomAreaValue(value)
+                          if (customAreaError) {
+                            setCustomAreaError(undefined)
+                          }
+                        }}
                         keyboardType="decimal-pad"
                         style={styles.customAreaValueInput}
+                        error={customAreaError}
                       />
                     </View>
                     <View style={styles.customAreaTypeContainer}>
@@ -279,7 +396,12 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
                         placeholder="Select type"
                         options={AREA_TYPE_OPTIONS}
                         value={customAreaType}
-                        onValueChange={setCustomAreaType}
+                        onValueChange={(value) => {
+                          setCustomAreaType(value)
+                          if (customAreaError) {
+                            setCustomAreaError(undefined)
+                          }
+                        }}
                       />
                     </View>
                   </View>
@@ -287,13 +409,22 @@ export default function FilterModal({ visible, onClose, onApply }: FilterModalPr
 
                 {/* Footer */}
                 <View style={styles.customModalFooter}>
-                  <TouchableOpacity style={styles.customModalCancelButton} onPress={() => setShowCustomAreaModal(false)}>
+                  <TouchableOpacity
+                    style={styles.customModalCancelButton}
+                    onPress={() => {
+                      setCustomAreaError(undefined)
+                      setShowCustomAreaModal(false)
+                    }}
+                  >
                     <Text style={styles.customModalCancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.customModalSaveButton, (!customAreaValue || !customAreaType) && styles.customModalSaveButtonDisabled]} 
+                  <TouchableOpacity
+                    style={[
+                      styles.customModalSaveButton,
+                      (!customAreaValue.trim() || !customAreaType || Boolean(customAreaError)) && styles.customModalSaveButtonDisabled,
+                    ]}
                     onPress={handleCustomAreaSave}
-                    disabled={!customAreaValue || !customAreaType}
+                    disabled={!customAreaValue.trim() || !customAreaType || Boolean(customAreaError)}
                   >
                     <Text style={styles.customModalSaveButtonText}>Save</Text>
                   </TouchableOpacity>

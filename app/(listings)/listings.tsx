@@ -367,12 +367,14 @@ export default function ListingsScreen() {
             <Text style={styles.propertyTitle}>
               {property.area} {property.propertyType}
             </Text>
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={12} color={Colors.textSecondary} />
-              <Text style={styles.propertyLocation}>
-                {property.block} {property.phase}
-              </Text>
-            </View>
+            {user?.isAccountVerified && (
+              <View style={styles.locationRow}>
+                <Ionicons name="location" size={12} color={Colors.textSecondary} />
+                <Text style={styles.propertyLocation}>
+                  {property.phase}, {property.block}
+                </Text>
+              </View>
+            )}
           </View>
           {/* {property.} */}
           {property.listingType === "rent" ? (
@@ -547,6 +549,7 @@ export default function ListingsScreen() {
           setFilters(appliedFilters)
           setShowFilterModal(false)
         }}
+        propertyType={activePropertyTab}
       />
 
       <ListingDetailsModal

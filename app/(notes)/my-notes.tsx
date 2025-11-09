@@ -4,6 +4,7 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { getToken } from "@/utils/secureStore"
+import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useEffect, useState } from "react"
@@ -32,8 +33,13 @@ export default function MyNotesScreen() {
   const [newNoteDescription, setNewNoteDescription] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [noteError, setNoteError] = useState<string | undefined>(undefined)
+  const [noteTouched, setNoteTouched] = useState(false)
 
   const BASE_URL = 'http://10.224.131.91:8080/api';
+  const NOTE_MIN_LENGTH = 3
+  const NOTE_MAX_LENGTH = 500
 
   useEffect(()=> {
     getNotes();
@@ -66,16 +72,48 @@ export default function MyNotesScreen() {
     }
   }
 
+  const validateNote = (value: string) => {
+    const trimmed = value.trim()
+    if (!Validation.isRequired(trimmed)) return "Note cannot be empty"
+    if (!Validation.hasMinLength(trimmed, NOTE_MIN_LENGTH)) return `Note must be at least ${NOTE_MIN_LENGTH} characters`
+    if (!Validation.hasMaxLength(trimmed, NOTE_MAX_LENGTH)) return `Note cannot exceed ${NOTE_MAX_LENGTH} characters`
+    return undefined
+  }
+
+  const handleOpenModal = () => {
+    setNewNoteDescription("")
+    setNoteError(undefined)
+    setNoteTouched(false)
+    setShowAddModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowAddModal(false)
+    setNoteTouched(false)
+    setNoteError(undefined)
+  }
+
+  const handleNoteChange = (value: string) => {
+    setNewNoteDescription(value)
+    if (noteTouched) {
+      setNoteError(validateNote(value))
+    }
+  }
+
+  const noteHelperText = noteError ? undefined : `Max ${NOTE_MAX_LENGTH} characters`
+
   const handleAddNote = async () => {
-    if (!newNoteDescription) {
-      alert("Please fill in all fields")
+    const errorMessage = validateNote(newNoteDescription)
+    if (errorMessage) {
+      setNoteError(errorMessage)
+      setNoteTouched(true)
       return
     }
 
-    setLoading(true)
+    setSubmitting(true)
     try {
       const token = await getToken()
-      const response = await axios.post(`${BASE_URL}/notes`, {  description: newNoteDescription }, {
+      const response = await axios.post(`${BASE_URL}/notes`, {  description: newNoteDescription.trim() }, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -86,6 +124,8 @@ export default function MyNotesScreen() {
         alert("Note Added Successfully");
         getNotes()
         setNewNoteDescription("")
+        setNoteTouched(false)
+        setNoteError(undefined)
         setShowAddModal(false)
       } else {
         alert(response?.data.error.message);
@@ -97,7 +137,7 @@ export default function MyNotesScreen() {
         alert("Something went wrong. Please try again later")
       }
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -108,7 +148,7 @@ export default function MyNotesScreen() {
   const NotesHeader = () => (
     <View style={styles.header}>
           <Text style={styles.title}>My Notes</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
+          <TouchableOpacity style={styles.addButton} onPress={handleOpenModal}>
             <Text style={styles.addButtonText}>Add New Note</Text>
           </TouchableOpacity>
         </View>
@@ -144,7 +184,7 @@ export default function MyNotesScreen() {
           showsVerticalScrollIndicator={false}
         />
       </KeyboardAvoidingView>
-      <Modal visible={showAddModal} animationType="slide" transparent>
+      <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={handleCloseModal}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Note</Text>
@@ -152,14 +192,20 @@ export default function MyNotesScreen() {
             <TextInput
               placeholder="Type your note here..."
               value={newNoteDescription}
-              onChangeText={setNewNoteDescription}
+              onChangeText={handleNoteChange}
+              onBlur={() => {
+                setNoteTouched(true)
+                setNoteError(validateNote(newNoteDescription))
+              }}
               multiline
               style={styles.noteInput}
+              error={noteTouched ? noteError : undefined}
+              helperText={noteHelperText}
             />
 
             <View style={styles.modalButtons}>
-              <Button title="Add" onPress={handleAddNote} />
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAddModal(false)}>
+              <Button title="Add" onPress={handleAddNote} loading={submitting} disabled={submitting || Boolean(validateNote(newNoteDescription))} />
+              <TouchableOpacity style={styles.cancelButton} onPress={handleCloseModal}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>

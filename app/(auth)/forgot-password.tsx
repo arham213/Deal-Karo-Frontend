@@ -4,21 +4,31 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
+import { Validation } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 
 export default function ForgotPasswordScreen() {
   const router = useRouter()
   const [email, setEmail] = useState("")
+  const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const BASE_URL = 'http://10.224.131.91:8080/api';
 
+  const emailValidationError = useMemo(() => {
+    if (!Validation.isRequired(email)) return "Email is required"
+    if (!Validation.isEmail(email)) return "Enter a valid email address"
+    return undefined
+  }, [email])
+
+  const isSubmitDisabled = loading || Boolean(emailValidationError)
+
   const handleSendOTP = async () => {
-    if (!email) {
-      alert("Please enter your email")
+    if (emailValidationError) {
+      setTouched(true)
       return
     }
 
@@ -36,6 +46,8 @@ export default function ForgotPasswordScreen() {
 
       if (response?.data.success) {
         alert("OTP sent successfully");
+        setEmail("")
+        setTouched(false)
         router.push({
            pathname: '/verify-otp',
            params: { userId: response.data.data.userId}
@@ -54,6 +66,14 @@ export default function ForgotPasswordScreen() {
     }
   }
 
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+  }
+
+  const handleBlur = () => {
+    setTouched(true)
+  }
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -64,13 +84,16 @@ export default function ForgotPasswordScreen() {
             label="Email"
             placeholder="Enter your email"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={handleEmailChange}
+            onBlur={handleBlur}
             keyboardType="email-address"
+            autoCapitalize="none"
+            error={touched ? emailValidationError : undefined}
             editable={!loading}
           />
         </View>
 
-        <Button title="Send OTP" onPress={handleSendOTP} loading={loading} style={styles.button} />
+        <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
         <View style={styles.footer}>
           <Text style={styles.footerLink} onPress={() => router.push("/sign-in")}>
