@@ -5,7 +5,8 @@ export type User = {
   contactNo: string
   estateName: string
   role: "dealer" | "admin"
-  isAccountVerified: boolean
+  // isAccountVerified: boolean
+  verificationStatus: "pending" | "verified" | "rejected"
   createdAt: string
   updatedAt: string
 }

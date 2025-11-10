@@ -90,6 +90,8 @@ const styles = StyleSheet.create({
   dropdownError: {
     borderColor: Colors.error,
     backgroundColor: "#FFECEC",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   dropdownText: {
     fontSize: 14,

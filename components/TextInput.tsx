@@ -1,23 +1,33 @@
 import { Colors } from "@/constants/colors"
-import { TextInput as RNTextInput, StyleSheet, Text, View, type TextInputProps } from "react-native"
+import {
+  TextInput as RNTextInput,
+  StyleSheet,
+  Text,
+  View,
+  type TextInputProps,
+  type ViewStyle,
+} from "react-native"
 
 interface CustomTextInputProps extends TextInputProps {
   label?: string
   error?: string
   helperText?: string
+  containerStyle?: ViewStyle
 }
 
-export function TextInput({ label, error, helperText, style, ...props }: CustomTextInputProps) {
+export function TextInput({ label, error, helperText, style, containerStyle, ...props }: CustomTextInputProps) {
   const showHelperText = !error && helperText
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <RNTextInput
-        style={[styles.input, error && styles.inputError, style]}
-        placeholderTextColor={Colors.placeholder}
-        {...props}
-      />
+      <View style={[styles.inputWrapper, error && styles.inputWrapperError, containerStyle]}>
+        <RNTextInput
+          style={[styles.input, style]}
+          placeholderTextColor={Colors.placeholder}
+          {...props}
+        />
+      </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : showHelperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
     </View>
   )
@@ -32,18 +42,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.text,
   },
-  input: {
+  inputWrapper: {
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
+    backgroundColor: Colors.inputBackground,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 14,
-    color: Colors.text,
   },
-  inputError: {
+  inputWrapperError: {
     borderColor: Colors.error,
     backgroundColor: "#FFECEC",
+  },
+  input: {
+    fontSize: 14,
+    color: Colors.text,
+    width: "100%",
   },
   errorText: {
     fontSize: 12,

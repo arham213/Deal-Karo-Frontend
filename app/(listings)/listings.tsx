@@ -5,7 +5,7 @@ import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { Colors } from "@/constants/colors"
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
-import { getToken, getUser } from "@/utils/secureStore"
+import { getToken } from "@/utils/secureStore"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -42,9 +42,32 @@ export default function ListingsScreen() {
   }, [])
 
   const getUserFromSecureStore = async () => {
-    const user = await getUser()
-    if (user) {
-      setUser(user)
+    // const user = await getUser()
+    // if (user) {
+    //   setUser(user)
+    // }
+
+    setLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        console.error("Token missing")
+        throw new Error("Token missing")
+      }
+
+      const response = await axios.get(`${BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      console.log('response:', response.data);
+      if (response.data.success) {
+        setUser(response.data.data.user)
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -367,7 +390,7 @@ export default function ListingsScreen() {
             <Text style={styles.propertyTitle}>
               {property.area} {property.propertyType}
             </Text>
-            {user?.isAccountVerified && (
+            {user?.verificationStatus === "verified"  && (
               <View style={styles.locationRow}>
                 <Ionicons name="location" size={12} color={Colors.textSecondary} />
                 <Text style={styles.propertyLocation}>
@@ -393,11 +416,11 @@ export default function ListingsScreen() {
         </View>
 
         {/* Added By */}
-        {user?.isAccountVerified && (<Text>Added by</Text>)}
-        {user?.isAccountVerified && (<Text style={styles.addedBy}>{property.userId?.name}</Text>)}
+        {user?.verificationStatus === "verified"  && (<Text>Added by</Text>)}
+        {user?.verificationStatus === "verified"  && (<Text style={styles.addedBy}>{property.userId?.name}</Text>)}
 
         {/* Action Buttons */}
-        {user?.isAccountVerified && (
+        {user?.verificationStatus === "verified"  && (
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
               <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
@@ -427,11 +450,17 @@ export default function ListingsScreen() {
 
   const ListHeader = (
     <>
-    {!user?.isAccountVerified && (
-      <View style={styles.accountVerificationContainer}>
-        <Text style={styles.accountVerificationText}>Your account will be verified under 24 hours. You will then be able to add, view and update listings.</Text>
-      </View>
-    )}
+      {(user?.verificationStatus === "pending") && (
+        <View style={styles.accountVerificationContainer}>
+          <Text style={styles.accountVerificationText}>Your account will be verified under 24 hours. You will then be able to add, view and update listings.</Text>
+        </View>
+      )}
+
+      {(user?.verificationStatus === "rejected") && (
+        <View style={styles.accountVerificationContainer}>
+          <Text style={styles.accountVerificationText}>Your account has been rejected. Please contact support.</Text>
+        </View>
+      )}
       {/* Header Section */}
       <View style={styles.headerSection}>
         <View style={styles.userGreeting}>
