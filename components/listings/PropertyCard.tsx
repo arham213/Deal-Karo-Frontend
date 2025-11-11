@@ -5,6 +5,7 @@ import { ListingState } from "@/types/listings";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
+import { DetailsIcon, LocationIcon } from "./Icons";
 
 export const PropertyCard = ({ property, user, handlePropertyDetails }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void }) => (
     <View style={styles.propertyCard}>
@@ -15,7 +16,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails }: { proper
         <View style={styles.propertyHeader}>
           <View style={styles.titleSection}>
             <Text style={styles.propertyTitle}>
-              {property.area} {property.propertyType}
+              {property.area}
             </Text>
           </View>
           {/* {property.} */}
@@ -28,7 +29,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails }: { proper
 
         {user?.verificationStatus === "verified"  && (
               <View style={styles.locationRow}>
-                <Ionicons name="location" size={12} color={Colors.textSecondary} />
+                <LocationIcon color={Colors.neutral80} size={14} />
                 <Text style={styles.propertyLocation}>
                   {property.phase}, {property.block}
                 </Text>
@@ -44,7 +45,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails }: { proper
               <AvatarInitials name={property.userId?.name || 'Unknown'} size={32} backgroundColor={Colors.neutral30} textColor={Colors.text} />
               <View style={styles.addedByDetailsContainer}>
                 <Text style={styles.addedByLabel}>Added by</Text>
-                <Text style={styles.addedBy}>{property.userId?.name || 'Unknown'}</Text>
+                <Text style={styles.addedBy}>{property.userId?.name?.split(" ")[0] || 'Unknown'} {property.userId?.name?.split(" ")[1] ? property.userId?.name?.split(" ")[1][0] + "." : ""}</Text>
               </View>
             </View>
           </View>
@@ -57,7 +58,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails }: { proper
         {user?.verificationStatus === "verified"  && (
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
-              <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
+              <DetailsIcon color={Colors.textSecondary} size={16} />
               <Text style={styles.actionButtonText}>Details</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactButton}>

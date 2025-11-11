@@ -435,7 +435,7 @@ export default function AddListingScreen() {
                   Plot
                 </Text>
               </TouchableOpacity>
-              <View style={styles.tabDivider} />
+              {/* <View style={styles.tabDivider} /> */}
               <TouchableOpacity
                 style={[styles.propertyTab, formData.propertyType === "house" && styles.activePropertyTab]}
                 onPress={() => handleInputChange("propertyType", "house")}
@@ -445,7 +445,8 @@ export default function AddListingScreen() {
                 >
                   House
                 </Text>
-              </TouchableOpacity><View style={styles.tabDivider} />
+              </TouchableOpacity>
+              {/* <View style={styles.tabDivider} /> */}
               <TouchableOpacity
                 style={[styles.propertyTab, formData.propertyType === "commercial plot" && styles.activePropertyTab]}
                 onPress={() => handleInputChange("propertyType", "commercial plot")}
@@ -851,11 +852,12 @@ const styles = StyleSheet.create({
   },
   propertyTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: spacing.sm2,
     alignItems: "center",
+    borderBottomWidth: 3,
+    borderBottomColor: Colors.neutral60,
   },
   activePropertyTab: {
-    borderBottomWidth: 3,
     borderBottomColor: Colors.neutral100,
   },
   propertyTabText: {

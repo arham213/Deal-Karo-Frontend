@@ -474,9 +474,9 @@ export default function ListingsScreen() {
       {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.userGreeting}>
-            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
+            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")}/>
             <View style={styles.greetingText}>
-              <Text style={styles.greeting}>Hi, {user?.name}</Text>
+              <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
               <Text style={styles.role}>{user?.estateName}</Text>
             </View>
           </View>

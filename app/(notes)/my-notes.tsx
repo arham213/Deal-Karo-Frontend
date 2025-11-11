@@ -9,14 +9,14 @@ import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useEffect, useState } from "react"
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
