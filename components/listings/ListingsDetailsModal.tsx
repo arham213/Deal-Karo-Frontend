@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/colors"
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { ListingState } from "@/types/listings"
 import { Ionicons } from "@expo/vector-icons"
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -14,12 +15,21 @@ interface ListingDetailsProps {
 export function ListingDetailsModal({ visible, onClose, listing }: ListingDetailsProps) {
   const getTypeBadgeColor = (type: string | undefined) => {
     switch (type) {
-      case "For Cash":
-        return Colors.success
-      case "For Rent":
-        return "#8B7FD1"
-      case "Installment":
-        return "#FFA500"
+      case "cash":
+        return Colors.backgroundCash
+      case "installments":
+        return Colors.backgroundInstallments
+      default:
+        return Colors.textSecondary
+    }
+  }
+
+  const getTypeBadgeTextColor = (type: string | undefined) => {
+    switch (type) {
+      case "cash":
+        return Colors.textCash
+      case "installments":
+        return Colors.textInstallments
       default:
         return Colors.textSecondary
     }
@@ -74,7 +84,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
                   },
                 ]}
               >
-                <Text style={styles.typeBadgeText}>{listing?.listingType}</Text>
+                <Text style={[styles.typeBadgeText, { color: getTypeBadgeTextColor(listing?.listingType) }]}>{listing?.listingType === "cash" ? "Cash" : "Installments"}</Text>
               </View>
             </View>
 
@@ -171,7 +181,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             <Button
               title="Contact"
               onPress={onClose}
-              style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}
+              style={{ flexDirection: "row", justifyContent: "center", gap: 8, backgroundColor: Colors.neutral90 }}
             />
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -189,14 +199,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral10,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 16,
+    // flex: 1,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: spacing.screen,
+    paddingHorizontal: spacing.screen
   },
   closeButton: {
     width: 24,
@@ -205,40 +215,49 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary,
   },
   detailsContainer: {
     gap: 20,
-    paddingVertical: 16,
+    padding: spacing.screen,
   },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ededed",
+    paddingBottom: spacing.md
+    // gap: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    width: "40%",
   },
   value: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    width: "60%",
+    textAlign: "right",
   },
   typeBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.lg,
     alignSelf: "flex-start",
   },
   typeBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.white,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.primary
   },
   featuresSection: {
     gap: 12,
@@ -267,19 +286,22 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   buttonGroup: {
-    gap: 12,
-    paddingVertical: 24,
+    gap: spacing.sm,
+    padding: spacing.screen
   },
   cancelButton: {
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingVertical: spacing.md2,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral50,
     alignItems: "center",
+    backgroundColor: Colors.neutral20,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.primary,
+    color: Colors.neutral90,
   },
 })

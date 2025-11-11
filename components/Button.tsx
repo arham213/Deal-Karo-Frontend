@@ -1,6 +1,8 @@
 import { Colors } from "@/constants/colors"
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, type ViewStyle } from "react-native"
 
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
+
 interface ButtonProps {
   title: string
   onPress: () => void
@@ -24,9 +26,10 @@ export function Button({ title, onPress, loading, disabled, style }: ButtonProps
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 24,
+    backgroundColor: Colors.neutral90,
+    paddingVertical: spacing.md2,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -34,8 +37,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   text: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.primary,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral10,
   },
 })

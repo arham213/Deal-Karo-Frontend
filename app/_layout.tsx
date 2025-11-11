@@ -1,5 +1,7 @@
 "use client"
 
+import "@/styles/global-text"
+
 import { BottomNavigationBar } from "@/components/navigation/BottomNavigationBar"
 import { validateAuth } from "@/utils/tokenValidation"
 import { Stack, usePathname } from "expo-router"

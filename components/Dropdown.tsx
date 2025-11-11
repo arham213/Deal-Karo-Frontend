@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/colors"
+import { radius } from "@/styles"
 import { Ionicons } from "@expo/vector-icons"
 import { useState } from "react"
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.inputBackground || Colors.white,

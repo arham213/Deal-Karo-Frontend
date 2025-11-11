@@ -5,6 +5,7 @@ import { Dropdown } from "@/components/Dropdown"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { COMMERCIAL_BLOCKS, PHASE_OPTIONS, RESEDENTIAL_BLOCKS } from "@/constants/listingOptions"
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
@@ -302,7 +303,7 @@ export default function AddListingScreen() {
   )
 
   const isSubmitDisabled = loading || hasBlockingErrors
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const handleAddListing = async () => {
     const isValid = validateFormState()
@@ -836,10 +837,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: 12,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    marginBottom: spacing.sm,
   },
   tabsContainer: {
     flexDirection: "row",
@@ -854,16 +856,17 @@ const styles = StyleSheet.create({
   },
   activePropertyTab: {
     borderBottomWidth: 3,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: Colors.neutral100,
   },
   propertyTabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.textSecondary,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: Colors.neutral60,
+    fontFamily: fontFamilies.primary,
     textAlign: "center"
   },
   activePropertyTabText: {
-    color: Colors.text,
+    color: Colors.neutral100,
   },
   tabDivider: {
     width: 1,
@@ -874,26 +877,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   listingTypeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: Colors.inputBackground,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg2,
+    backgroundColor: Colors.neutral10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral30,
     alignItems: "center",
   },
   activeListingType: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral100,
+    borderColor: Colors.neutral100,
   },
   listingTypeText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary
   },
   activeListingTypeText: {
-    color: Colors.white,
+    color: Colors.neutral10,
   },
   areaGrid: {
     flexDirection: "row",
@@ -901,26 +904,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   areaButton: {
-    width: "48%",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: Colors.inputBackground,
+    // width: "48%",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg2,
+    backgroundColor: Colors.neutral10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral30,
     alignItems: "center",
   },
   activeAreaButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral100,
+    borderColor: Colors.neutral100,
   },
   areaButtonText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary
   },
   activeAreaButtonText: {
-    color: Colors.white,
+    color: Colors.neutral10,
   },
   errorText: {
     marginTop: 8,
@@ -944,16 +948,19 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   cancelButton: {
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingVertical: spacing.md2,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral50,
     alignItems: "center",
+    backgroundColor: Colors.neutral20,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.primary,
+    color: Colors.neutral90,
   },
   customAreaDisplay: {
     flexDirection: "row",

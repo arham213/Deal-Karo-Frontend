@@ -2,8 +2,9 @@
 
 import { Colors } from "@/constants/colors"
 import { User } from "@/types/auth"
-import { getUser } from "@/utils/secureStore"
+import { getToken } from "@/utils/secureStore"
 import { Ionicons } from "@expo/vector-icons"
+import axios from "axios"
 import { usePathname, useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -19,9 +20,32 @@ export function BottomNavigationBar() {
   }, [])
 
   const getUserFromSecureStore = async () => {
-    const user = await getUser()
-    if (user) {
-      setUser(user)
+    // const user = await getUser()
+    // if (user) {
+    //   setUser(user)
+    // }
+
+    // setLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        console.error("Token missing")
+        throw new Error("Token missing")
+      }
+
+      const response = await axios.get(`http://10.190.83.91:8080/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      console.log('response:', response.data);
+      if (response.data.success) {
+        setUser(response.data.data.user)
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error)
+    } finally {
+      // setLoading(false)
     }
   }
   const handleNavigation = (route: string) => {
@@ -56,7 +80,7 @@ export function BottomNavigationBar() {
         <TouchableOpacity 
           style={styles.navButton} 
           onPress={() => handleNavigation("/my-notes")}
-          disabled={!user?.isAccountVerified}
+          disabled={user?.verificationStatus !== "verified"}
         >
           <Ionicons 
             name={isActive("/my-notes") ? "list" : "list-outline"} 
@@ -65,7 +89,7 @@ export function BottomNavigationBar() {
           />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.fabButton} onPress={handleAddListing} disabled={!user?.isAccountVerified}>
+        <TouchableOpacity style={styles.fabButton} onPress={handleAddListing} disabled={user?.verificationStatus !== "verified"}>
           <Text 
             style={styles.fabIcon}
           >+</Text>
@@ -74,7 +98,7 @@ export function BottomNavigationBar() {
         <TouchableOpacity 
           style={styles.navButton}
           onPress={() => handleNavigation("/my-listings")}
-          disabled={!user?.isAccountVerified}
+          disabled={user?.verificationStatus !== "verified"}
         >
           <Ionicons 
             name={isActive("/my-listings") ? "list" : "list-outline"} 

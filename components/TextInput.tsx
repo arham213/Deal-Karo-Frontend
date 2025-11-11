@@ -1,4 +1,5 @@
 import { Colors } from "@/constants/colors"
+import { fontSizes, radius, spacing, typographyStyles } from "@/styles"
 import {
   TextInput as RNTextInput,
   StyleSheet,
@@ -35,36 +36,36 @@ export function TextInput({ label, error, helperText, style, containerStyle, ...
 
 const styles = StyleSheet.create({
   container: {
-    gap: 8,
+    gap: spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...typographyStyles.label,
     color: Colors.text,
   },
   inputWrapper: {
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     backgroundColor: Colors.inputBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xxs,
   },
   inputWrapperError: {
     borderColor: Colors.error,
     backgroundColor: "#FFECEC",
   },
   input: {
-    fontSize: 14,
+    ...typographyStyles.regular,
+    fontSize: fontSizes.sm,
     color: Colors.text,
     width: "100%",
   },
   errorText: {
-    fontSize: 12,
+    ...typographyStyles.helper,
     color: Colors.error,
   },
   helperText: {
-    fontSize: 12,
+    ...typographyStyles.helper,
     color: Colors.textSecondary,
   },
 })

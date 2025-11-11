@@ -18,6 +18,7 @@ import {
 } from "react-native"
 import { TextInput } from "../TextInput"
 
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 interface FilterModalProps {
@@ -45,7 +46,7 @@ export default function FilterModal({ visible, onClose, onApply, propertyType }:
   const [touched, setTouched] = useState({ minPrice: false, maxPrice: false })
   const [customAreaError, setCustomAreaError] = useState<string | undefined>(undefined)
 
-  const AREA_OPTIONS = ["All", "3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "Custom"]
+  const AREA_OPTIONS = ["3 Marla", "5 Marla", "10 Marla", "15 Marla", "1 Kanal", "Custom", "All"]
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
 
   const computePriceErrors = (min: string, max: string) => {
@@ -286,7 +287,7 @@ export default function FilterModal({ visible, onClose, onApply, propertyType }:
                     style={styles.priceInput}
                     keyboardType="decimal-pad"
                     error={touched.minPrice ? errors.minPrice : undefined}
-                    helperText={!errors.minPrice ? "PKR" : undefined}
+                    // helperText={!errors.minPrice ? "PKR" : undefined}
                   />
                   <TextInput
                     placeholder="Max Price"
@@ -296,7 +297,7 @@ export default function FilterModal({ visible, onClose, onApply, propertyType }:
                     style={styles.priceInput}
                     keyboardType="decimal-pad"
                     error={touched.maxPrice ? errors.maxPrice : undefined}
-                    helperText={!errors.maxPrice ? "PKR" : undefined}
+                    // helperText={!errors.maxPrice ? "PKR" : undefined}
                   />
                 </View>
               </View>
@@ -333,9 +334,9 @@ export default function FilterModal({ visible, onClose, onApply, propertyType }:
               <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
                 <Text style={styles.clearButtonText}>Clear</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+              {/* <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
                 <Text style={styles.applyButtonText}>Apply</Text>
               </TouchableOpacity>
@@ -458,54 +459,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary,
   },
   content: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: spacing.xxl
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: Colors.text,
-    marginBottom: 12,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.bold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    marginBottom: spacing.sm,
   },
   toggleButtonGroup: {
     flexDirection: "row",
     gap: 12,
   },
   toggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: Colors.inputBackground,
+    // flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg2,
+    backgroundColor: Colors.neutral10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral30,
     alignItems: "center",
   },
   activeToggleButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral100,
+    borderColor: Colors.neutral100,
   },
   toggleButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary
   },
   activeToggleButtonText: {
-    color: Colors.white,
+    color: Colors.neutral10,
   },
   dropdownContainer: {
     gap: 8,
@@ -522,8 +525,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   dropdownPlaceholder: {
-    fontSize: 14,
-    color: Colors.placeholder,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral60,
+    fontFamily: fontFamilies.primary
   },
   areaGrid: {
     flexDirection: "row",
@@ -531,24 +535,26 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   areaButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    backgroundColor: Colors.inputBackground,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg2,
+    backgroundColor: Colors.neutral10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral30,
+    alignItems: "center",
   },
   activeAreaButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral100,
+    borderColor: Colors.neutral100,
   },
   areaButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary
   },
   activeAreaButtonText: {
-    color: Colors.white,
+    color: Colors.neutral10,
   },
   priceRangeRow: {
     flexDirection: "row",
@@ -556,6 +562,7 @@ const styles = StyleSheet.create({
   },
   priceInput: {
     flex: 1,
+    padding: spacing.sm2
   },
   featureCheckboxes: {
     gap: 12,

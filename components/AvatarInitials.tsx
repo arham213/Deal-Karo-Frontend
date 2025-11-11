@@ -1,12 +1,14 @@
-import { Colors } from "@/constants/colors"
+import { fontFamilies, fontWeights } from "@/styles"
 import { StyleSheet, Text, View } from "react-native"
 
 interface AvatarInitialsProps {
   name: string
   size?: number
+  backgroundColor?: string
+  textColor?: string
 }
 
-export function AvatarInitials({ name, size = 56 }: AvatarInitialsProps) {
+export function AvatarInitials({ name, size = 56, backgroundColor = "#000", textColor = "#fff" }: AvatarInitialsProps) {
   const getInitials = (fullName: string) => {
     return fullName
       .split(" ")
@@ -20,11 +22,10 @@ export function AvatarInitials({ name, size = 56 }: AvatarInitialsProps) {
   const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"]
   const hashCode = Array.from(initials).reduce((acc, char) => acc + char.charCodeAt(0), 0)
   // const backgroundColor = colors[hashCode % colors.length]
-  const backgroundColor = "#000"
 
   return (
     <View style={[styles.container, { width: size, height: size, borderRadius: size / 2, backgroundColor }]}>
-      <Text style={[styles.text, { fontSize: size * 0.4 }]}>{initials}</Text>
+      <Text style={[styles.text, { fontSize: size * 0.4, color: textColor }]}>{initials}</Text>
     </View>
   )
 }
@@ -35,7 +36,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   text: {
-    color: Colors.white,
-    fontWeight: "700",
+    fontWeight: fontWeights.semibold,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.12,
   },
 })

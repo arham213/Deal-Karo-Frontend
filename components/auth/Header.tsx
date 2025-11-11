@@ -1,6 +1,8 @@
 import { Colors } from "@/constants/colors"
 import { Image, StyleSheet, Text, View } from "react-native"
 
+import { fontSizes, spacing, typographyStyles } from "@/styles"
+
 interface HeaderProps {
   title: string
   subtitle: string
@@ -25,9 +27,9 @@ export function Header({ title, subtitle }: HeaderProps) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    gap: 35,
+    gap: spacing.xxl + spacing.lg,
     paddingTop: 90,
-    paddingBottom: 15,
+    paddingBottom: spacing.md,
     backgroundColor: Colors.headerBackground
   },
   logo: {
@@ -36,15 +38,16 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: "center",
-    gap: 8
+    gap: spacing.sm
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    ...typographyStyles.bold,
+    fontSize: fontSizes.xl,
     color: Colors.text,
   },
   subtitle: {
-    fontSize: 14,
+    ...typographyStyles.regular,
+    fontSize: fontSizes.sm,
     color: Colors.textSecondary,
     textAlign: "center",
   },

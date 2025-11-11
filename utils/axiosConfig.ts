@@ -2,7 +2,7 @@ import axios from "axios"
 import { clearAuthData, getToken } from "./secureStore"
 import { isTokenExpired } from "./tokenValidation"
 
-const BASE_URL = "http://10.224.131.91:8080/api"
+const BASE_URL = "http://10.190.83.91:8080/api"
 
 // Create axios instance
 export const apiClient = axios.create({

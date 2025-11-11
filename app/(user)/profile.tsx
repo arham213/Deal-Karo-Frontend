@@ -21,7 +21,7 @@ export default function ProfileScreen() {
     email: "",
     contactNo: "",
     estateName: "",
-    isAccountVerified: false,
+    verificationStatus: "pending",
     role: "dealer",
     createdAt: "",
     updatedAt: "",

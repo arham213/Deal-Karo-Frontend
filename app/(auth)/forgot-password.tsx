@@ -4,6 +4,7 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
+import { layoutStyles, spacing, typographyStyles } from "@/styles"
 import { Validation } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -16,7 +17,7 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const emailValidationError = useMemo(() => {
     if (!Validation.isRequired(email)) return "Email is required"
@@ -75,8 +76,11 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
+      <ScrollView
+        contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+        showsVerticalScrollIndicator={false}
+      >
         <Header title="Forgot Password" subtitle="Enter your email to reset your password" />
 
         <View style={styles.form}>
@@ -106,30 +110,20 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.neutral10,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
   form: {
-    gap: 20,
-    marginVertical: 30,
+    gap: spacing.xl,
+    marginVertical: spacing.xxl + spacing.md,
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   footer: {
     alignItems: "center",
-    marginTop: 24,
+    marginTop: spacing.xxl,
   },
   footerLink: {
+    ...typographyStyles.semibold,
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: "600",
   },
 })

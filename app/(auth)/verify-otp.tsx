@@ -7,14 +7,16 @@ import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Platform,
-    TextInput as RNTextInput,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput as RNTextInput,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native"
+
+import { fontSizes, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 
 export default function VerifyOTPScreen() {
   const router = useRouter()
@@ -25,7 +27,7 @@ export default function VerifyOTPScreen() {
   const [touched, setTouched] = useState(false)
   const inputRefs = useRef<(RNTextInput | null)[]>([null, null, null, null])
 
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const handleOTPChange = (index: number, value: string) => {
     const sanitized = value.replace(/\D/g, "").slice(0, 1)
@@ -135,8 +137,11 @@ export default function VerifyOTPScreen() {
   const isSubmitDisabled = loading || otpCode.length !== 4
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
+      <ScrollView
+        contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+        showsVerticalScrollIndicator={false}
+      >
         <Header title="Verify your email" subtitle="An OTP sent to your registered email." />
 
         <View style={styles.otpContainer}>
@@ -180,37 +185,27 @@ export default function VerifyOTPScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.neutral10,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
   otpContainer: {
-    marginVertical: 40,
+    marginVertical: spacing.xxl + spacing.md,
   },
   otpLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    ...typographyStyles.semibold,
+    fontSize: fontSizes.sm,
     color: Colors.text,
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   otpInputs: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.md,
   },
   otpInput: {
     flex: 1,
     height: 56,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
-    fontSize: 24,
+    borderRadius: radius.md,
+    fontSize: fontSizes.xl,
     fontWeight: "600",
     textAlign: "center",
     color: Colors.text,
@@ -224,27 +219,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: spacing.xl,
   },
   resendText: {
+    ...typographyStyles.regular,
     fontSize: 14,
     color: Colors.textSecondary,
   },
   resendLink: {
+    ...typographyStyles.semibold,
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: "600",
   },
   resendDisabled: {
     opacity: 0.5,
   },
   errorText: {
-    marginTop: 12,
-    fontSize: 12,
+    marginTop: spacing.md,
+    ...typographyStyles.helper,
     color: Colors.error,
     textAlign: "center",
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
 })

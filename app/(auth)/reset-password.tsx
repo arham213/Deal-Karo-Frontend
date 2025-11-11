@@ -4,6 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { fontSizes, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -23,7 +24,7 @@ export default function ResetPasswordScreen() {
     confirmPassword: false,
   })
 
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const validateField = (field: "password" | "confirmPassword", value: string) => {
     if (field === "password") {
@@ -174,9 +175,12 @@ export default function ResetPasswordScreen() {
     Boolean(validateField("confirmPassword", confirmPassword))
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <SafeAreaView>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
+      <SafeAreaView style={layoutStyles.safeArea}>
+        <ScrollView
+          contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+          showsVerticalScrollIndicator={false}
+        >
             <Header title="Reset Password" subtitle="Enter your new password below" />
 
             <View style={styles.formContainer}>
@@ -235,43 +239,33 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.neutral10,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
-  },
   formContainer: {
-    marginVertical: 40,
-    gap: 20,
+    marginVertical: spacing.xxl + spacing.md,
+    gap: spacing.xl,
   },
   inputWrapper: {
-    gap: 8,
+    gap: spacing.sm,
   },
   errorText: {
-    fontSize: 12,
+    ...typographyStyles.helper,
     color: "#DC2626",
     marginTop: 4,
   },
   passwordRequirements: {
     backgroundColor: Colors.inputBackground,
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-    marginTop: 12,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
   requirementTitle: {
-    fontSize: 13,
-    fontWeight: "600",
+    ...typographyStyles.semibold,
+    fontSize: fontSizes.sm,
     color: Colors.text,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   requirement: {
-    fontSize: 12,
+    ...typographyStyles.helper,
     color: Colors.textSecondary,
   },
   requirementMet: {
@@ -279,6 +273,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
 })

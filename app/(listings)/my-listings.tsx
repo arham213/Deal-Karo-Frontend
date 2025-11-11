@@ -2,7 +2,10 @@
 
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
+import { PropertyCard } from "@/components/listings/PropertyCard"
 import { Colors } from "@/constants/colors"
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
+import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
@@ -32,8 +35,9 @@ export default function MyListingsScreen() {
   const hasScrolledRef = useRef(false)
   const initialLoadCompleteRef = useRef(false)
   const isFetchingRef = useRef(false)
+  const [showPropertyTypeDropdown, setShowPropertyTypeDropdown] = useState(false)
 
-  const BASE_URL = "http://10.224.131.91:8080/api"
+  const BASE_URL = "http://10.190.83.91:8080/api"
 
   // Helper function to check if we should use advanced search
   // Use advanced search if: filters are applied OR property type/active filter tabs are set
@@ -372,48 +376,48 @@ export default function MyListingsScreen() {
     setShowDetailsModal(true)
   }
 
-  const PropertyCard = ({ property }: { property: ListingState }) => (
-    <View style={styles.propertyCard}>
-      {/* Content */}
-      <View style={styles.propertyContent}>
-        {/* Header with Title and Status */}
-        <View style={styles.propertyHeader}>
-          <View style={styles.titleSection}>
-            <Text style={styles.propertyTitle}>
-              {property.area} {property.propertyType}
-            </Text>
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={12} color={Colors.textSecondary} />
-              <Text style={styles.propertyLocation}>
-                {property.block} {property.phase}
-              </Text>
-            </View>
-          </View>
-          {/* {property.} */}
-          {property.listingType === "rent" ? (
-            <Text style={styles.price}>Rs. {property.rentPerMonth}/month</Text>
-          ) : (
-            <Text style={styles.price}>Rs. {property.price || property.totalPrice}</Text>
-          )}
-        </View>
+  // const PropertyCard = ({ property }: { property: ListingState }) => (
+  //   <View style={styles.propertyCard}>
+  //     {/* Content */}
+  //     <View style={styles.propertyContent}>
+  //       {/* Header with Title and Status */}
+  //       <View style={styles.propertyHeader}>
+  //         <View style={styles.titleSection}>
+  //           <Text style={styles.propertyTitle}>
+  //             {property.area} {property.propertyType}
+  //           </Text>
+  //           <View style={styles.locationRow}>
+  //             <Ionicons name="location" size={12} color={Colors.textSecondary} />
+  //             <Text style={styles.propertyLocation}>
+  //               {property.block} {property.phase}
+  //             </Text>
+  //           </View>
+  //         </View>
+  //         {/* {property.} */}
+  //         {property.listingType === "rent" ? (
+  //           <Text style={styles.price}>Rs. {property.rentPerMonth}/month</Text>
+  //         ) : (
+  //           <Text style={styles.price}>Rs. {property.price || property.totalPrice}</Text>
+  //         )}
+  //       </View>
 
-        {/* Meta Information */}
-        <View style={styles.propertyMetaRow}>
-          <View style={[styles.statusBadge, { backgroundColor: Colors.primary }]}>
-            <Text style={styles.statusText}>{property.listingType}</Text>
-          </View>
-        </View>
+  //       {/* Meta Information */}
+  //       <View style={styles.propertyMetaRow}>
+  //         <View style={[styles.statusBadge, { backgroundColor: Colors.primary }]}>
+  //           <Text style={styles.statusText}>{property.listingType}</Text>
+  //         </View>
+  //       </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
-            <Text style={styles.actionButtonText}>Details</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  )
+  //       {/* Action Buttons */}
+  //       <View style={styles.actionButtons}>
+  //         <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
+  //           <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
+  //           <Text style={styles.actionButtonText}>Details</Text>
+  //         </TouchableOpacity>
+  //       </View>
+  //     </View>
+  //   </View>
+  // )
 
   const handleSetActivePropertyTab = useCallback((type: "Plots" | "Houses" | "Commercial Plots") => {
     setActivePropertyTab(type)
@@ -427,52 +431,123 @@ export default function MyListingsScreen() {
     setShowFilterModal(true)
   }, [])
 
+  // const ListHeader = (
+  //   <>
+  //     {/* Header Section */}
+  //     <View style={styles.headerSection}>
+  //       <View style={styles.userGreeting}>
+  //         <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
+  //         <View style={styles.greetingText}>
+  //           <Text style={styles.greeting}>My Listings</Text>
+  //           <Text style={styles.role}>Capital Estate</Text>
+  //         </View>
+  //       </View>
+
+  //       {/* Property Type Tabs */}
+  //       <View style={styles.propertyTypeTabs}>
+  //         {["Plots", "Houses", "Commercial Plots"].map((type) => (
+  //           <TouchableOpacity
+  //             key={type}
+  //             style={[styles.typeTab, activePropertyTab === type && styles.activeTypeTab]}
+  //             onPress={() => handleSetActivePropertyTab(type as "Plots" | "Houses" | "Commercial Plots")}
+  //           >
+  //             <Text style={[styles.typeTabText, activePropertyTab === type && styles.activeTypeTabText]}>{type}</Text>
+  //           </TouchableOpacity>
+  //         ))}
+  //       </View>
+  //     </View>
+
+  //     {/* Search and Filter Bar */}
+  //     <View style={styles.searchFilterBar}>
+  //       <View style={styles.searchInputContainer}>
+  //         <Ionicons name="search" size={18} color={Colors.placeholder} />
+  //         <RNTextInput
+  //           style={styles.searchInput}
+  //           placeholder="Search listings..."
+  //           placeholderTextColor={Colors.placeholder}
+  //           value={localSearchQuery}
+  //           onChangeText={handleSearchChange}
+  //           returnKeyType="search"
+  //           autoCorrect={false}
+  //           autoCapitalize="none"
+  //         />
+  //       </View>
+  //       <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+  //         <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+  //       </TouchableOpacity>
+  //     </View>
+
+  //     <FlatList
+  //       horizontal
+  //       scrollEnabled
+  //       data={["All Listings", "For cash", "Installments"]}
+  //       keyExtractor={(item) => item}
+  //       contentContainerStyle={styles.filterCategoryScroll}
+  //       showsHorizontalScrollIndicator={false}
+  //       renderItem={({ item }) => (
+  //         <TouchableOpacity
+  //           style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
+  //           onPress={() => handleSetActiveFilter(item)}
+  //         >
+  //           <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
+  //             {item}
+  //           </Text>
+  //         </TouchableOpacity>
+  //       )}
+  //     />
+  //   </>
+  // )
+
   const ListHeader = (
     <>
+      <View style={styles.header}>
       {/* Header Section */}
-      <View style={styles.headerSection}>
-        <View style={styles.userGreeting}>
-          <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
-          <View style={styles.greetingText}>
-            <Text style={styles.greeting}>My Listings</Text>
-            <Text style={styles.role}>Capital Estate</Text>
+        <View style={styles.headerSection}>
+          <View style={styles.userGreeting}>
+            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
+            <View style={styles.greetingText}>
+              <Text style={styles.greeting}>My Listings</Text>
+              <Text style={styles.role}>Capital Estate</Text>
+            </View>
+          </View>
+
+          {/* Property Type Dropdown */}
+          <View style={styles.propertyTypeDropdownWrapper}>
+            <TouchableOpacity
+              style={styles.propertyTypeDropdownButton}
+              activeOpacity={0.85}
+              onPress={() => setShowPropertyTypeDropdown(true)}
+            >
+              <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
+              <Ionicons
+                name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={Colors.textSecondary}
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Property Type Tabs */}
-        <View style={styles.propertyTypeTabs}>
-          {["Plots", "Houses", "Commercial Plots"].map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[styles.typeTab, activePropertyTab === type && styles.activeTypeTab]}
-              onPress={() => handleSetActivePropertyTab(type as "Plots" | "Houses" | "Commercial Plots")}
-            >
-              <Text style={[styles.typeTabText, activePropertyTab === type && styles.activeTypeTabText]}>{type}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Search and Filter Bar */}
+        <View style={styles.searchFilterBar}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={18} color={Colors.black} />
+            <RNTextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor={Colors.black}
+              value={localSearchQuery}
+              onChangeText={handleSearchChange}
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+            <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+          </TouchableOpacity>
+          </View>
         </View>
       </View>
-
-      {/* Search and Filter Bar */}
-      <View style={styles.searchFilterBar}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={18} color={Colors.placeholder} />
-          <RNTextInput
-            style={styles.searchInput}
-            placeholder="Search listings..."
-            placeholderTextColor={Colors.placeholder}
-            value={localSearchQuery}
-            onChangeText={handleSearchChange}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-          />
-        </View>
-        <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-          <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-        </TouchableOpacity>
-      </View>
-
       <FlatList
         horizontal
         scrollEnabled
@@ -491,6 +566,7 @@ export default function MyListingsScreen() {
           </TouchableOpacity>
         )}
       />
+      
     </>
   )
 
@@ -506,7 +582,7 @@ export default function MyListingsScreen() {
           <FlatList
             data={listings}
             keyExtractor={(item, index) => item._id || `listing-${index}`}
-            renderItem={({ item }) => <PropertyCard property={item} />}
+            renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} />}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={
               loadingMore ? (
@@ -559,71 +635,131 @@ export default function MyListingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    borderBottomRightRadius: 48,
+    borderBottomLeftRadius: 48,
+    backgroundColor: Colors.neutral10,
+    backdropFilter: "blur(2px)",
+    padding: spacing.screen,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.neutral10,
+    backgroundColor: Colors.headerBackground,
   },
   keyboardView: {
     flex: 1,
   },
   container: {
     paddingBottom: 70,
+    // padding: spacing.screen,
   },
-  headerSection: {
-    // flexDirection: "row",
-    // justifyContent: "space-between",
+  accountVerificationContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: "#FFF4DB",
+    borderRadius: 12,
+  },
+  accountVerificationText: {
+    fontSize: 12,
+    color: "#8A6000",
+  },
+  headerSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
   userGreeting: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
     gap: 12,
   },
   greetingText: {
     justifyContent: "center",
   },
   greeting: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.text,
+    color: Colors.black,
+    textAlign: "center",
+    fontFamily: fontFamilies.primary,
+    fontSize: fontSizes.sm,
+    fontStyle: "normal",
+    fontWeight: fontWeights.medium,
+    letterSpacing: 0.14
+
   },
   role: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2,
+    color: Colors.neutral80,
+    // textAlign: "center",
+    fontFamily: fontFamilies.primary,
+    fontSize: fontSizes.xs,
+    fontStyle: "normal",
+    fontWeight: fontWeights.semibold,
+    letterSpacing: 0.12
   },
-  propertyTypeTabs: {
+  propertyTypeDropdownWrapper: {
+    alignSelf: "flex-start",
+  },
+  propertyTypeDropdownButton: {
     flexDirection: "row",
-    gap: 12,
-  },
-  typeTab: {
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: Colors.inputBackground,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.neutral60,
+    backgroundColor: Colors.neutral10,
+    gap: 10,
+    // minWidth: 140
+    // height: 36,
+  },
+  propertyTypeDropdownText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.regular,
+    color: Colors.text,
+    fontStyle: "normal",
+    fontFamily: fontFamilies.primary,
+  },
+  dropdownModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-start",
+    paddingTop: 120,
+    paddingHorizontal: 16,
+  },
+  dropdownBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+  },
+  dropdownContent: {
+    zIndex: 1,
+    alignSelf: "flex-start",
+    minWidth: 180,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
-    height: 33
+    backgroundColor: Colors.white,
+    paddingVertical: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  activeTypeTab: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  dropdownOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  typeTabText: {
-    fontSize: 12,
+  dropdownOptionText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  selectedDropdownOption: {
+    backgroundColor: Colors.inputBackground,
+  },
+  selectedDropdownOptionText: {
     fontWeight: "600",
-    color: Colors.textSecondary,
-  },
-  activeTypeTabText: {
-    color: Colors.white,
   },
   searchFilterBar: {
     flexDirection: "row",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 10,
   },
   searchInputContainer: {
@@ -631,7 +767,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.inputBackground,
-    borderRadius: 12,
+    borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
     paddingHorizontal: 12,
@@ -641,55 +777,56 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.text,
-    paddingVertical: 8,
+    paddingVertical: 14,
   },
   searchPlaceholder: {
     fontSize: 14,
     color: Colors.placeholder,
   },
   filterIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: Colors.inputBackground,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    justifyContent: "center",
-    alignItems: "center",
+    // width: 44,
+    // height: 44,
+    // // borderRadius: 12,
+    // // backgroundColor: Colors.inputBackground,
+    // // borderWidth: 1,
+    // // borderColor: Colors.border,
+    // justifyContent: "center",
+    // alignItems: "center",
+    transform: [{ rotate: "90deg" }],
   },
   filterCategoryScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: spacing.screen,
+    paddingVertical: 16,
     gap: 8,
   },
   filterCategoryTab: {
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: Colors.inputBackground,
+    borderRadius: radius.xl,
+    backgroundColor: Colors.neutral10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral60,
   },
   activeFilterCategoryTab: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.neutral30,
   },
   filterCategoryText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: Colors.textSecondary,
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.regular,
+    color: Colors.text,
+    fontFamily: fontFamilies.primary,
   },
   activeFilterCategoryText: {
-    color: Colors.white,
+    fontWeight: fontWeights.semibold,
   },
   propertyCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
+    backgroundColor: Colors.neutral10,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral40,
     overflow: "hidden",
-    marginHorizontal: 16,
-    marginVertical: 6,
+    marginHorizontal: spacing.screen,
+    marginBottom: spacing.md,
   },
   propertyImageContainer: {
     height: 140,
@@ -702,8 +839,8 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   propertyContent: {
-    padding: 12,
-    gap: 8,
+    padding: spacing.lg,
+    gap: spacing.lg,
   },
   propertyHeader: {
     flexDirection: "row",
@@ -712,12 +849,14 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     flex: 1,
-    gap: 4,
+    gap: spacing.sm,
   },
   propertyTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.bold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
   },
   locationRow: {
     flexDirection: "row",
@@ -725,44 +864,82 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   propertyLocation: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+    fontSize: fontSizes.xs,
+    color: Colors.neutral80,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    fontWeight: fontWeights.medium,
+    letterSpacing: 0.12,
   },
-  statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+  statusBadgeCash: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: Colors.backgroundCash,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: Colors.white,
+  statusTextCash: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    color: Colors.textCash,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.12,
+  },
+  statusBadgeInstallments: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
+    backgroundColor: Colors.backgroundInstallments,
+  },
+  statusTextInstallments: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    color: Colors.textInstallments,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.12,
   },
   propertyMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  metaLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  addedByLabel: {
+    fontSize: fontSizes.xs,
+    color: Colors.neutral80,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    fontWeight: fontWeights.medium,
+    letterSpacing: 0.12,
   },
   price: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+  },
+  addedByDetailsContainer: {
+    flexDirection: "column",
+    gap: spacing.xxxs,
+  },
+  addedByContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   addedBy: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    fontWeight: fontWeights.semibold,
+    letterSpacing: 0.14,
   },
   actionButtons: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    marginTop: 8,
-    paddingTop: 8,
-    gap: 12,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   detailsButton: {
     flex: 1,
@@ -777,13 +954,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 6,
+    gap: spacing.sm,
+    padding: spacing.xs,
+    backgroundColor: Colors.neutral20,
+    borderRadius: radius.lg,
   },
   actionButtonText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.14,
   },
   loadingMoreContainer: {
     paddingVertical: 20,

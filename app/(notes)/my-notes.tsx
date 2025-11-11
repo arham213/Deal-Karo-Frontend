@@ -9,14 +9,14 @@ import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useEffect, useState } from "react"
 import {
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    FlatList,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -37,7 +37,7 @@ export default function MyNotesScreen() {
   const [noteError, setNoteError] = useState<string | undefined>(undefined)
   const [noteTouched, setNoteTouched] = useState(false)
 
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
   const NOTE_MIN_LENGTH = 3
   const NOTE_MAX_LENGTH = 500
 

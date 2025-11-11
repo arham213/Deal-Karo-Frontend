@@ -4,6 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { layoutStyles, spacing, typographyStyles } from "@/styles"
 import { getOnboardingCompleted, getUser, saveToken, saveUser } from "@/utils/secureStore"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
@@ -34,7 +35,7 @@ export default function SignInScreen() {
   const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://10.224.131.91:8080/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const validateField = (field: SignInField, value: string) => {
     const trimmed = value.trim()
@@ -120,11 +121,13 @@ export default function SignInScreen() {
   const isSubmitDisabled = loading || hasEmptyField || hasAnyError
 
   const handleSignIn = async () => {
+    console.log('loggin in...')
     const isValid = validateForm()
     if (!isValid) {
       markAllTouched()
       return
     }
+    console.log('validating form...')
 
     setLoading(true)
     try {
@@ -133,9 +136,14 @@ export default function SignInScreen() {
         password: form.password,
       }
 
+      console.log('userData:', userData)
+
       const response = await axios.post(`${BASE_URL}/users/signin`, userData);
+      
+      console.log('response:', response.data)
 
       if (response?.data.success) {
+        console.log('saving token and user...')
         await saveToken(response.data.data.token);
         await saveUser(response.data.data.user);
         setErrors({})
@@ -164,9 +172,12 @@ export default function SignInScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-      <SafeAreaView>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
+      <SafeAreaView style={layoutStyles.safeArea}>
+        <ScrollView
+          contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+          showsVerticalScrollIndicator={false}
+        >
           <Header title="Sign In" subtitle="Welcome back! Sign in to your account" />
 
           <View style={styles.mainContent}>
@@ -218,45 +229,39 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.neutral10,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
   mainContent: {
-    padding: 24
+    gap: spacing.xl,
   },
   form: {
-    gap: 20,
-    marginVertical: 30,
+    gap: spacing.xl,
+    marginVertical: spacing.xxl + spacing.md,
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
   forgotPasswordContainer: {
     alignItems: "center",
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   forgotPasswordLink: {
+    ...typographyStyles.semibold,
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: "600",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 24,
+    marginTop: spacing.xxl,
   },
   footerText: {
+    ...typographyStyles.regular,
     fontSize: 14,
     color: Colors.textSecondary,
   },
   footerLink: {
+    ...typographyStyles.semibold,
     fontSize: 14,
     color: Colors.primary,
-    fontWeight: "600",
   },
 })
