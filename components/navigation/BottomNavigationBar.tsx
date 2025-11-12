@@ -122,7 +122,7 @@ export function BottomNavigationBar() {
           {isActive("/profile") ? <MaterialCommunityIcons name="account-circle" size={24} color={Colors.primary}/> : <MaterialCommunityIcons name="account-circle" size={24} color={Colors.neutral50}/>}
         </TouchableOpacity>
 
-        <View style={styles.bottomBorder} />
+        {/* <View style={styles.bottomBorder} /> */}
       </View>
     </SafeAreaView>
   )

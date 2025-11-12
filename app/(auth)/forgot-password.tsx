@@ -4,12 +4,13 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
-import { layoutStyles, spacing, typographyStyles } from "@/styles"
+import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { Validation } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ForgotPasswordScreen() {
   const router = useRouter()
@@ -76,13 +77,15 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
       <ScrollView
-        contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+        contentContainerStyle={[layoutStyles.scrollContent]}
         showsVerticalScrollIndicator={false}
       >
         <Header title="Forgot Password" subtitle="Enter your email to reset your password" />
 
+        <View style={styles.mainContent}>
         <View style={styles.form}>
           <TextInput
             label="Email"
@@ -94,6 +97,7 @@ export default function ForgotPasswordScreen() {
             autoCapitalize="none"
             error={touched ? emailValidationError : undefined}
             editable={!loading}
+            labelStyle={styles.inputLabel}
           />
         </View>
 
@@ -104,15 +108,32 @@ export default function ForgotPasswordScreen() {
             Back to Sign In
           </Text>
         </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.neutral10,
+  },
+  screen: {
+    backgroundColor: Colors.headerBackground,
+  },
+  mainContent: {
+    gap: spacing.xl,
+    backgroundColor: Colors.neutral10,
+    borderTopRightRadius: radius.xxl2,
+    borderTopLeftRadius: radius.xxl2,
+    padding: spacing.screen,
+  },
   form: {
     gap: spacing.xl,
-    marginVertical: spacing.xxl + spacing.md,
+  },
+  inputLabel: {
+    fontWeight: fontWeights.medium,
   },
   button: {
     marginTop: spacing.xl,
@@ -123,7 +144,8 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     ...typographyStyles.semibold,
-    fontSize: 14,
-    color: Colors.primary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontWeight: fontWeights.bold,
   },
 })

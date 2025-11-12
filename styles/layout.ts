@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native"
 
-import { Colors } from "@/constants/colors"
 
+import { Colors } from "@/constants/colors"
 import { spacing } from "./tokens"
 
 export const layoutStyles = StyleSheet.create({
@@ -11,6 +11,7 @@ export const layoutStyles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+    backgroundColor: Colors.neutral10,
   },
   scrollContent: {
     flexGrow: 1,

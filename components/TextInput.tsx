@@ -1,12 +1,14 @@
 import { Colors } from "@/constants/colors"
 import { fontSizes, radius, spacing, typographyStyles } from "@/styles"
 import {
+  Platform,
   TextInput as RNTextInput,
   StyleSheet,
   Text,
+  TextStyle,
   View,
   type TextInputProps,
-  type ViewStyle,
+  type ViewStyle
 } from "react-native"
 
 interface CustomTextInputProps extends TextInputProps {
@@ -14,14 +16,16 @@ interface CustomTextInputProps extends TextInputProps {
   error?: string
   helperText?: string
   containerStyle?: ViewStyle
+  labelStyle?: TextStyle
+  style?: TextStyle
 }
 
-export function TextInput({ label, error, helperText, style, containerStyle, ...props }: CustomTextInputProps) {
+export function TextInput({ label, error, helperText, labelStyle, style, containerStyle, ...props }: CustomTextInputProps) {
   const showHelperText = !error && helperText
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
       <View style={[styles.inputWrapper, error && styles.inputWrapperError, containerStyle]}>
         <RNTextInput
           style={[styles.input, style]}
@@ -48,7 +52,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: Colors.inputBackground,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxs,
+    paddingVertical: Platform.OS === "ios" ? spacing.xxs : spacing.md2,
+    // paddingVertical: spacing.xxs,
   },
   inputWrapperError: {
     borderColor: Colors.error,

@@ -20,6 +20,7 @@ export const Colors = {
   inputBackground: "#fff",
   error: "#ff383c",
   success: "#E1F9E5",
+  success2: "#10B981",
   backgroundCash: "#E1F9E5",
   backgroundInstallments: "#FFF4DB",
   textCash: "#19802B",

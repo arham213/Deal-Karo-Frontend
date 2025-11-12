@@ -4,7 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
-import { layoutStyles, spacing, typographyStyles } from "@/styles"
+import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { getOnboardingCompleted, getUser, saveToken, saveUser } from "@/utils/secureStore"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
@@ -172,69 +172,82 @@ export default function SignInScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
-      <SafeAreaView style={layoutStyles.safeArea}>
-        <ScrollView
-          contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Header title="Sign In" subtitle="Welcome back! Sign in to your account" />
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
+          <ScrollView
+            contentContainerStyle={[layoutStyles.scrollContent]}
+            showsVerticalScrollIndicator={false}
+          >
+            <Header title="Sign In" subtitle="Welcome back! Sign in to your account" />
 
-          <View style={styles.mainContent}>
-            <View style={styles.form}>
-              <TextInput
-                label="Email"
-                placeholder="Enter your email"
-                value={form.email}
-                onChangeText={handleChange("email")}
-                onBlur={handleBlur("email")}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                error={touched.email ? errors.email : undefined}
-                editable={!loading}
-              />
+            <View style={styles.mainContent}>
+              <View style={styles.form}>
+                <TextInput
+                  label="Email"
+                  placeholder="Enter your email"
+                  value={form.email}
+                  onChangeText={handleChange("email")}
+                  onBlur={handleBlur("email")}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  error={touched.email ? errors.email : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
 
-              <TextInput
-                label="Password"
-                placeholder="Enter your password"
-                value={form.password}
-                onChangeText={handleChange("password")}
-                onBlur={handleBlur("password")}
-                secureTextEntry
-                error={touched.password ? errors.password : undefined}
-                editable={!loading}
-              />
-            </View>
+                <TextInput
+                  label="Password"
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChangeText={handleChange("password")}
+                  onBlur={handleBlur("password")}
+                  secureTextEntry
+                  error={touched.password ? errors.password : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
+              </View>
             
+              <Button title="Sign In" onPress={handleSignIn} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
-            <Button title="Sign In" onPress={handleSignIn} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
+              <View style={styles.forgotPasswordContainer}>
+                <Text style={styles.forgotPasswordLink} onPress={() => router.push("/forgot-password")}>
+                  Forgot Password?
+                </Text>
+              </View>
 
-            <View style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordLink} onPress={() => router.push("/forgot-password")}>
-                Forgot Password?
-              </Text>
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>Don't have an account? </Text>
+                <Text style={styles.footerLink} onPress={() => router.push("/sign-up")}>
+                  Sign Up
+                </Text>
+              </View>
             </View>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <Text style={styles.footerLink} onPress={() => router.push("/sign-up")}>
-                Sign Up
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+          </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.headerBackground,
+  },
+  screen: {
+    backgroundColor: Colors.headerBackground,
+  },
   mainContent: {
     gap: spacing.xl,
+    padding: spacing.screen,
+    backgroundColor: Colors.neutral10,
+    borderTopRightRadius: radius.xxl2,
+    borderTopLeftRadius: radius.xxl2,
   },
   form: {
     gap: spacing.xl,
-    marginVertical: spacing.xxl + spacing.md,
+  },
+  inputLabel: {
+    fontWeight: fontWeights.medium,
   },
   button: {
     marginTop: spacing.xl,
@@ -245,8 +258,9 @@ const styles = StyleSheet.create({
   },
   forgotPasswordLink: {
     ...typographyStyles.semibold,
-    fontSize: 14,
-    color: Colors.primary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontWeight: fontWeights.bold,
   },
   footer: {
     flexDirection: "row",
@@ -256,12 +270,14 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...typographyStyles.regular,
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral80,
+    fontWeight: fontWeights.medium,
   },
   footerLink: {
     ...typographyStyles.semibold,
-    fontSize: 14,
-    color: Colors.primary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontWeight: fontWeights.bold,
   },
 })

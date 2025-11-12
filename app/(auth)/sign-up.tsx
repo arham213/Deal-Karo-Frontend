@@ -4,7 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
-import { layoutStyles, spacing, typographyStyles } from "@/styles"
+import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -183,94 +183,115 @@ export default function SignUpScreen() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
-      <SafeAreaView style={layoutStyles.safeArea}>
-        <ScrollView
-          contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
-          showsVerticalScrollIndicator={false}
-        >
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
+          <ScrollView
+            contentContainerStyle={[layoutStyles.scrollContent]}
+            showsVerticalScrollIndicator={false}
+          >
           <Header title="Sign Up" subtitle="Enter details below to sign up" />
+            <View style={styles.mainContent}>
+              <View style={styles.form}>
+                <TextInput
+                  label="Full Name"
+                  placeholder="Type here"
+                  value={form.fullName}
+                  onChangeText={handleChange("fullName")}
+                  onBlur={handleBlur("fullName")}
+                  error={touched.fullName ? errors.fullName : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
 
-          <View style={styles.mainContent}>
-            <View style={styles.form}>
-              <TextInput
-                label="Full Name"
-                placeholder="Type here"
-                value={form.fullName}
-                onChangeText={handleChange("fullName")}
-                onBlur={handleBlur("fullName")}
-                error={touched.fullName ? errors.fullName : undefined}
-                editable={!loading}
-              />
+                <TextInput
+                  label="Email"
+                  placeholder="example@gmail.com"
+                  value={form.email}
+                  onChangeText={handleChange("email")}
+                  onBlur={handleBlur("email")}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  error={touched.email ? errors.email : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
 
-              <TextInput
-                label="Email"
-                placeholder="example@gmail.com"
-                value={form.email}
-                onChangeText={handleChange("email")}
-                onBlur={handleBlur("email")}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={touched.email ? errors.email : undefined}
-                editable={!loading}
-              />
+                <TextInput
+                  label="Contact Number"
+                  placeholder="+92 300 xxxx xxx"
+                  value={form.contactNo}
+                  onChangeText={handleChange("contactNo")}
+                  onBlur={handleBlur("contactNo")}
+                  keyboardType="phone-pad"
+                  error={touched.contactNo ? errors.contactNo : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
 
-              <TextInput
-                label="Contact Number"
-                placeholder="+92 300 xxxx xxx"
-                value={form.contactNo}
-                onChangeText={handleChange("contactNo")}
-                onBlur={handleBlur("contactNo")}
-                keyboardType="phone-pad"
-                error={touched.contactNo ? errors.contactNo : undefined}
-                editable={!loading}
-              />
+                <TextInput
+                  label="Estate Name"
+                  placeholder="Type here"
+                  value={form.estateName}
+                  onChangeText={handleChange("estateName")}
+                  onBlur={handleBlur("estateName")}
+                  error={touched.estateName ? errors.estateName : undefined}
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
 
-              <TextInput
-                label="Estate Name"
-                placeholder="Type here"
-                value={form.estateName}
-                onChangeText={handleChange("estateName")}
-                onBlur={handleBlur("estateName")}
-                error={touched.estateName ? errors.estateName : undefined}
-                editable={!loading}
-              />
+                <TextInput
+                  label="Set Password"
+                  placeholder="Type here"
+                  value={form.password}
+                  onChangeText={handleChange("password")}
+                  onBlur={handleBlur("password")}
+                  error={touched.password ? errors.password : undefined}
+                  helperText={PASSWORD_HELPER_TEXT}
+                  secureTextEntry
+                  editable={!loading}
+                  labelStyle={styles.inputLabel}
+                />
+              </View>
 
-              <TextInput
-                label="Set Password"
-                placeholder="Type here"
-                value={form.password}
-                onChangeText={handleChange("password")}
-                onBlur={handleBlur("password")}
-                error={touched.password ? errors.password : undefined}
-                helperText={PASSWORD_HELPER_TEXT}
-                secureTextEntry
-                editable={!loading}
-              />
+              <View>
+                <Button title="Sign Up" onPress={handleSignUp} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
+
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>Already have an account? </Text>
+                  <Text style={styles.footerLink} onPress={() => router.push("/sign-in")}>
+                    Sign In
+                  </Text>
+                </View>
+              </View>
             </View>
-
-            <Button title="Sign Up" onPress={handleSignUp} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <Text style={styles.footerLink} onPress={() => router.push("/sign-in")}>
-                Sign In
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+          </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.headerBackground,
+  },
+  screen: {
+    backgroundColor: Colors.headerBackground,
+  },
   mainContent: {
+    flexDirection: "column",
+    justifyContent: "space-between",
+    alignItems: "center",
     gap: spacing.xl,
+    padding: spacing.screen,
+    backgroundColor: Colors.neutral10,
+    borderTopRightRadius: radius.xxl2,
+    borderTopLeftRadius: radius.xxl2,
   },
   form: {
     gap: spacing.xl,
-    marginVertical: spacing.xxl + spacing.md,
+  },
+  inputLabel: {
+    fontWeight: fontWeights.medium,
   },
   button: {
     marginTop: spacing.xl,
@@ -283,12 +304,14 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...typographyStyles.regular,
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral80,
+    fontWeight: fontWeights.medium,
   },
   footerLink: {
     ...typographyStyles.semibold,
-    fontSize: 14,
-    color: Colors.primary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontWeight: fontWeights.bold,
   },
 })

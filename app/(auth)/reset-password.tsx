@@ -4,7 +4,7 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
-import { fontSizes, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -175,13 +175,15 @@ export default function ResetPasswordScreen() {
     Boolean(validateField("confirmPassword", confirmPassword))
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
-      <SafeAreaView style={layoutStyles.safeArea}>
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
         <ScrollView
-          contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
+          contentContainerStyle={[layoutStyles.scrollContent]}
           showsVerticalScrollIndicator={false}
         >
             <Header title="Reset Password" subtitle="Enter your new password below" />
+
+            <View style={styles.mainContent}>
 
             <View style={styles.formContainer}>
             <View style={styles.inputWrapper}>
@@ -193,8 +195,8 @@ export default function ResetPasswordScreen() {
                 onChangeText={handlePasswordChange}
                 onBlur={handleBlur("password")}
                 error={touched.password ? errors.password : undefined}
-                helperText="Minimum 8 characters, include uppercase, lowercase and number"
                 editable={!loading}
+                labelStyle={styles.inputLabel}
                 />
             </View>
 
@@ -208,6 +210,7 @@ export default function ResetPasswordScreen() {
                 onBlur={handleBlur("confirmPassword")}
                 error={touched.confirmPassword ? errors.confirmPassword : undefined}
                 editable={!loading}
+                labelStyle={styles.inputLabel}
                 />
             </View>
 
@@ -232,29 +235,44 @@ export default function ResetPasswordScreen() {
             </View>
 
             <Button title="Reset Password" onPress={handleResetPassword} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
+            </View>
         </ScrollView>
-      </SafeAreaView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: Colors.headerBackground,
+  },
+  screen: {
+    backgroundColor: Colors.headerBackground,
+  },
+  mainContent: {
+    gap: spacing.xl,
+    backgroundColor: Colors.neutral10,
+    borderTopRightRadius: radius.xxl2,
+    borderTopLeftRadius: radius.xxl2,
+    padding: spacing.screen,
+  },
   formContainer: {
-    marginVertical: spacing.xxl + spacing.md,
     gap: spacing.xl,
   },
   inputWrapper: {
     gap: spacing.sm,
   },
+  inputLabel: {
+    fontWeight: fontWeights.medium,
+  },
   errorText: {
     ...typographyStyles.helper,
-    color: "#DC2626",
+    color: Colors.error,
     marginTop: 4,
   },
   passwordRequirements: {
     backgroundColor: Colors.inputBackground,
     borderRadius: radius.md,
-    padding: spacing.lg,
     gap: spacing.sm,
     marginTop: spacing.md,
   },
@@ -266,11 +284,12 @@ const styles = StyleSheet.create({
   },
   requirement: {
     ...typographyStyles.helper,
-    color: Colors.textSecondary,
+    color: Colors.neutral80,
+    fontWeight: fontWeights.medium,
   },
   requirementMet: {
-    color: "#10B981",
-    fontWeight: "500",
+    color: Colors.success2,
+    fontWeight: fontWeights.bold,
   },
   button: {
     marginTop: spacing.xl,

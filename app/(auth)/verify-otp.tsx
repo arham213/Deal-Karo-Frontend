@@ -15,8 +15,9 @@ import {
   Text,
   View,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
-import { fontSizes, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 
 export default function VerifyOTPScreen() {
   const router = useRouter()
@@ -73,8 +74,8 @@ export default function VerifyOTPScreen() {
         alert("OTP verified successfully");
         setTouched(false)
         router.push({
-            pathname: '/reset-password',
-            params: { userId: response.data.data.userId}
+          pathname: '/reset-password',
+          params: { userId: response.data.data.userId }
         });
       } else {
         alert(response?.data.error.message);
@@ -104,7 +105,7 @@ export default function VerifyOTPScreen() {
       })
     }, 1000)
 
-      try {
+    try {
       const userData = {
         userId: userId,
         isSimpleOTP: false
@@ -137,56 +138,70 @@ export default function VerifyOTPScreen() {
   const isSubmitDisabled = loading || otpCode.length !== 4
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={layoutStyles.screen}>
-      <ScrollView
-        contentContainerStyle={[layoutStyles.scrollContent, layoutStyles.screenPadding]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Header title="Verify your email" subtitle="An OTP sent to your registered email." />
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
+        <ScrollView
+          contentContainerStyle={[layoutStyles.scrollContent]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Header title="Verify your email" subtitle="An OTP sent to your registered email." />
 
-        <View style={styles.otpContainer}>
-          <Text style={styles.otpLabel}>Enter OTP here</Text>
-          <View style={styles.otpInputs}>
-            {otp.map((digit, index) => (
-              <RNTextInput
-                key={index}
-                ref={(ref) => {inputRefs.current[index] = ref}}
-                style={[styles.otpInput, showError && styles.otpInputError]}
-                maxLength={1}
-                keyboardType="number-pad"
-                value={digit}
-                onChangeText={(value) => handleOTPChange(index, value)}
-                onKeyPress={({ nativeEvent }) => {
-                  if (nativeEvent.key === "Backspace") {
-                    handleBackspace(index)
-                  }
-                }}
-                editable={!loading}
-              />
-            ))}
+          <View style={styles.mainContent}>
+
+            <View>
+              <Text style={styles.otpLabel}>Enter OTP here</Text>
+              <View style={styles.otpInputs}>
+                {otp.map((digit, index) => (
+                  <RNTextInput
+                    key={index}
+                    ref={(ref) => { inputRefs.current[index] = ref }}
+                    style={[styles.otpInput, showError && styles.otpInputError]}
+                    maxLength={1}
+                    keyboardType="number-pad"
+                    value={digit}
+                    onChangeText={(value) => handleOTPChange(index, value)}
+                    onKeyPress={({ nativeEvent }) => {
+                      if (nativeEvent.key === "Backspace") {
+                        handleBackspace(index)
+                      }
+                    }}
+                    editable={!loading}
+                  />
+                ))}
+              </View>
+              {showError && <Text style={styles.errorText}>Enter the 4-digit code sent to your email</Text>}
+            </View>
+
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendText}>Didn't receive OTP? </Text>
+              <Text
+                style={[styles.resendLink, resendTimer > 0 && styles.resendDisabled]}
+                onPress={resendTimer === 0 ? handleResendOTP : undefined}
+              >
+                {resendTimer > 0 ? `Re-Send (${resendTimer}s)` : "Re-Send"}
+              </Text>
+            </View>
+            <Button title="Continue" onPress={handleVerifyOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
           </View>
-          {showError && <Text style={styles.errorText}>Enter the 4-digit code sent to your email</Text>}
-        </View>
-
-        <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>Didn't receive OTP? </Text>
-          <Text
-            style={[styles.resendLink, resendTimer > 0 && styles.resendDisabled]}
-            onPress={resendTimer === 0 ? handleResendOTP : undefined}
-          >
-            {resendTimer > 0 ? `Re-Send (${resendTimer}s)` : "Re-Send"}
-          </Text>
-        </View>
-
-        <Button title="Continue" onPress={handleVerifyOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  otpContainer: {
-    marginVertical: spacing.xxl + spacing.md,
+  safeArea: {
+    backgroundColor: Colors.neutral10,
+  },
+  screen: {
+    backgroundColor: Colors.headerBackground,
+  },
+  mainContent: {
+    gap: spacing.xl,
+    backgroundColor: Colors.neutral10,
+    borderTopRightRadius: radius.xxl2,
+    borderTopLeftRadius: radius.xxl2,
+    padding: spacing.screen,
   },
   otpLabel: {
     ...typographyStyles.semibold,
@@ -223,13 +238,15 @@ const styles = StyleSheet.create({
   },
   resendText: {
     ...typographyStyles.regular,
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral80,
+    fontWeight: fontWeights.medium,
   },
   resendLink: {
     ...typographyStyles.semibold,
-    fontSize: 14,
-    color: Colors.primary,
+    fontSize: fontSizes.sm,
+    color: Colors.neutral100,
+    fontWeight: fontWeights.bold,
   },
   resendDisabled: {
     opacity: 0.5,

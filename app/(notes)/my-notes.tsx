@@ -3,6 +3,7 @@
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { getToken } from "@/utils/secureStore"
 import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
@@ -199,8 +200,10 @@ export default function MyNotesScreen() {
               }}
               multiline
               style={styles.noteInput}
+              containerStyle={styles.noteInputContainer}
               error={noteTouched ? noteError : undefined}
-              helperText={noteHelperText}
+              // helperText={noteHelperText}
+              
             />
 
             <View style={styles.modalButtons}>
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
   markAsDoneText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.success,
+    color: Colors.success2,
   },
   modalOverlay: {
     flex: 1,
@@ -309,6 +312,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.text,
   },
+  noteInputContainer: {
+    borderRadius: radius.lg
+  },
   noteInput: {
     minHeight: 100,
     paddingVertical: 12,
@@ -317,15 +323,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cancelButton: {
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingVertical: spacing.md2,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.neutral50,
     alignItems: "center",
+    backgroundColor: Colors.neutral20,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary
   },
 })

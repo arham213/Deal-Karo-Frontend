@@ -4,7 +4,7 @@ import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
 import { Colors } from "@/constants/colors"
-import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
+import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
@@ -12,7 +12,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function MyListingsScreen() {
@@ -31,12 +31,15 @@ export default function MyListingsScreen() {
   const [hasMore, setHasMore] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [localSearchQuery, setLocalSearchQuery] = useState("")
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasScrolledRef = useRef(false)
   const initialLoadCompleteRef = useRef(false)
   const isFetchingRef = useRef(false)
+  const isSearchingRef = useRef(false)
   const [showPropertyTypeDropdown, setShowPropertyTypeDropdown] = useState(false)
+  const dropdownButtonRef = useRef<View>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 })
 
+  const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
   const BASE_URL = "http://10.190.83.91:8080/api"
 
   // Helper function to check if we should use advanced search
@@ -99,25 +102,21 @@ export default function MyListingsScreen() {
       params.block = filterObj.block
     }
 
-    // Area - send first selected area (backend accepts single area string)
-    // Only include if areas are selected and not just default
-    if (filterObj.selectedAreas && filterObj.selectedAreas.length > 0) {
-      // Check if it's not just the default "5 Marla"
-      const hasNonDefaultArea = filterObj.selectedAreas.some((area: string) => area !== "5 Marla")
-      if (hasNonDefaultArea || filterObj.selectedAreas.length > 1) {
-        params.area = filterObj.selectedAreas[0]
-      }
+    // Area - send selected area (backend accepts single area string)
+    // Only include if area is selected and not "All"
+    if (filterObj.selectedArea && filterObj.selectedArea !== "All") {
+      params.area = filterObj.selectedArea
     }
 
-    // Price range - extract numeric values (only include if not default values)
-    if (filterObj.minPrice && filterObj.minPrice !== "Rs.1 Crore") {
+    // Price range - extract numeric values (only include if not empty)
+    if (filterObj.minPrice && filterObj.minPrice.trim() !== "") {
       const minPriceNum = filterObj.minPrice.replace(/[^0-9]/g, "")
       if (minPriceNum) {
         const parsed = parseInt(minPriceNum, 10)
         if (!isNaN(parsed)) params.minPrice = parsed
       }
     }
-    if (filterObj.maxPrice && filterObj.maxPrice !== "Rs. 2 Crore") {
+    if (filterObj.maxPrice && filterObj.maxPrice.trim() !== "") {
       const maxPriceNum = filterObj.maxPrice.replace(/[^0-9]/g, "")
       if (maxPriceNum) {
         const parsed = parseInt(maxPriceNum, 10)
@@ -142,7 +141,7 @@ export default function MyListingsScreen() {
     return params
   }, [])
 
-  const getListings = useCallback(async (page: number = 1, reset: boolean = false, search: string = "") => {
+  const getListings = useCallback(async (page: number = 1, reset: boolean = false, search: string = "", isSearch: boolean = false) => {
     // Prevent multiple simultaneous API calls
     if (isFetchingRef.current) {
       console.log("Already fetching, skipping...")
@@ -172,10 +171,12 @@ export default function MyListingsScreen() {
     }
 
     isFetchingRef.current = true
+    isSearchingRef.current = isSearch
 
-    if (reset) {
+    // Don't show loading indicator for search operations
+    if (reset && !isSearch) {
       setLoading(true)
-    } else {
+    } else if (!isSearch) {
       setLoadingMore(true)
     }
 
@@ -188,23 +189,20 @@ export default function MyListingsScreen() {
         limit: parseInt(process.env.PAGINATION_LIMIT || '25'),
       }
 
-      if (useAdvancedSearch && !(search && search.trim())) {
-        console.log('useAdvancedSearch:', useAdvancedSearch)
+      if (search && search.trim()) {
+        // Simple text search - use dedicated search endpoint but still apply all filters
+        url = `${BASE_URL}/properties/search`
+        params.searchString = search.trim()
+        // Include userId and all filter params for my-listings
+        const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter, userId)
+        params = { ...params, ...filterParams }
+      } else if (useAdvancedSearch) {
         // Use advanced search endpoint when property type, active filter, or filters are applied
         url = `${BASE_URL}/properties/search/advanced`
         const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter, userId)
         params = { ...params, ...filterParams }
-      } else if (search && search.trim()) {
-        // Simple text search - use dedicated search endpoint (only when no filters/tabs are set)
-        url = `${BASE_URL}/properties/search`
-        params.searchString = search.trim()
-        // Still include userId for my-listings
-        params.userId = userId
-        const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter)
-        const { propertyType, listingType, ...rest } = filterParams
-        params = { ...params, propertyType, listingType }
       } else {
-        // Default case: fetch my-properties with userId
+        // Default case: fetch my-properties with userId (no filters)
         url = `${BASE_URL}/properties/my-properties`
         params.userId = userId
       }
@@ -220,9 +218,10 @@ export default function MyListingsScreen() {
 
       isFetchingRef.current = false
 
-      if (reset) {
+      // Don't update loading state for search operations
+      if (reset && !isSearch) {
         setLoading(false)
-      } else {
+      } else if (!isSearch) {
         setLoadingMore(false)
       }
 
@@ -233,6 +232,9 @@ export default function MyListingsScreen() {
           setListings(properties || [])
           initialLoadCompleteRef.current = true
           hasScrolledRef.current = false // Reset scroll tracking on new search/filter
+          if (isSearch) {
+            isSearchingRef.current = false // Reset search flag after search completes
+          }
         } else {
           // Deduplicate listings by _id when appending
           setListings((prev) => {
@@ -247,31 +249,31 @@ export default function MyListingsScreen() {
         setHasMore((pagination?.page || 1) < (pagination?.totalPages || 1))
       } else {
         isFetchingRef.current = false
-        if (reset) {
+        if (reset && !isSearch) {
           setLoading(false)
-        } else {
+        } else if (!isSearch) {
           setLoadingMore(false)
         }
         console.error("Failed to fetch my listings:", response?.data)
-        // Only show alert if it's a reset (initial load or filter change), not for load more
-        if (reset) {
+        // Only show alert if it's a reset (initial load or filter change), not for load more or search
+        if (reset && !isSearch) {
           alert("Failed to fetch my listings")
         }
       }
     } catch (error) {
       isFetchingRef.current = false
       
-      if (reset) {
+      if (reset && !isSearch) {
         setLoading(false)
-      } else {
+      } else if (!isSearch) {
         setLoadingMore(false)
       }
 
       console.error("Error fetching my listings:", error)
       
-      // Only show alert for initial loads/resets, not for pagination failures
-      // This prevents alert spam when scrolling
-      if (reset) {
+      // Only show alert for initial loads/resets, not for pagination failures or search
+      // This prevents alert spam when scrolling or searching
+      if (reset && !isSearch) {
         if (axios.isAxiosError(error)) {
           const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
           // Use a small delay to prevent multiple alerts in quick succession
@@ -296,11 +298,12 @@ export default function MyListingsScreen() {
     initialLoadCompleteRef.current = false // Reset initial load flag
     hasScrolledRef.current = false // Reset scroll tracking
     isFetchingRef.current = false // Reset fetching flag
+    isSearchingRef.current = false // Reset search flag when filters change
     getListings(1, true, searchQuery)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, activePropertyTab, activeFilter])
 
-  // Debounced search effect - only triggers when searchQuery changes (not on initial mount)
+  // Search effect - triggers immediately when searchQuery changes (not on initial mount)
   const isInitialMount = useRef(true)
   useEffect(() => {
     // Skip initial mount
@@ -309,12 +312,10 @@ export default function MyListingsScreen() {
       return
     }
 
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
+    // If search query is empty, reset search flag and use normal loading
+    const isSearch = searchQuery.trim().length > 0
 
-    // Trigger search immediately when searchQuery changes (already debounced in handleSearchChange)
+    // Trigger search immediately when searchQuery changes
     setCurrentPage(1)
     setTotalPages(1)
     setHasMore(true)
@@ -322,14 +323,8 @@ export default function MyListingsScreen() {
     initialLoadCompleteRef.current = false // Reset initial load flag
     hasScrolledRef.current = false // Reset scroll tracking
     isFetchingRef.current = false // Reset fetching flag
-    getListings(1, true, searchQuery)
+    getListings(1, true, searchQuery, isSearch) // Pass isSearch flag to prevent loading indicator only for actual searches
 
-    // Cleanup timeout on unmount or when searchQuery changes
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current)
-      }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 
@@ -361,13 +356,8 @@ export default function MyListingsScreen() {
 
   const handleSearchChange = useCallback((text: string) => {
     setLocalSearchQuery(text)
-    // Update the actual search query after debounce
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current)
-    }
-    searchTimeoutRef.current = setTimeout(() => {
-      setSearchQuery(text)
-    }, 500)
+    // Update search query immediately (no debounce for instant search like WhatsApp)
+    setSearchQuery(text)
   }, [])
 
   const handlePropertyDetails = (listingId: string) => {
@@ -512,11 +502,16 @@ export default function MyListingsScreen() {
           </View>
 
           {/* Property Type Dropdown */}
-          <View style={styles.propertyTypeDropdownWrapper}>
+          <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
             <TouchableOpacity
               style={styles.propertyTypeDropdownButton}
               activeOpacity={0.85}
-              onPress={() => setShowPropertyTypeDropdown(true)}
+              onPress={() => {
+                dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
+                  setDropdownPosition({ x, y: y + height, width })
+                  setShowPropertyTypeDropdown(true)
+                })
+              }}
             >
               <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
               <Ionicons
@@ -541,6 +536,7 @@ export default function MyListingsScreen() {
               returnKeyType="search"
               autoCorrect={false}
               autoCapitalize="none"
+              blurOnSubmit={false}
             />
           <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
             <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
@@ -571,9 +567,9 @@ export default function MyListingsScreen() {
   )
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
-        {loading && listings.length === 0 ? (
+        {loading && listings.length === 0 && !isSearchingRef.current ? (
           <View style={styles.initialLoadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.initialLoadingText}>Loading listings...</Text>
@@ -585,19 +581,19 @@ export default function MyListingsScreen() {
             renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} />}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={
-              loadingMore ? (
+              loadingMore && listings.length > 0 ? (
                 <View style={styles.loadingMoreContainer}>
                   <ActivityIndicator size="small" color={Colors.primary} />
                   <Text style={styles.loadingMoreText}>Loading more...</Text>
                 </View>
-              ) : !hasMore && listings.length > 0 ? (
+              ) : !hasMore && listings.length > 0 && !loadingMore && !isFetchingRef.current ? (
                 <View style={styles.endOfListContainer}>
                   <Text style={styles.endOfListText}>No more listings to load</Text>
                 </View>
               ) : null
             }
             ListEmptyComponent={
-              !loading ? (
+              !loading && !isFetchingRef.current && !isSearchingRef.current && listings.length === 0 ? (
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No listings found</Text>
                 </View>
@@ -630,6 +626,45 @@ export default function MyListingsScreen() {
         onClose={() => setShowDetailsModal(false)}
         listing={clickedListing}
       />
+
+      <Modal
+        transparent
+        visible={showPropertyTypeDropdown}
+        animationType="fade"
+        onRequestClose={() => setShowPropertyTypeDropdown(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.dropdownBackdrop}
+          onPress={() => setShowPropertyTypeDropdown(false)}
+        >
+          <View style={[styles.dropdownContent, { left: dropdownPosition.x, top: dropdownPosition.y }]}>
+            {propertyTypeOptions.map((type) => (
+              <TouchableOpacity
+                key={type}
+                activeOpacity={0.8}
+                style={[
+                  styles.dropdownOption,
+                  activePropertyTab === type && styles.selectedDropdownOption,
+                ]}
+                onPress={() => {
+                  handleSetActivePropertyTab(type)
+                  setShowPropertyTypeDropdown(false)
+                }}
+              >
+                <Text
+                  style={[
+                    styles.dropdownOptionText,
+                    activePropertyTab === type && styles.selectedDropdownOptionText,
+                  ]}
+                >
+                  {type}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -644,10 +679,11 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.headerBackground,
+    // backgroundColor: Colors.headerBackground,
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: Colors.headerBackground,
   },
   container: {
     paddingBottom: 70,
@@ -719,19 +755,12 @@ const styles = StyleSheet.create({
     fontStyle: "normal",
     fontFamily: fontFamilies.primary,
   },
-  dropdownModalOverlay: {
-    flex: 1,
-    justifyContent: "flex-start",
-    paddingTop: 120,
-    paddingHorizontal: 16,
-  },
   dropdownBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.15)",
   },
   dropdownContent: {
-    zIndex: 1,
-    alignSelf: "flex-start",
+    position: "absolute",
     minWidth: 180,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -743,6 +772,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 6,
+    marginTop: 4,
   },
   dropdownOption: {
     paddingHorizontal: 16,

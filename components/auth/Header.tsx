@@ -29,8 +29,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.xxl + spacing.lg,
     paddingTop: 90,
-    paddingBottom: spacing.md,
-    backgroundColor: Colors.headerBackground
+    paddingBottom: spacing.md2,
+    backgroundColor: Colors.headerBackground,
+    padding: spacing.screen,
   },
   logo: {
     width: 120,
@@ -47,8 +48,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typographyStyles.regular,
-    fontSize: fontSizes.sm,
-    color: Colors.textSecondary,
+    color: Colors.neutral100,
     textAlign: "center",
   },
 })
