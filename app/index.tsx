@@ -1,44 +1,30 @@
 "use client"
 
 import { Colors } from "@/constants/colors"
-import { getOnboardingCompleted } from "@/utils/secureStore"
-import { validateAuth } from "@/utils/tokenValidation"
+import { useAuthContext } from "@/contexts/AuthContext"
 import { Redirect } from "expo-router"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
 
 export default function Index() {
-  const [isLoading, setIsLoading] = useState(true)
+  const { isAuthenticated, isLoading, isOnboardingCompleted } = useAuthContext()
   const [redirectPath, setRedirectPath] = useState<string | null>(null)
 
   useEffect(() => {
-    checkAuthAndRedirect()
-  }, [])
+    if (isLoading) return
 
-  const checkAuthAndRedirect = async () => {
-    try {
-      // Check if user has valid token
-      const { isValid } = await validateAuth()
-      
-      if (isValid) {
-        // User is authenticated, check onboarding status
-        const onboardingCompleted = await getOnboardingCompleted()
-        if (onboardingCompleted === "true") {
-          setRedirectPath("/listings")
-        } else {
-          setRedirectPath("/onboarding")
-        }
+    if (isAuthenticated) {
+      // User is authenticated, check onboarding status
+      if (isOnboardingCompleted) {
+        setRedirectPath("/(listings)/listings")
       } else {
-        // User is not authenticated, redirect to sign-in
-        setRedirectPath("/(auth)/sign-in")
+        setRedirectPath("/(onboarding)/onboarding")
       }
-    } catch (error) {
-      console.error("Error checking auth:", error)
+    } else {
+      // User is not authenticated, redirect to sign-in
       setRedirectPath("/(auth)/sign-in")
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [isAuthenticated, isLoading, isOnboardingCompleted])
 
   if (isLoading) {
     return (
@@ -52,6 +38,7 @@ export default function Index() {
     return <Redirect href={redirectPath as any} />
   }
 
+  // Default fallback
   return <Redirect href="/(auth)/sign-in" />
 }
 

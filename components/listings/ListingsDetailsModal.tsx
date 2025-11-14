@@ -75,6 +75,11 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             </View>
 
             <View style={styles.detailRow}>
+              <Text style={styles.label}>Contact</Text>
+              <Text style={styles.value}>{listing?.forContact}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
               <Text style={styles.label}>Type</Text>
               <View
                 style={[

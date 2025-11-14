@@ -26,7 +26,7 @@ export interface ListingState {
     quarterly: string
   }
   description: string
-  contact: string
+  forContact: string
   hasPole?: boolean
   hasWire?: boolean
   features?: string

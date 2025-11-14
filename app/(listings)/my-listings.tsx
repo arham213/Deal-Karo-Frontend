@@ -12,12 +12,14 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function MyListingsScreen() {
   const router = useRouter()
   const [listings, setListings] = useState<ListingState[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
   const [activePropertyTab, setActivePropertyTab] = useState<"Plots" | "Houses" | "Commercial Plots">("Plots")
   const [activeFilter, setActiveFilter] = useState("All Listings")
   const [showFilterModal, setShowFilterModal] = useState(false)
@@ -41,6 +43,53 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
   const BASE_URL = "http://10.190.83.91:8080/api"
+
+  // Check verification status on mount
+  useEffect(() => {
+    checkVerificationStatus()
+  }, [])
+
+  const checkVerificationStatus = async () => {
+    try {
+      setLoadingUser(true)
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+
+      const response = await axios.get(`${BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.success) {
+        const userData = response.data.data.user
+        setUser(userData)
+
+        // Redirect to listings if not verified
+        if (userData.verificationStatus !== "verified") {
+          Alert.alert(
+            "Access Restricted",
+            "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
+            [
+              {
+                text: "OK",
+                onPress: () => router.replace("/listings"),
+              },
+            ]
+          )
+          return
+        }
+      }
+    } catch (error) {
+      console.error("Error checking verification status:", error)
+      router.replace("/listings")
+    } finally {
+      setLoadingUser(false)
+    }
+  }
 
   // Helper function to check if we should use advanced search
   // Use advanced search if: filters are applied OR property type/active filter tabs are set
@@ -290,22 +339,31 @@ export default function MyListingsScreen() {
   }, [filters, activePropertyTab, activeFilter, shouldUseAdvancedSearch, transformFiltersForBackend])
 
   // Initial load and handle filters, property tab, and active filter changes (immediate)
+  // Only fetch listings if user is verified
   useEffect(() => {
-    setCurrentPage(1)
-    setTotalPages(1)
-    setHasMore(true)
-    setListings([])
-    initialLoadCompleteRef.current = false // Reset initial load flag
-    hasScrolledRef.current = false // Reset scroll tracking
-    isFetchingRef.current = false // Reset fetching flag
-    isSearchingRef.current = false // Reset search flag when filters change
-    getListings(1, true, searchQuery)
+    if (!loadingUser && user?.verificationStatus === "verified") {
+      setCurrentPage(1)
+      setTotalPages(1)
+      setHasMore(true)
+      setListings([])
+      initialLoadCompleteRef.current = false // Reset initial load flag
+      hasScrolledRef.current = false // Reset scroll tracking
+      isFetchingRef.current = false // Reset fetching flag
+      isSearchingRef.current = false // Reset search flag when filters change
+      getListings(1, true, searchQuery)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, activePropertyTab, activeFilter])
+  }, [filters, activePropertyTab, activeFilter, user, loadingUser])
 
   // Search effect - triggers immediately when searchQuery changes (not on initial mount)
+  // Only fetch listings if user is verified
   const isInitialMount = useRef(true)
   useEffect(() => {
+    // Skip if user is not verified or still loading
+    if (loadingUser || user?.verificationStatus !== "verified") {
+      return
+    }
+
     // Skip initial mount
     if (isInitialMount.current) {
       isInitialMount.current = false
@@ -326,7 +384,7 @@ export default function MyListingsScreen() {
     getListings(1, true, searchQuery, isSearch) // Pass isSearch flag to prevent loading indicator only for actual searches
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery])
+  }, [searchQuery, user, loadingUser])
 
   const loadMore = useCallback(() => {
     // Only load more if:
@@ -565,6 +623,23 @@ export default function MyListingsScreen() {
       
     </>
   )
+
+  // Show loading while checking verification
+  if (loadingUser) {
+    return (
+      <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
+        <View style={styles.initialLoadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.initialLoadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  // Don't render if user is not verified (will redirect)
+  if (user?.verificationStatus !== "verified") {
+    return null
+  }
 
   return (
     <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>

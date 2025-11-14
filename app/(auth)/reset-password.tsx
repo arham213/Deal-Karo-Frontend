@@ -88,7 +88,7 @@ export default function ResetPasswordScreen() {
           password: false,
           confirmPassword: false,
         })
-        router.push('/sign-in');
+        router.push("/(auth)/sign-in");
       } else {
         alert(response?.data.error.message);
       }

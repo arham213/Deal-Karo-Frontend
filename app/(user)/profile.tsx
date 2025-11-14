@@ -4,8 +4,9 @@ import { AvatarInitials } from "@/components/AvatarInitials"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { useAuthContext } from "@/contexts/AuthContext"
 import { User } from "@/types/auth"
-import { clearAuthData, getUser } from "@/utils/secureStore"
+import { getUser } from "@/utils/secureStore"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const { logout } = useAuthContext()
   type EditableProfileField = "name" | "email" | "contactNo" | "estateName"
   const [profile, setProfile] = useState<User>({
     _id: "",
@@ -140,10 +142,8 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     try {
-      // Clear all auth data from secureStore
-      await clearAuthData()
-      // Navigate to sign-in screen
-      router.replace("/(auth)/sign-in")
+      // Use AuthContext logout which handles clearing data and navigation
+      await logout()
     } catch (error) {
       console.error("Logout error:", error)
       alert("Failed to logout. Please try again.")

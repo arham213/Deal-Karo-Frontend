@@ -4,12 +4,16 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
+import { User } from "@/types/auth"
 import { getToken } from "@/utils/secureStore"
 import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
+import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -29,7 +33,10 @@ interface Note {
 }
 
 export default function MyNotesScreen() {
+  const router = useRouter()
   const [notes, setNotes] = useState<Note[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
 
   const [newNoteDescription, setNewNoteDescription] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
@@ -42,9 +49,59 @@ export default function MyNotesScreen() {
   const NOTE_MIN_LENGTH = 3
   const NOTE_MAX_LENGTH = 500
 
-  useEffect(()=> {
-    getNotes();
+  // Check verification status on mount
+  useEffect(() => {
+    checkVerificationStatus()
   }, [])
+
+  const checkVerificationStatus = async () => {
+    try {
+      setLoadingUser(true)
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+
+      const response = await axios.get(`${BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.success) {
+        const userData = response.data.data.user
+        setUser(userData)
+
+        // Redirect to listings if not verified
+        if (userData.verificationStatus !== "verified") {
+          Alert.alert(
+            "Access Restricted",
+            "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
+            [
+              {
+                text: "OK",
+                onPress: () => router.replace("/listings"),
+              },
+            ]
+          )
+          return
+        }
+      }
+    } catch (error) {
+      console.error("Error checking verification status:", error)
+      router.replace("/listings")
+    } finally {
+      setLoadingUser(false)
+    }
+  }
+
+  useEffect(() => {
+    // Only fetch notes if user is verified
+    if (user?.verificationStatus === "verified") {
+      getNotes()
+    }
+  }, [user])
 
   const getNotes = async () => {
     setLoading(true)
@@ -171,6 +228,23 @@ export default function MyNotesScreen() {
               </View>
             </View>
   )
+
+  // Show loading while checking verification
+  if (loadingUser) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  // Don't render if user is not verified (will redirect)
+  if (user?.verificationStatus !== "verified") {
+    return null
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -335,5 +409,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: Colors.neutral90,
     fontFamily: fontFamilies.primary
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
   },
 })

@@ -104,7 +104,7 @@ export default function ForgotPasswordScreen() {
         <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
         <View style={styles.footer}>
-          <Text style={styles.footerLink} onPress={() => router.push("/sign-in")}>
+          <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
             Back to Sign In
           </Text>
         </View>

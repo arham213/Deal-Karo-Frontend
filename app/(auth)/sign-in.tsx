@@ -4,13 +4,14 @@ import { Header } from "@/components/auth/Header"
 import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
+import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
-import { getOnboardingCompleted, getUser, saveToken, saveUser } from "@/utils/secureStore"
+import { getOnboardingCompleted, saveToken, saveUser } from "@/utils/secureStore"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useMemo, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type SignInField = "email" | "password"
@@ -30,6 +31,7 @@ const createTouchedState = (value: boolean) =>
 
 export default function SignInScreen() {
   const router = useRouter()
+  const { setUser, setToken, checkAuth } = useAuthContext()
   const [form, setForm] = useState<SignInFormState>(createInitialFormState)
   const [errors, setErrors] = useState<ValidationErrors<SignInField>>({})
   const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
@@ -144,18 +146,26 @@ export default function SignInScreen() {
 
       if (response?.data.success) {
         console.log('saving token and user...')
+        // Save token and user to secure store
         await saveToken(response.data.data.token);
         await saveUser(response.data.data.user);
+        
+        // Update auth context
+        setToken(response.data.data.token);
+        setUser(response.data.data.user);
+        
+        // Refresh auth state to get onboarding status
+        await checkAuth();
+        
         setErrors({})
         setTouched(createTouchedState(false))
 
-        const user = await getUser()
-        console.log('user:', user)
+        // Check onboarding status and redirect
         const onboardingCompleted = await getOnboardingCompleted();
         if (onboardingCompleted === "true") {
-          router.push('/listings');
+          router.replace("/(listings)/listings");
         } else {
-          router.push('/onboarding');
+          router.replace("/(onboarding)/onboarding");
         }
       } else {
         alert(response?.data.error.message || "Signin failed");
@@ -211,14 +221,22 @@ export default function SignInScreen() {
               <Button title="Sign In" onPress={handleSignIn} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
               <View style={styles.forgotPasswordContainer}>
-                <Text style={styles.forgotPasswordLink} onPress={() => router.push("/forgot-password")}>
-                  Forgot Password?
-                </Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    console.log("Navigating to forgot password...")
+                    router.push("/(auth)/forgot-password")
+                  }} 
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.forgotPasswordLink}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.footer}>
                 <Text style={styles.footerText}>Don't have an account? </Text>
-                <Text style={styles.footerLink} onPress={() => router.push("/sign-up")}>
+                <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-up")}>
                   Sign Up
                 </Text>
               </View>

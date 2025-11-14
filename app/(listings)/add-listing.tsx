@@ -13,8 +13,10 @@ import { Validation, type ValidationErrors } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -83,6 +85,8 @@ const createTouchedState = (value: boolean): Record<ListingField, boolean> =>
 export default function AddListingScreen() {
   const router = useRouter()
 
+  const [user, setUser] = useState<User | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<AddListingState>({
     propertyType: "plot",
@@ -111,6 +115,54 @@ export default function AddListingScreen() {
   const [touched, setTouched] = useState<Record<ListingField, boolean>>(createTouchedState(false))
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
+  const BASE_URL = 'http://10.190.83.91:8080/api';
+
+  // Check verification status on mount
+  useEffect(() => {
+    checkVerificationStatus()
+  }, [])
+
+  const checkVerificationStatus = async () => {
+    try {
+      setLoadingUser(true)
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+
+      const response = await axios.get(`${BASE_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.success) {
+        const userData = response.data.data.user
+        setUser(userData)
+
+        // Redirect to listings if not verified
+        if (userData.verificationStatus !== "verified") {
+          Alert.alert(
+            "Access Restricted",
+            "Your account needs to be verified by an admin to add listings. Please wait for verification or contact support.",
+            [
+              {
+                text: "OK",
+                onPress: () => router.replace("/listings"),
+              },
+            ]
+          )
+          return
+        }
+      }
+    } catch (error) {
+      console.error("Error checking verification status:", error)
+      router.replace("/listings")
+    } finally {
+      setLoadingUser(false)
+    }
+  }
 
   const isValidatableField = (key: keyof AddListingState): key is ListingField => {
     return (FORM_FIELDS as string[]).includes(key as string)
@@ -303,7 +355,6 @@ export default function AddListingScreen() {
   )
 
   const isSubmitDisabled = loading || hasBlockingErrors
-  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const handleAddListing = async () => {
     const isValid = validateFormState()
@@ -361,7 +412,7 @@ export default function AddListingScreen() {
       //console.log('response:', response?.data);
 
       if (response?.data.success) {
-        router.back()
+        router.replace("/my-listings")
       } else {
         alert("Property creation failed");
       }
@@ -411,6 +462,23 @@ export default function AddListingScreen() {
     setShowCustomAreaModal(false)
     setCustomAreaValue("")
     setCustomAreaType("Marla")
+  }
+
+  // Show loading while checking verification
+  if (loadingUser) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  // Don't render if user is not verified (will redirect)
+  if (user?.verificationStatus !== "verified") {
+    return null
   }
 
   return (
@@ -1075,5 +1143,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: Colors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
   },
 })

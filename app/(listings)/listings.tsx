@@ -236,6 +236,8 @@ export default function ListingsScreen() {
 
       if (response?.data.success) {
         const { properties, pagination } = response.data.data
+
+        console.log('properties:', properties[0]);
         
         if (reset) {
           setListings(properties || [])

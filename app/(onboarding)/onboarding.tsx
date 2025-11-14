@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
+import { useAuthContext } from "@/contexts/AuthContext"
 import { saveOnboardingCompleted } from "@/utils/secureStore"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
@@ -38,6 +39,7 @@ const onboardingData = [
 
 export default function OnboardingScreen() {
   const router = useRouter()
+  const { checkAuth } = useAuthContext()
   const [currentIndex, setCurrentIndex] = useState(0)
   const scrollViewRef = useRef<ScrollView>(null)
 
@@ -52,10 +54,12 @@ export default function OnboardingScreen() {
     } else {
       try {
         await saveOnboardingCompleted("true")
+        // Refresh auth context to update onboarding status
+        await checkAuth()
+        router.replace("/(listings)/listings")
       } catch (error: any) {
         alert("Failed to save onboarding completed: " + error.message)
       }
-      router.push("/listings")
     }
   }
 

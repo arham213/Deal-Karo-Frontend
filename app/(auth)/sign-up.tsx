@@ -164,7 +164,7 @@ export default function SignUpScreen() {
 
       if (response?.data.success) {
         alert("Signup Successful");
-        router.push('/sign-in');
+        router.push("/(auth)/sign-in");
         setForm(createInitialFormState())
         setErrors({})
         setTouched(createTouchedState(false))
@@ -258,7 +258,7 @@ export default function SignUpScreen() {
 
                 <View style={styles.footer}>
                   <Text style={styles.footerText}>Already have an account? </Text>
-                  <Text style={styles.footerLink} onPress={() => router.push("/sign-in")}>
+                  <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
                     Sign In
                   </Text>
                 </View>

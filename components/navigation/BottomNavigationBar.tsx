@@ -8,54 +8,86 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { usePathname, useRouter } from "expo-router"
 import { useEffect, useState } from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { DisabledMyListingsIcon, DisabledNotesIcon, MyListingsIcon, NotesIcon } from "./Icons"
+
+const BASE_URL = "http://10.190.83.91:8080/api"
 
 export function BottomNavigationBar() {
   const router = useRouter()
   const pathname = usePathname()
   const [user, setUser] = useState<User | null>(null)
 
+  // Refresh user data on mount and when pathname changes (navigation)
+  // This ensures verification status is updated without app relaunch
   useEffect(() => {
     getUserFromSecureStore()
+  }, [pathname])
+
+  // Also refresh when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        getUserFromSecureStore()
+      }
+    })
+
+    return () => {
+      subscription.remove()
+    }
   }, [])
 
   const getUserFromSecureStore = async () => {
-    // const user = await getUser()
-    // if (user) {
-    //   setUser(user)
-    // }
-
-    // setLoading(true)
     try {
       const token = await getToken()
       if (!token) {
         console.error("Token missing")
-        throw new Error("Token missing")
+        return
       }
 
-      const response = await axios.get(`http://10.190.83.91:8080/api/users/me`, {
+      const response = await axios.get(`${BASE_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
-      console.log('response:', response.data);
+      console.log('User response:', response.data);
       if (response.data.success) {
         setUser(response.data.data.user)
       }
     } catch (error) {
       console.error("Error fetching user:", error)
-    } finally {
-      // setLoading(false)
     }
   }
+
+  const isVerified = user?.verificationStatus === "verified"
+
   const handleNavigation = (route: string) => {
+    // Protected routes that require verification
+    const protectedRoutes = ["/my-notes", "/my-listings"]
+    
+    if (protectedRoutes.includes(route) && !isVerified) {
+      Alert.alert(
+        "Access Restricted",
+        "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
+        [{ text: "OK" }]
+      )
+      return
+    }
+    
     router.push(route as any)
   }
 
   const handleAddListing = () => {
+    if (!isVerified) {
+      Alert.alert(
+        "Access Restricted",
+        "Your account needs to be verified by an admin to add listings. Please wait for verification or contact support.",
+        [{ text: "OK" }]
+      )
+      return
+    }
     router.push("/add-listing")
   }
 
@@ -94,25 +126,26 @@ export function BottomNavigationBar() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.navButton} 
+          style={[styles.navButton, user !== null && !isVerified && styles.disabledNavButton]} 
           onPress={() => handleNavigation("/my-notes")}
-          disabled={user?.verificationStatus !== "verified"}
+          disabled={user !== null && !isVerified} // Only disable if user is loaded and not verified
         >
-          {isActive("/my-notes") ? <NotesIcon color={Colors.primary} size={24} /> : <DisabledNotesIcon color={Colors.neutral50} size={24} />}
+          {isActive("/my-notes") ? <NotesIcon color={Colors.primary} size={24} /> : <DisabledNotesIcon color={user !== null && !isVerified ? Colors.neutral30 : Colors.neutral50} size={24} />}
         </TouchableOpacity>
         
-          <TouchableOpacity style={styles.fabButton} onPress={handleAddListing} disabled={user?.verificationStatus !== "verified"}>
-            <Text 
-              style={styles.fabIcon}
-            >+</Text>
-          </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.fabButton, user !== null && !isVerified && styles.disabledFabButton]} 
+          onPress={handleAddListing}
+        >
+          <Text style={[styles.fabIcon, user !== null && !isVerified && styles.disabledFabIcon]}>+</Text>
+        </TouchableOpacity>
         
         <TouchableOpacity 
-          style={styles.navButton}
+          style={[styles.navButton, user !== null && !isVerified && styles.disabledNavButton]}
           onPress={() => handleNavigation("/my-listings")}
-          disabled={user?.verificationStatus !== "verified"}
+          disabled={user !== null && !isVerified}
         >
-          {isActive("/my-listings") ? <MyListingsIcon color={Colors.primary} size={24} /> : <DisabledMyListingsIcon color={Colors.neutral50} size={24} />}
+          {isActive("/my-listings") ? <MyListingsIcon color={Colors.primary} size={24} /> : <DisabledMyListingsIcon color={user !== null && !isVerified ? Colors.neutral30 : Colors.neutral50} size={24} />}
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -121,8 +154,6 @@ export function BottomNavigationBar() {
         >
           {isActive("/profile") ? <MaterialCommunityIcons name="account-circle" size={24} color={Colors.primary}/> : <MaterialCommunityIcons name="account-circle" size={24} color={Colors.neutral50}/>}
         </TouchableOpacity>
-
-        {/* <View style={styles.bottomBorder} /> */}
       </View>
     </SafeAreaView>
   )
@@ -164,6 +195,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  disabledNavButton: {
+    opacity: 0.5,
+  },
   fabButton: {
     width: 56,
     height: 56,
@@ -174,10 +208,17 @@ const styles = StyleSheet.create({
     marginTop: -40,
     boxShadow: "0 6px 14px 0 rgba(0, 0, 0, 0.38)"
   },
+  disabledFabButton: {
+    backgroundColor: Colors.neutral30,
+    opacity: 0.6,
+  },
   fabIcon: {
     fontSize: 24,
     color: Colors.white,
     fontWeight: "300",
+  },
+  disabledFabIcon: {
+    color: Colors.neutral60,
   },
 })
 

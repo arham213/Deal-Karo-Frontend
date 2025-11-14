@@ -3,9 +3,86 @@ import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth";
 import { ListingState } from "@/types/listings";
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
+
+/**
+ * Sanitizes a phone number by removing all non-digit characters except '+'
+ * @param phoneNumber - The phone number to sanitize
+ * @returns Sanitized phone number
+ */
+const sanitizePhoneNumber = (phoneNumber: string): string => {
+  if (!phoneNumber) return "";
+  // Remove all characters except digits and '+'
+  return phoneNumber.replace(/[^\d+]/g, "");
+};
+
+/**
+ * Handles the contact button press to initiate a phone call
+ * @param contactNumber - The contact number from the listing
+ */
+const handleContactPress = async (contactNumber: string | undefined) => {
+  try {
+    // Validate contact number exists
+    if (!contactNumber || !contactNumber.trim()) {
+      Alert.alert(
+        "Contact Unavailable",
+        "Contact number is not available for this listing.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Sanitize the phone number
+    const sanitizedNumber = sanitizePhoneNumber(contactNumber.trim());
+    
+    // Validate sanitized number is not empty
+    if (!sanitizedNumber || sanitizedNumber.length === 0) {
+      Alert.alert(
+        "Invalid Contact Number",
+        "The contact number format is invalid. Please try again later.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Provide haptic feedback for better UX
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (hapticError) {
+      // Silently fail if haptics are not available
+      // This ensures the phone dialer still opens even if haptics fail
+    }
+
+    // Create the tel: URL
+    const phoneUrl = `tel:${sanitizedNumber}`;
+
+    // Check if the device can handle phone calls
+    const canOpen = await Linking.canOpenURL(phoneUrl);
+    
+    if (!canOpen) {
+      Alert.alert(
+        "Unable to Make Call",
+        "Your device cannot make phone calls. Please check your device settings.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Open the phone dialer with the number pre-filled
+    await Linking.openURL(phoneUrl);
+  } catch (error) {
+    // Handle any unexpected errors
+    console.error("Error opening phone dialer:", error);
+    Alert.alert(
+      "Error",
+      "Unable to open phone dialer. Please try again later.",
+      [{ text: "OK" }]
+    );
+  }
+};
 
 export const PropertyCard = ({ property, user, handlePropertyDetails }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void }) => (
     <View style={styles.propertyCard}>
@@ -61,7 +138,11 @@ export const PropertyCard = ({ property, user, handlePropertyDetails }: { proper
               <DetailsIcon color={Colors.textSecondary} size={16} />
               <Text style={styles.actionButtonText}>Details</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.contactButton}>
+            <TouchableOpacity 
+              style={styles.contactButton}
+              onPress={() => handleContactPress(property.forContact)}
+              activeOpacity={0.7}
+            >
               <Ionicons name="call-outline" size={16} color={Colors.textSecondary} />
               <Text style={styles.actionButtonText}>Contact</Text>
             </TouchableOpacity>
