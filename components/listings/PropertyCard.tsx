@@ -2,9 +2,10 @@ import { Colors } from "@/constants/colors";
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles";
 import { User } from "@/types/auth";
 import { ListingState } from "@/types/listings";
+import { showErrorToast, showInfoToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
 
@@ -27,11 +28,7 @@ const handleContactPress = async (contactNumber: string | undefined) => {
   try {
     // Validate contact number exists
     if (!contactNumber || !contactNumber.trim()) {
-      Alert.alert(
-        "Contact Unavailable",
-        "Contact number is not available for this listing.",
-        [{ text: "OK" }]
-      );
+      showInfoToast("Contact number is not available for this listing.", "Contact Unavailable");
       return;
     }
 
@@ -40,11 +37,7 @@ const handleContactPress = async (contactNumber: string | undefined) => {
     
     // Validate sanitized number is not empty
     if (!sanitizedNumber || sanitizedNumber.length === 0) {
-      Alert.alert(
-        "Invalid Contact Number",
-        "The contact number format is invalid. Please try again later.",
-        [{ text: "OK" }]
-      );
+      showErrorToast("The contact number format is invalid. Please try again later.", "Invalid Contact Number");
       return;
     }
 
@@ -63,11 +56,7 @@ const handleContactPress = async (contactNumber: string | undefined) => {
     const canOpen = await Linking.canOpenURL(phoneUrl);
     
     if (!canOpen) {
-      Alert.alert(
-        "Unable to Make Call",
-        "Your device cannot make phone calls. Please check your device settings.",
-        [{ text: "OK" }]
-      );
+      showInfoToast("Your device cannot make phone calls. Please check your device settings.", "Unable to Make Call");
       return;
     }
 
@@ -76,11 +65,7 @@ const handleContactPress = async (contactNumber: string | undefined) => {
   } catch (error) {
     // Handle any unexpected errors
     console.error("Error opening phone dialer:", error);
-    Alert.alert(
-      "Error",
-      "Unable to open phone dialer. Please try again later.",
-      [{ text: "OK" }]
-    );
+    showErrorToast("Unable to open phone dialer. Please try again later.");
   }
 };
 

@@ -4,11 +4,12 @@ import { Colors } from "@/constants/colors"
 import { radius } from "@/styles"
 import { User } from "@/types/auth"
 import { getToken } from "@/utils/secureStore"
+import { showInfoToast } from "@/utils/toast"
 import { MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { usePathname, useRouter } from "expo-router"
 import { useEffect, useState } from "react"
-import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { AppState, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { DisabledMyListingsIcon, DisabledNotesIcon, MyListingsIcon, NotesIcon } from "./Icons"
@@ -68,10 +69,9 @@ export function BottomNavigationBar() {
     const protectedRoutes = ["/my-notes", "/my-listings"]
     
     if (protectedRoutes.includes(route) && !isVerified) {
-      Alert.alert(
-        "Access Restricted",
+      showInfoToast(
         "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
-        [{ text: "OK" }]
+        "Access Restricted"
       )
       return
     }
@@ -81,10 +81,9 @@ export function BottomNavigationBar() {
 
   const handleAddListing = () => {
     if (!isVerified) {
-      Alert.alert(
-        "Access Restricted",
+      showInfoToast(
         "Your account needs to be verified by an admin to add listings. Please wait for verification or contact support.",
-        [{ text: "OK" }]
+        "Access Restricted"
       )
       return
     }

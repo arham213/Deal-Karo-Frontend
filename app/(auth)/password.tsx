@@ -87,28 +87,28 @@ export default function ForgotPasswordScreen() {
         <Header title="Forgot Password" subtitle="Enter your email to reset your password" />
 
         <View style={styles.mainContent}>
-          <View style={styles.form}>
-            <TextInput
-              label="Email"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={handleEmailChange}
-              onBlur={handleBlur}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={touched ? emailValidationError : undefined}
-              editable={!loading}
-              labelStyle={styles.inputLabel}
-            />
-          </View>
+        <View style={styles.form}>
+          <TextInput
+            label="Email"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={handleEmailChange}
+            onBlur={handleBlur}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={touched ? emailValidationError : undefined}
+            editable={!loading}
+            labelStyle={styles.inputLabel}
+          />
+        </View>
 
-          <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
+        <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
-              Back to Sign In
-            </Text>
-          </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
+            Back to Sign In
+          </Text>
+        </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

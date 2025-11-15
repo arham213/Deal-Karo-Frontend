@@ -3,6 +3,7 @@
 import "@/styles/global-text"
 
 import { BottomNavigationBar } from "@/components/navigation/BottomNavigationBar"
+import { ToastProvider } from "@/components/Toast"
 import { Colors } from "@/constants/colors"
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext"
 import { Stack, usePathname, useRouter } from "expo-router"
@@ -19,18 +20,35 @@ function RootLayoutContent() {
   useEffect(() => {
     if (isLoading) return
 
-    const isAuthScreen = pathname?.startsWith("/(auth)") || pathname === "/sign-in" || pathname === "/sign-up"
-    const isOnboardingScreen = pathname?.startsWith("/(onboarding)") || pathname === "/onboarding"
+    // Normalize pathname for checking
+    const normalizedPath = pathname || ""
+    
+    // More explicit check for auth screens including forgot-password, reset-password, verify-otp
+    // Check both with and without the (auth) group prefix to handle different pathname formats
+    const isAuthScreen = normalizedPath.startsWith("/(auth)") || 
+                        normalizedPath.startsWith("/auth") ||
+                        normalizedPath === "/sign-in" || 
+                        normalizedPath === "/sign-up" ||
+                        normalizedPath.includes("forgot-password") ||
+                        normalizedPath.includes("reset-password") ||
+                        normalizedPath.includes("verify-otp")
+    
+    const isOnboardingScreen = normalizedPath.startsWith("/(onboarding)") || 
+                               normalizedPath.startsWith("/onboarding") ||
+                               normalizedPath === "/onboarding"
 
     if (isAuthenticated) {
       // If user is authenticated and on auth screen, redirect to appropriate screen
       // But allow navigation to forgot-password, reset-password, and verify-otp even when authenticated
-      const isPasswordFlow = pathname?.includes("forgot-password") || 
-                            pathname?.includes("reset-password") || 
-                            pathname?.includes("verify-otp")
+      const isPasswordFlow = normalizedPath.includes("forgot-password") || 
+                            normalizedPath.includes("reset-password") || 
+                            normalizedPath.includes("verify-otp")
       
       // Only redirect if on sign-in or sign-up screens, not on password flow screens
-      if ((pathname === "/(auth)/sign-in" || pathname === "/(auth)/sign-up" || pathname === "/sign-in" || pathname === "/sign-up") && !isPasswordFlow) {
+      if ((normalizedPath === "/(auth)/sign-in" || 
+           normalizedPath === "/(auth)/sign-up" || 
+           normalizedPath === "/sign-in" || 
+           normalizedPath === "/sign-up") && !isPasswordFlow) {
         if (isOnboardingCompleted) {
           router.replace("/(listings)/listings")
         } else {
@@ -41,7 +59,7 @@ function RootLayoutContent() {
       // If user is not authenticated and not on auth screen, redirect to sign-in
       // Allow all auth screens including forgot-password, reset-password, verify-otp
       // Don't redirect if already on an auth screen (allows navigation between auth screens)
-      if (!isAuthScreen && !isOnboardingScreen && pathname !== "/") {
+      if (!isAuthScreen && !isOnboardingScreen && normalizedPath !== "/" && normalizedPath !== "") {
         router.replace("/(auth)/sign-in")
       }
     }
@@ -95,6 +113,7 @@ function RootLayoutContent() {
         </Stack>
         
         {shouldShowBottomNav && <BottomNavigationBar />}
+        <ToastProvider />
       </View>
     </>
   )

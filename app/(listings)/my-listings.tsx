@@ -8,11 +8,12 @@ import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } f
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
+import { showErrorToast, showInfoToast } from "@/utils/toast"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function MyListingsScreen() {
@@ -70,16 +71,13 @@ export default function MyListingsScreen() {
 
         // Redirect to listings if not verified
         if (userData.verificationStatus !== "verified") {
-          Alert.alert(
-            "Access Restricted",
+          showInfoToast(
             "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
-            [
-              {
-                text: "OK",
-                onPress: () => router.replace("/listings"),
-              },
-            ]
+            "Access Restricted"
           )
+          setTimeout(() => {
+            router.replace("/listings")
+          }, 2000)
           return
         }
       }
@@ -202,7 +200,7 @@ export default function MyListingsScreen() {
     if (!token) {
       console.error("Token missing")
       if (reset) {
-        alert("Token missing. Please log in again.")
+        showErrorToast("Token missing. Please log in again.")
       }
       return
     }
@@ -214,7 +212,7 @@ export default function MyListingsScreen() {
     if (!userId) {
       console.error("User ID missing")
       if (reset) {
-        alert("User information missing. Please log in again.")
+        showErrorToast("User information missing. Please log in again.")
       }
       return
     }
@@ -304,9 +302,9 @@ export default function MyListingsScreen() {
           setLoadingMore(false)
         }
         console.error("Failed to fetch my listings:", response?.data)
-        // Only show alert if it's a reset (initial load or filter change), not for load more or search
+        // Only show toast if it's a reset (initial load or filter change), not for load more or search
         if (reset && !isSearch) {
-          alert("Failed to fetch my listings")
+          showErrorToast("Failed to fetch my listings")
         }
       }
     } catch (error) {
@@ -320,18 +318,18 @@ export default function MyListingsScreen() {
 
       console.error("Error fetching my listings:", error)
       
-      // Only show alert for initial loads/resets, not for pagination failures or search
-      // This prevents alert spam when scrolling or searching
+      // Only show toast for initial loads/resets, not for pagination failures or search
+      // This prevents toast spam when scrolling or searching
       if (reset && !isSearch) {
         if (axios.isAxiosError(error)) {
           const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
-          // Use a small delay to prevent multiple alerts in quick succession
+          // Use a small delay to prevent multiple toasts in quick succession
           setTimeout(() => {
-            alert(errorMessage)
+            showErrorToast(errorMessage)
           }, 100)
         } else {
           setTimeout(() => {
-            alert("Something went wrong. Please try again later")
+            showErrorToast("Something went wrong. Please try again later")
           }, 100)
         }
       }

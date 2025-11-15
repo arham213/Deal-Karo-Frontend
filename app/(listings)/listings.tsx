@@ -8,6 +8,7 @@ import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } f
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import { getToken } from "@/utils/secureStore"
+import { showErrorToast } from "@/utils/toast"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -52,8 +53,8 @@ export default function ListingsScreen() {
     try {
       const token = await getToken()
       if (!token) {
-        console.error("Token missing")
-        throw new Error("Token missing")
+        router.replace("/(auth)/sign-in")
+        return
       }
 
       const response = await axios.get(`${BASE_URL}/users/me`, {
@@ -176,9 +177,10 @@ export default function ListingsScreen() {
     const token = await getToken()
 
     if (!token) {
-      console.error("Token missing")
       if (reset) {
-        alert("Token missing. Please log in again.")
+        showErrorToast("Token missing. Please log in again.")
+        router.replace("/(auth)/sign-in")
+        return
       }
       return
     }
@@ -268,7 +270,7 @@ export default function ListingsScreen() {
         console.error("Failed to fetch listings:", response?.data)
         // Only show alert if it's a reset (initial load or filter change), not for load more or search
         if (reset && !isSearch) {
-          alert("Failed to fetch listings")
+          showErrorToast("Failed to fetch listings")
         }
       }
     } catch (error) {
@@ -289,11 +291,11 @@ export default function ListingsScreen() {
           const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
           // Use a small delay to prevent multiple alerts in quick succession
           setTimeout(() => {
-            alert(errorMessage)
+            showErrorToast(errorMessage)
           }, 100)
         } else {
           setTimeout(() => {
-            alert("Something went wrong. Please try again later")
+            showErrorToast("Something went wrong. Please try again later")
           }, 100)
         }
       }

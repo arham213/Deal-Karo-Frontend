@@ -52,8 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: Colors.inputBackground,
     paddingHorizontal: spacing.lg,
-    paddingVertical: Platform.OS === "ios" ? spacing.xxs : spacing.md2,
-    // paddingVertical: spacing.xxs,
+    paddingVertical: Platform.OS === "ios" ? spacing.md2 : spacing.xxs,
   },
   inputWrapperError: {
     borderColor: Colors.error,

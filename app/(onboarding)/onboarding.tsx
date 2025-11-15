@@ -4,6 +4,7 @@ import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { saveOnboardingCompleted } from "@/utils/secureStore"
+import { showErrorToast } from "@/utils/toast"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native"
@@ -58,7 +59,7 @@ export default function OnboardingScreen() {
         await checkAuth()
         router.replace("/(listings)/listings")
       } catch (error: any) {
-        alert("Failed to save onboarding completed: " + error.message)
+        showErrorToast("Failed to save onboarding completed: " + error.message)
       }
     }
   }

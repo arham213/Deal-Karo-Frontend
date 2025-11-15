@@ -5,6 +5,7 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { showErrorToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -163,19 +164,19 @@ export default function SignUpScreen() {
       console.log('response:', response.data);
 
       if (response?.data.success) {
-        alert("Signup Successful");
+        showSuccessToast("Signup Successful");
         router.push("/(auth)/sign-in");
         setForm(createInitialFormState())
         setErrors({})
         setTouched(createTouchedState(false))
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "Signup failed");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Signup failed");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)

@@ -7,17 +7,18 @@ import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import {
-  KeyboardAvoidingView,
-  Platform,
-  TextInput as RNTextInput,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    TextInput as RNTextInput,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { showErrorToast, showSuccessToast } from "@/utils/toast"
 
 export default function VerifyOTPScreen() {
   const router = useRouter()
@@ -71,22 +72,22 @@ export default function VerifyOTPScreen() {
       setLoading(false);
 
       if (response?.data.success) {
-        alert("OTP verified successfully");
+        showSuccessToast("OTP verified successfully");
         setTouched(false)
         router.push({
           pathname: '/reset-password',
           params: { userId: response.data.data.userId }
         });
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "OTP verification failed");
       }
     } catch (error) {
       setLoading(false)
 
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "OTP verification failed");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)
@@ -118,17 +119,17 @@ export default function VerifyOTPScreen() {
       setLoading(false);
 
       if (response?.data.success) {
-        alert("OTP resent successfully");
+        showSuccessToast("OTP resent successfully");
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "Failed to resend OTP");
       }
     } catch (error) {
       setLoading(false)
 
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Failed to resend OTP");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     }
   }

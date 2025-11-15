@@ -5,6 +5,7 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { showErrorToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -80,7 +81,7 @@ export default function ResetPasswordScreen() {
       setLoading(false);
 
       if (response?.data.success) {
-        alert("Password reset successfully");
+        showSuccessToast("Password reset successfully");
         setPassword("")
         setConfirmPassword("")
         setErrors({})
@@ -90,15 +91,15 @@ export default function ResetPasswordScreen() {
         })
         router.push("/(auth)/sign-in");
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "Failed to reset password");
       }
     } catch (error) {
       setLoading(false)
 
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Failed to reset password");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)

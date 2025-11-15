@@ -61,13 +61,12 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            
+          <Text style={styles.headerTitle}>Details</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
             {/* <View style={{ width: 24 }} /> */}
           </View>
-          <Text style={styles.headerTitle}>Details</Text>
           <View style={styles.detailsContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.label}>Title</Text>
@@ -202,16 +201,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.neutral10,
+    paddingTop: spacing.screen,
   },
   content: {
     // flex: 1,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: spacing.screen,
-    paddingHorizontal: spacing.screen
+    paddingBottom: spacing.screen,
+    paddingHorizontal: spacing.screen,
+    paddingLeft: 0,
   },
   closeButton: {
     width: 24,

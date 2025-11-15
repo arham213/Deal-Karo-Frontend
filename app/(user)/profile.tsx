@@ -5,17 +5,20 @@ import { Button } from "@/components/Button"
 import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
+import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
-import { getUser } from "@/utils/secureStore"
+import { getToken, getUser, saveUser } from "@/utils/secureStore"
+import { showErrorToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
+import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ProfileScreen() {
   const router = useRouter()
-  const { logout } = useAuthContext()
+  const { logout, setUser } = useAuthContext()
   type EditableProfileField = "name" | "email" | "contactNo" | "estateName"
   const [profile, setProfile] = useState<User>({
     _id: "",
@@ -38,6 +41,9 @@ export default function ProfileScreen() {
     contactNo: false,
     estateName: false,
   })
+  const [loading, setLoading] = useState(false)
+
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   useEffect(() => {
     getUserFromSecureStore()
@@ -65,7 +71,9 @@ export default function ProfileScreen() {
         return undefined
       case "contactNo":
         if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPhone(trimmed)) return "Enter a valid phone number with country code"
+        // Backend expects 10-15 digits only (no country code, spaces, or special characters)
+        const cleanedContact = trimmed.replace(/[^\d]/g, "")
+        if (!/^[0-9]{10,15}$/.test(cleanedContact)) return "Contact number must be 10–15 digits"
         return undefined
       case "estateName":
         if (!Validation.isRequired(trimmed)) return "Estate name is required"
@@ -112,20 +120,93 @@ export default function ProfileScreen() {
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm(editData)) {
       markAllTouched()
       return
     }
-    setProfile(editData)
-    setIsEditing(false)
-    setErrors({})
-    setTouched({
-      name: false,
-      email: false,
-      contactNo: false,
-      estateName: false,
-    })
+
+    setLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+      // Prepare data according to backend schema
+      const cleanedContactNo = editData.contactNo.replace(/[^\d]/g, "")
+      const updateData: {
+        _id: string
+        name?: string
+        email?: string
+        contactNo?: string
+        estateName?: string
+      } = {
+        _id: profile._id,
+      }
+
+      // Only include fields that have changed
+      if (editData.name.trim() !== profile.name.trim()) {
+        updateData.name = editData.name.trim()
+      }
+      if (editData.email.trim() !== profile.email.trim()) {
+        updateData.email = editData.email.trim()
+      }
+      if (cleanedContactNo !== profile.contactNo.replace(/[^\d]/g, "")) {
+        updateData.contactNo = cleanedContactNo
+      }
+      if (editData.estateName.trim() !== profile.estateName.trim()) {
+        updateData.estateName = editData.estateName.trim()
+      }
+
+      // Make API call
+      const response = await axios.put(`${BASE_URL}/users/`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      console.log('response:', response.data)
+
+      if (response.data?.success) {
+        // Update local state with response data if available, otherwise use editData
+        const updatedUser = response.data.data?.user || {
+          ...editData,
+          contactNo: cleanedContactNo,
+        }
+
+        // Update profile state
+        setProfile(updatedUser)
+        
+        // Update secure store
+        await saveUser(updatedUser)
+        
+        // Update AuthContext
+        setUser(updatedUser)
+
+        // Reset editing state
+        setIsEditing(false)
+        setErrors({})
+        setTouched({
+          name: false,
+          email: false,
+          contactNo: false,
+          estateName: false,
+        })
+
+        showSuccessToast("Profile updated successfully!")
+      } else {
+        showErrorToast(response.data?.message || "Failed to update profile")
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        showErrorToast(error?.response?.data?.error?.message || "Failed to update profile. Please try again.")
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancel = () => {
@@ -146,7 +227,7 @@ export default function ProfileScreen() {
       await logout()
     } catch (error) {
       console.error("Logout error:", error)
-      alert("Failed to logout. Please try again.")
+      showErrorToast("Failed to logout. Please try again.")
     }
   }
 
@@ -174,90 +255,104 @@ export default function ProfileScreen() {
   const isSaveDisabled = !isEditing || editableErrors
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView style={styles.scrollView} contentContainerStyle={{paddingBottom: 110}} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.title}>My Profile</Text>
-          </View>
-
-          <View style={styles.avatarSection}>
-            <AvatarInitials name={profile.name} size={80} />
-          </View>
-
-          <View style={styles.formSection}>
-            <TextInput
-              label="Full Name"
-              placeholder="Enter your full name"
-              value={isEditing ? editData.name : profile.name}
-              onChangeText={(value) => handleInputChange("name", value)}
-              onBlur={handleBlur("name")}
-              error={isEditing && touched.name ? errors.name : undefined}
-              editable={isEditing}
-            />
-
-            <TextInput
-              label="Email"
-              placeholder="Enter your email"
-              value={isEditing ? editData.email : profile.email}
-              onChangeText={(value) => handleInputChange("email", value)}
-              onBlur={handleBlur("email")}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={isEditing && touched.email ? errors.email : undefined}
-              editable={isEditing}
-            />
-
-            <TextInput
-              label="Contact Number"
-              placeholder="Enter your contact number"
-              value={isEditing ? editData.contactNo : profile.contactNo}
-              onChangeText={(value) => handleInputChange("contactNo", value)}
-              onBlur={handleBlur("contactNo")}
-              editable={isEditing}
-              keyboardType="phone-pad"
-              error={isEditing && touched.contactNo ? errors.contactNo : undefined}
-            />
-
-            <TextInput
-              label="Estate Name"
-              placeholder="Enter your estate name"
-              value={isEditing ? editData.estateName : profile.estateName}
-              onChangeText={(value) => handleInputChange("estateName", value)}
-              onBlur={handleBlur("estateName")}
-              error={isEditing && touched.estateName ? errors.estateName : undefined}
-              editable={isEditing}
-            />
-          </View>
-
-          {isEditing ? (
-            <View style={styles.buttonGroup}>
-              <Button title="Save" onPress={handleSave} disabled={isSaveDisabled} />
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+            <View style={styles.avatarSection}>
+              <AvatarInitials name={profile.name} size={80} />
             </View>
-          ) : (
-            <View style={styles.buttonGroup}>
-              <Button
-                title="Update"
-                onPress={() => {
-                  setEditData(profile)
-                  setErrors({})
-                  setTouched({
-                    name: false,
-                    email: false,
-                    contactNo: false,
-                    estateName: false,
-                  })
-                  setIsEditing(true)
-                }}
+          </View>
+
+          <View style={styles.formContainer}>
+            <View style={styles.formSection}>
+              <TextInput
+                label="Full Name"
+                placeholder="Enter your full name"
+                value={isEditing ? editData.name : profile.name}
+                onChangeText={(value) => handleInputChange("name", value)}
+                onBlur={handleBlur("name")}
+                error={isEditing && touched.name ? errors.name : undefined}
+                editable={isEditing}
               />
-              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Text style={styles.logoutButtonText}>Logout</Text>
-              </TouchableOpacity>
+
+              <TextInput
+                label="Email"
+                placeholder="Enter your email"
+                value={isEditing ? editData.email : profile.email}
+                onChangeText={(value) => handleInputChange("email", value)}
+                onBlur={handleBlur("email")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={isEditing && touched.email ? errors.email : undefined}
+                editable={isEditing}
+              />
+
+              <TextInput
+                label="Contact Number"
+                placeholder="Enter your contact number"
+                value={isEditing ? editData.contactNo : profile.contactNo}
+                onChangeText={(value) => handleInputChange("contactNo", value)}
+                onBlur={handleBlur("contactNo")}
+                editable={isEditing}
+                keyboardType="phone-pad"
+                error={isEditing && touched.contactNo ? errors.contactNo : undefined}
+              />
+
+              <TextInput
+                label="Estate Name"
+                placeholder="Enter your estate name"
+                value={isEditing ? editData.estateName : profile.estateName}
+                onChangeText={(value) => handleInputChange("estateName", value)}
+                onBlur={handleBlur("estateName")}
+                error={isEditing && touched.estateName ? errors.estateName : undefined}
+                editable={isEditing}
+              />
             </View>
-          )}
+
+            {isEditing ? (
+              <View style={styles.buttonGroup}>
+                <Button 
+                  title={loading ? "Saving..." : "Save"} 
+                  onPress={handleSave} 
+                  disabled={isSaveDisabled || loading}
+                />
+                {loading && (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  </View>
+                )}
+                <TouchableOpacity 
+                  style={[styles.cancelButton, loading && styles.cancelButtonDisabled]} 
+                  onPress={handleCancel}
+                  disabled={loading}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.buttonGroup}>
+                <Button
+                  title="Update"
+                  onPress={() => {
+                    setEditData(profile)
+                    setErrors({})
+                    setTouched({
+                      name: false,
+                      email: false,
+                      contactNo: false,
+                      estateName: false,
+                    })
+                    setIsEditing(true)
+                  }}
+                />
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                  <Text style={styles.logoutButtonText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -265,25 +360,36 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.neutral10,
   },
+  container: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 16,
+    backgroundColor: Colors.headerBackground,
   },
   header: {
-    paddingVertical: 16,
+    paddingVertical: spacing.screen,
+    paddingHorizontal: spacing.screen,
+    backgroundColor: Colors.neutral10,
+    backdropFilter: "blur(2px)",
+    borderBottomRightRadius: 48,
+    borderBottomLeftRadius: 48,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.24,
+    marginBottom: spacing.lg,
   },
   avatarSection: {
     alignItems: "center",
-    paddingVertical: 24,
+    paddingVertical: spacing.screen,
     gap: 16,
   },
   avatarActions: {
@@ -304,35 +410,50 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.error,
   },
+  formContainer: {
+    paddingHorizontal: spacing.screen,
+  },
   formSection: {
     gap: 20,
-    paddingVertical: 16,
+    paddingVertical: spacing.screen,
   },
   buttonGroup: {
     gap: 12,
-    paddingVertical: 24,
+    paddingVertical: spacing.screen,
   },
   cancelButton: {
-    paddingVertical: 16,
+    paddingVertical: spacing.md2,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: "center",
+    backgroundColor: Colors.neutral20,
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: Colors.text,
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12,
   },
   logoutButton: {
-    paddingVertical: 16,
-    borderRadius: 24,
+    paddingVertical: spacing.md2,
+    borderRadius: radius.pill,
     backgroundColor: Colors.error,
     alignItems: "center",
   },
   logoutButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
     color: Colors.white,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  cancelButtonDisabled: {
+    opacity: 0.5,
   },
 })

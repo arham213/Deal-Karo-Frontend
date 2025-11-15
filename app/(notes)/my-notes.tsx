@@ -6,6 +6,7 @@ import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import { getToken } from "@/utils/secureStore"
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
@@ -13,7 +14,6 @@ import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -28,7 +28,6 @@ import { SafeAreaView } from "react-native-safe-area-context"
 interface Note {
   _id: string
   description: string
-  completed: boolean
   createdAt: any
 }
 
@@ -75,16 +74,13 @@ export default function MyNotesScreen() {
 
         // Redirect to listings if not verified
         if (userData.verificationStatus !== "verified") {
-          Alert.alert(
-            "Access Restricted",
+          showInfoToast(
             "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
-            [
-              {
-                text: "OK",
-                onPress: () => router.replace("/listings"),
-              },
-            ]
+            "Access Restricted"
           )
+          setTimeout(() => {
+            router.replace("/listings")
+          }, 2000)
           return
         }
       }
@@ -107,6 +103,10 @@ export default function MyNotesScreen() {
     setLoading(true)
     try {
       const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
       const response = await axios.get(`${BASE_URL}/notes`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -117,13 +117,13 @@ export default function MyNotesScreen() {
       if (response?.data.success) {
         setNotes(response.data.data?.notes)
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "Failed to fetch notes");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)
@@ -171,7 +171,7 @@ export default function MyNotesScreen() {
     setSubmitting(true)
     try {
       const token = await getToken()
-      const response = await axios.post(`${BASE_URL}/notes`, {  description: newNoteDescription.trim() }, {
+      const response = await axios.post(`${BASE_URL}/notes`, { description: newNoteDescription.trim() }, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -179,54 +179,84 @@ export default function MyNotesScreen() {
       console.log('response:', response.data);
 
       if (response?.data.success) {
-        alert("Note Added Successfully");
+        showSuccessToast("Note Added Successfully");
         getNotes()
         setNewNoteDescription("")
         setNoteTouched(false)
         setNoteError(undefined)
         setShowAddModal(false)
       } else {
-        alert(response?.data.error.message);
+        showErrorToast(response?.data.error.message || "Failed to fetch notes");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleMarkAsDone = (id: string) => {
-    setNotes(notes.map((note) => (note?._id === id ? { ...note, completed: !note?.completed } : note)))
+  const handleMarkAsDone = async (id: string) => {
+    setLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+
+      console.log('token:', token);
+
+      const response = await axios.delete(`${BASE_URL}/notes/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response?.data.success) {
+        showSuccessToast("Note Marked as Done Successfully");
+        setNotes(notes.filter((note) => note?._id !== id))
+      } else {
+        showErrorToast(response?.data.error.message || "Failed to fetch notes");
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const NotesHeader = () => (
     <View style={styles.header}>
-          <Text style={styles.title}>My Notes</Text>
-          <TouchableOpacity style={styles.addButton} onPress={handleOpenModal}>
-            <Text style={styles.addButtonText}>Add New Note</Text>
-          </TouchableOpacity>
-        </View>
+      <Text style={styles.title}>My Notes</Text>
+      <TouchableOpacity onPress={handleOpenModal}>
+        <Text style={styles.addButtonText}>Add New Note</Text>
+      </TouchableOpacity>
+    </View>
   )
 
   const NoteCard = ({ note }: any) => (
     <View key={note?._id} style={styles.noteCard}>
-              <View style={styles.noteContent}>
-                <Text style={styles.noteTitle}>{note?.description}</Text>
-                <View style={styles.noteFooter}>
-                  <View style={styles.timeContainer}>
-                    <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-                    <Text style={styles.timestamp}>{note?.createdAt}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => handleMarkAsDone(note?._id)}>
-                    <Text style={styles.markAsDoneText}>Mark as done</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
+      <View style={styles.noteContent}>
+        <Text style={styles.noteTitle}>{note?.description}</Text>
+        <View style={styles.noteFooter}>
+          <View style={styles.timeContainer}>
+            <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
+            <Text style={styles.timestamp}>{note?.createdAt}</Text>
+          </View>
+          <TouchableOpacity onPress={() => handleMarkAsDone(note?._id)}>
+            <Text style={styles.markAsDoneText}>Mark as done</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   )
 
   // Show loading while checking verification
@@ -276,8 +306,8 @@ export default function MyNotesScreen() {
               style={styles.noteInput}
               containerStyle={styles.noteInputContainer}
               error={noteTouched ? noteError : undefined}
-              // helperText={noteHelperText}
-              
+            // helperText={noteHelperText}
+
             />
 
             <View style={styles.modalButtons}>
@@ -300,33 +330,40 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingBottom: 120,
-    paddingHorizontal: 16
+    backgroundColor: Colors.headerBackground,
   },
   keyboardView: {
     flex: 1,
   },
   header: {
-    paddingVertical: 16,
+    paddingVertical: spacing.screen,
+    paddingHorizontal: spacing.screen,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: Colors.neutral10,
+    backdropFilter: "blur(2px)",
+    borderBottomRightRadius: 48,
+    borderBottomLeftRadius: 48,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Colors.text,
-  },
-  addButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.24
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.semibold,
     color: Colors.primary,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12
   },
   notesList: {
     paddingHorizontal: 16,
+    backgroundColor: "red",
   },
   notesListContent: {
     paddingBottom: 90,
@@ -335,9 +372,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.inputBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    // marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
+    marginHorizontal: spacing.screen,
+    marginBottom: spacing.md,
   },
   noteContent: {
     gap: 12,

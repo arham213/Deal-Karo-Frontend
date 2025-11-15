@@ -7,6 +7,7 @@ import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { getOnboardingCompleted, saveToken, saveUser } from "@/utils/secureStore"
+import { showErrorToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -168,13 +169,13 @@ export default function SignInScreen() {
           router.replace("/(onboarding)/onboarding");
         }
       } else {
-        alert(response?.data.error.message || "Signin failed");
+        showErrorToast(response?.data.error.message || "Signin failed");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Signin failed");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)

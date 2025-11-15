@@ -9,6 +9,7 @@ import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
@@ -16,7 +17,6 @@ import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -143,16 +143,13 @@ export default function AddListingScreen() {
 
         // Redirect to listings if not verified
         if (userData.verificationStatus !== "verified") {
-          Alert.alert(
-            "Access Restricted",
+          showInfoToast(
             "Your account needs to be verified by an admin to add listings. Please wait for verification or contact support.",
-            [
-              {
-                text: "OK",
-                onPress: () => router.replace("/listings"),
-              },
-            ]
+            "Access Restricted"
           )
+          setTimeout(() => {
+            router.replace("/listings")
+          }, 2000)
           return
         }
       }
@@ -412,15 +409,16 @@ export default function AddListingScreen() {
       //console.log('response:', response?.data);
 
       if (response?.data.success) {
+        showSuccessToast("Listing added successfully");
         router.replace("/my-listings")
       } else {
-        alert("Property creation failed");
+        showErrorToast("Listing creation failed");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        alert(error?.response?.data?.error?.message);
+        showErrorToast(error?.response?.data?.error?.message || "Listing creation failed");
       } else {
-        alert("Something went wrong. Please try again later")
+        showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
       setLoading(false)
@@ -891,16 +889,18 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.screen,
+    paddingVertical: spacing.lg,
   },
   header: {
-    marginBottom: 24,
+    paddingVertical: spacing.lg,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Colors.text,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.24
   },
   section: {
     marginBottom: 20,
