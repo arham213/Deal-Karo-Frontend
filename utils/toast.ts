@@ -39,3 +39,16 @@ export const showInfoToast = (message: string, title?: string) => {
   });
 };
 
+/**
+ * Show a loading toast message with progress indicator
+ */
+export const showLoadingToast = (message: string, title?: string) => {
+  Toast.show({
+    type: 'loading',
+    text1: title || 'Loading',
+    text2: message,
+    position: 'top',
+    autoHide: false,
+  });
+};
+

@@ -43,7 +43,7 @@ export default function MyListingsScreen() {
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 })
 
   const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
-  const BASE_URL = "http://10.190.83.91:8080/api"
+  const BASE_URL = "http://192.168.10.48:8080/api"
 
   // Check verification status on mount
   useEffect(() => {
@@ -544,8 +544,9 @@ export default function MyListingsScreen() {
   //   </>
   // )
 
-  const ListHeader = (
-    <>
+  const ListHeader = () => {
+    return (
+    <View style={{ marginBottom: activePropertyTab === "Houses" ? spacing.lg : 0 }}>
       <View style={styles.header}>
       {/* Header Section */}
         <View style={styles.headerSection}>
@@ -600,7 +601,9 @@ export default function MyListingsScreen() {
           </View>
         </View>
       </View>
-      <FlatList
+      
+      {activePropertyTab !== "Houses" && (
+        <FlatList
         horizontal
         scrollEnabled
         data={["All Listings", "For cash", "Installments"]}
@@ -617,10 +620,9 @@ export default function MyListingsScreen() {
             </Text>
           </TouchableOpacity>
         )}
-      />
-      
-    </>
-  )
+      />)}
+    </View>)
+  }
 
   // Show loading while checking verification
   if (loadingUser) {
@@ -648,11 +650,13 @@ export default function MyListingsScreen() {
             <Text style={styles.initialLoadingText}>Loading listings...</Text>
           </View>
         ) : (
+          <>
+          <ListHeader />
           <FlatList
             data={listings}
             keyExtractor={(item, index) => item._id || `listing-${index}`}
             renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} />}
-            ListHeaderComponent={ListHeader}
+            // ListHeaderComponent={ListHeader}
             ListFooterComponent={
               loadingMore && listings.length > 0 ? (
                 <View style={styles.loadingMoreContainer}>
@@ -680,6 +684,7 @@ export default function MyListingsScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
           />
+          </>
         )}
       </KeyboardAvoidingView>
 

@@ -562,7 +562,8 @@ const styles = StyleSheet.create({
   },
   priceInput: {
     flex: 1,
-    padding: spacing.sm2
+    minWidth: 100,
+    // padding: spacing.sm2
   },
   featureCheckboxes: {
     gap: 12,

@@ -23,7 +23,7 @@ export interface ListingState {
   rentPerMonth?: string
   installment?: {
     perMonth: string
-    quarterly: string
+    halfYearly: string
   }
   description: string
   forContact: string

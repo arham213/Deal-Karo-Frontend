@@ -5,31 +5,57 @@ import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
 import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Platform,
-    TextInput as RNTextInput,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput as RNTextInput,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
+import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
 
 export default function VerifyOTPScreen() {
   const router = useRouter()
-  const { userId } = useLocalSearchParams<{ userId: string }>();
+  const { setUser, setToken, checkAuth } = useAuthContext()
+  const { userId, isSignupOTP } = useLocalSearchParams<{ userId: string, isSignupOTP: string }>();
   const [otp, setOtp] = useState(["", "", "", ""])
   const [loading, setLoading] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
   const [touched, setTouched] = useState(false)
   const inputRefs = useRef<(RNTextInput | null)[]>([null, null, null, null])
 
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
+
+  const resetOtpFields = () => {
+    setOtp(["", "", "", ""])
+    setTouched(false)
+    // Focus first input if available for better UX
+    inputRefs.current[0]?.focus()
+  }
+
+  // Start initial 60s disable timer on first mount
+  useEffect(() => {
+    setResendTimer(60)
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const handleOTPChange = (index: number, value: string) => {
     const sanitized = value.replace(/\D/g, "").slice(0, 1)
@@ -65,7 +91,9 @@ export default function VerifyOTPScreen() {
         OTP: otpCode
       }
 
-      const response = await axios.post(`${BASE_URL}/users/verify-reset-password-otp`, userData);
+      const url = isSignupOTP === "true" ? `${BASE_URL}/users/verifyEmail` : `${BASE_URL}/users/verify-reset-password-otp`;
+
+      const response = await axios.post(url, userData);
 
       console.log('response:', response.data);
 
@@ -74,10 +102,27 @@ export default function VerifyOTPScreen() {
       if (response?.data.success) {
         showSuccessToast("OTP verified successfully");
         setTouched(false)
-        router.push({
-          pathname: '/reset-password',
-          params: { userId: response.data.data.userId }
-        });
+        if (isSignupOTP === "true") {
+          // router.push("/(auth)/sign-in");
+          console.log('saving token and user...')
+          // Save token and user to secure store
+          await saveToken(response.data.data.token);
+          await saveUser(response.data.data.user);
+          
+          // Update auth context
+          setToken(response.data.data.token);
+          setUser(response.data.data.user);
+          
+          // Refresh auth state to get onboarding status
+          await checkAuth();
+          
+          router.replace("/(onboarding)/onboarding");
+        } else {
+          router.push({
+            pathname: '/reset-password',
+            params: { userId: response.data.data.userId }
+          });
+        }
       } else {
         showErrorToast(response?.data.error.message || "OTP verification failed");
       }
@@ -90,6 +135,8 @@ export default function VerifyOTPScreen() {
         showErrorToast("Something went wrong. Please try again later")
       }
     } finally {
+      // Clear OTP inputs after API response arrives
+      resetOtpFields()
       setLoading(false)
     }
   }
@@ -131,6 +178,9 @@ export default function VerifyOTPScreen() {
       } else {
         showErrorToast("Something went wrong. Please try again later")
       }
+    } finally {
+      // Clear OTP inputs after API response arrives
+      resetOtpFields()
     }
   }
 

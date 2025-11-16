@@ -42,7 +42,7 @@ interface AddListingState {
   pricePerMarla: string
   rentPerMonth: string
   installmentPerMonth: string
-  installmentQuarterly: string
+  installmentHalfYearly: string
   description: string
   contact: string
   hasPole: boolean
@@ -59,7 +59,7 @@ type ListingField =
   | "price"
   | "pricePerMarla"
   | "installmentPerMonth"
-  | "installmentQuarterly"
+  | "installmentHalfYearly"
   | "contact"
 
 const FORM_FIELDS: ListingField[] = [
@@ -72,7 +72,7 @@ const FORM_FIELDS: ListingField[] = [
   "price",
   "pricePerMarla",
   "installmentPerMonth",
-  "installmentQuarterly",
+  "installmentHalfYearly",
   "contact",
 ]
 
@@ -101,7 +101,7 @@ export default function AddListingScreen() {
     pricePerMarla: "",
     rentPerMonth: "",
     installmentPerMonth: "",
-    installmentQuarterly: "",
+    installmentHalfYearly: "",
     description: "",
     contact: "+92 ",
     hasPole: false,
@@ -115,7 +115,7 @@ export default function AddListingScreen() {
   const [touched, setTouched] = useState<Record<ListingField, boolean>>(createTouchedState(false))
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
 
   // Check verification status on mount
   useEffect(() => {
@@ -209,10 +209,10 @@ export default function AddListingScreen() {
         if (!Validation.isRequired(trimmed)) return "Monthly installment is required"
         if (!Validation.isNumeric(trimmed)) return "Monthly installment must be numeric"
         return undefined
-      case "installmentQuarterly":
+      case "installmentHalfYearly":
         if (state.listingType !== "installments") return undefined
-        if (!Validation.isRequired(trimmed)) return "Quarterly installment is required"
-        if (!Validation.isNumeric(trimmed)) return "Quarterly installment must be numeric"
+        if (!Validation.isRequired(trimmed)) return "Half Yearly installment is required"
+        if (!Validation.isNumeric(trimmed)) return "Half Yearly installment must be numeric"
         return undefined
       case "contact":
         if (!Validation.isRequired(trimmed)) return "Contact number is required"
@@ -261,7 +261,7 @@ export default function AddListingScreen() {
           houseNo: propertyType === "house" ? prev.houseNo : "",
           pricePerMarla: propertyType === "plot" || propertyType === "commercial plot" ? prev.pricePerMarla : "",
           installmentPerMonth: "",
-          installmentQuarterly: "",
+          installmentHalfYearly: "",
         }
         return next
       })
@@ -274,7 +274,7 @@ export default function AddListingScreen() {
         ...prev,
         listingType,
         installmentPerMonth: listingType === "installments" ? prev.installmentPerMonth : "",
-        installmentQuarterly: listingType === "installments" ? prev.installmentQuarterly : "",
+        installmentHalfYearly: listingType === "installments" ? prev.installmentHalfYearly : "",
         pricePerMarla:
           prev.propertyType === "plot" || prev.propertyType === "commercial plot"
             ? prev.pricePerMarla
@@ -387,7 +387,7 @@ export default function AddListingScreen() {
         ...(formData.listingType === "installments" && {
           installment: {
             perMonth: formData.installmentPerMonth,
-            quarterly: formData.installmentQuarterly
+            halfYearly: formData.installmentHalfYearly
           }
         }),
         description: formData.description,
@@ -486,6 +486,9 @@ export default function AddListingScreen() {
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Add Listing</Text>
+            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={Colors.text} />
+            </TouchableOpacity>
           </View>
 
           {/* Property Type Tabs */}
@@ -726,7 +729,7 @@ export default function AddListingScreen() {
             <>
               <View style={styles.section}>
                 <TextInput
-                  label="Installment per month"
+                  label="Installment Per Month"
                   placeholder="60,000"
                   value={formData.installmentPerMonth}
                   onChangeText={(value) => handleInputChange("installmentPerMonth", value)}
@@ -737,13 +740,13 @@ export default function AddListingScreen() {
               </View>
               <View style={styles.section}>
                 <TextInput
-                  label="Installment quarterly"
+                  label="Installment Half Yearly"
                   placeholder="160,000"
-                  value={formData.installmentQuarterly}
-                  onChangeText={(value) => handleInputChange("installmentQuarterly", value)}
-                  onBlur={handleFieldBlur("installmentQuarterly")}
+                  value={formData.installmentHalfYearly}
+                  onChangeText={(value) => handleInputChange("installmentHalfYearly", value)}
+                  onBlur={handleFieldBlur("installmentHalfYearly")}
                   keyboardType="decimal-pad"
-                  error={touched.installmentQuarterly ? errors.installmentQuarterly : undefined}
+                  error={touched.installmentHalfYearly ? errors.installmentHalfYearly : undefined}
                 />
               </View>
             </>
@@ -894,6 +897,15 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingVertical: spacing.lg,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  closeButton: {
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: fontSizes.base,

@@ -43,7 +43,7 @@ export default function SignUpScreen() {
   const [touched, setTouched] = useState<Record<SignUpField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
 
   const validateField = (field: SignUpField, value: string) => {
     const trimmed = value.trim()
@@ -142,9 +142,11 @@ export default function SignUpScreen() {
   const isSubmitDisabled = loading || hasEmptyRequiredField || hasAnyError
 
   const handleSignUp = async () => {
+    console.log('handleSignUp');
     const isValid = validateForm()
     if (!isValid) {
       markAllTouched()
+      console.log('isValid', isValid);
       return
     }
 
@@ -159,16 +161,23 @@ export default function SignUpScreen() {
         role: "dealer"
       }
 
+      console.log('userData:', userData);
+      console.log('sending request to:', `${BASE_URL}/users/signup`);
+
       const response = await axios.post(`${BASE_URL}/users/signup`, userData);
 
       console.log('response:', response.data);
 
       if (response?.data.success) {
-        showSuccessToast("Signup Successful");
-        router.push("/(auth)/sign-in");
+        showSuccessToast("OTP sent successfully");
         setForm(createInitialFormState())
         setErrors({})
         setTouched(createTouchedState(false))
+        // router.push("/(auth)/sign-in");
+        router.push({
+          pathname: '/verify-otp',
+          params: { userId: response.data.data.userId, isSignupOTP: "true" }
+       });
       } else {
         showErrorToast(response?.data.error.message || "Signup failed");
       }

@@ -6,7 +6,7 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
-import { getOnboardingCompleted, saveToken, saveUser } from "@/utils/secureStore"
+import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
@@ -38,7 +38,7 @@ export default function SignInScreen() {
   const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
 
   const validateField = (field: SignInField, value: string) => {
     const trimmed = value.trim()
@@ -162,8 +162,9 @@ export default function SignInScreen() {
         setTouched(createTouchedState(false))
 
         // Check onboarding status and redirect
-        const onboardingCompleted = await getOnboardingCompleted();
-        if (onboardingCompleted === "true") {
+        // const onboardingCompleted = await getOnboardingCompleted();
+        const onboardingCompleted = response.data.data.user.onBoardingCompleted;
+        if (onboardingCompleted) {
           router.replace("/(listings)/listings");
         } else {
           router.replace("/(onboarding)/onboarding");

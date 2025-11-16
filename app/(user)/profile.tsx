@@ -8,13 +8,14 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import { getToken, getUser, saveUser } from "@/utils/secureStore"
-import { showErrorToast, showSuccessToast } from "@/utils/toast"
+import { showErrorToast, showLoadingToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import Toast from "react-native-toast-message"
 
 export default function ProfileScreen() {
   const router = useRouter()
@@ -32,7 +33,6 @@ export default function ProfileScreen() {
     updatedAt: "",
   })
 
-  const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState(profile)
   const [errors, setErrors] = useState<ValidationErrors<EditableProfileField>>({})
   const [touched, setTouched] = useState<Record<EditableProfileField, boolean>>({
@@ -42,8 +42,10 @@ export default function ProfileScreen() {
     estateName: false,
   })
   const [loading, setLoading] = useState(false)
+  const [showUpdateButton, setShowUpdateButton] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
 
   useEffect(() => {
     getUserFromSecureStore()
@@ -55,8 +57,22 @@ export default function ProfileScreen() {
     if (user) {
       setProfile(user)
       setEditData(user)
+      setShowUpdateButton(false)
     }
   }
+
+  // Check if any field has changed
+  const hasChanges = useMemo(() => {
+    const cleanedEditContact = editData.contactNo.replace(/[^\d]/g, "")
+    const cleanedProfileContact = profile.contactNo.replace(/[^\d]/g, "")
+    
+    return (
+      editData.name.trim() !== profile.name.trim() ||
+      editData.email.trim() !== profile.email.trim() ||
+      cleanedEditContact !== cleanedProfileContact ||
+      editData.estateName.trim() !== profile.estateName.trim()
+    )
+  }, [editData, profile])
 
   const validateField = (field: EditableProfileField, value: string) => {
     const trimmed = value.trim()
@@ -103,7 +119,6 @@ export default function ProfileScreen() {
   }
 
   const handleInputChange = (key: EditableProfileField, value: string) => {
-    if (!isEditing) return
     setEditData((prev) => ({
       ...prev,
       [key]: value,
@@ -119,6 +134,11 @@ export default function ProfileScreen() {
       })
     }
   }
+
+  // Update showUpdateButton when hasChanges changes
+  useEffect(() => {
+    setShowUpdateButton(hasChanges)
+  }, [hasChanges])
 
   const handleSave = async () => {
     if (!validateForm(editData)) {
@@ -184,8 +204,7 @@ export default function ProfileScreen() {
         // Update AuthContext
         setUser(updatedUser)
 
-        // Reset editing state
-        setIsEditing(false)
+        // Reset state
         setErrors({})
         setTouched({
           name: false,
@@ -193,12 +212,31 @@ export default function ProfileScreen() {
           contactNo: false,
           estateName: false,
         })
+        setShowUpdateButton(false)
 
         showSuccessToast("Profile updated successfully!")
       } else {
+        // Restore original form state on failure
+        setEditData(profile)
+        setErrors({})
+        setTouched({
+          name: false,
+          email: false,
+          contactNo: false,
+          estateName: false,
+        })
         showErrorToast(response.data?.message || "Failed to update profile")
       }
     } catch (error: any) {
+      // Restore original form state on failure
+      setEditData(profile)
+      setErrors({})
+      setTouched({
+        name: false,
+        email: false,
+        contactNo: false,
+        estateName: false,
+      })
       if (axios.isAxiosError(error)) {
         showErrorToast(error?.response?.data?.error?.message || "Failed to update profile. Please try again.")
       } else {
@@ -206,33 +244,31 @@ export default function ProfileScreen() {
       }
     } finally {
       setLoading(false)
+      setShowUpdateButton(false)
     }
-  }
-
-  const handleCancel = () => {
-    setEditData(profile)
-    setIsEditing(false)
-    setErrors({})
-    setTouched({
-      name: false,
-      email: false,
-      contactNo: false,
-      estateName: false,
-    })
   }
 
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true)
+      showLoadingToast("Logging out...", "Please wait")
+      
       // Use AuthContext logout which handles clearing data and navigation
       await logout()
+      
+      // Hide loading toast and show success toast
+      Toast.hide()
+      showSuccessToast("Logged out successfully!")
     } catch (error) {
       console.error("Logout error:", error)
+      Toast.hide()
       showErrorToast("Failed to logout. Please try again.")
+    } finally {
+      setIsLoggingOut(false)
     }
   }
 
   const handleBlur = (field: EditableProfileField) => () => {
-    if (!isEditing) return
     setTouched((prev) => ({
       ...prev,
       [field]: true,
@@ -252,7 +288,7 @@ export default function ProfileScreen() {
     [editData],
   )
 
-  const isSaveDisabled = !isEditing || editableErrors
+  const isUpdateDisabled = !hasChanges || editableErrors || loading
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -270,88 +306,68 @@ export default function ProfileScreen() {
               <TextInput
                 label="Full Name"
                 placeholder="Enter your full name"
-                value={isEditing ? editData.name : profile.name}
+                value={editData.name}
                 onChangeText={(value) => handleInputChange("name", value)}
                 onBlur={handleBlur("name")}
-                error={isEditing && touched.name ? errors.name : undefined}
-                editable={isEditing}
+                error={touched.name ? errors.name : undefined}
+                editable={!loading && !isLoggingOut}
               />
 
               <TextInput
                 label="Email"
                 placeholder="Enter your email"
-                value={isEditing ? editData.email : profile.email}
+                value={editData.email}
                 onChangeText={(value) => handleInputChange("email", value)}
                 onBlur={handleBlur("email")}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                error={isEditing && touched.email ? errors.email : undefined}
-                editable={isEditing}
+                error={touched.email ? errors.email : undefined}
+                editable={!loading && !isLoggingOut}
               />
 
               <TextInput
                 label="Contact Number"
                 placeholder="Enter your contact number"
-                value={isEditing ? editData.contactNo : profile.contactNo}
+                value={editData.contactNo}
                 onChangeText={(value) => handleInputChange("contactNo", value)}
                 onBlur={handleBlur("contactNo")}
-                editable={isEditing}
                 keyboardType="phone-pad"
-                error={isEditing && touched.contactNo ? errors.contactNo : undefined}
+                error={touched.contactNo ? errors.contactNo : undefined}
+                editable={!loading && !isLoggingOut}
               />
 
               <TextInput
                 label="Estate Name"
                 placeholder="Enter your estate name"
-                value={isEditing ? editData.estateName : profile.estateName}
+                value={editData.estateName}
                 onChangeText={(value) => handleInputChange("estateName", value)}
                 onBlur={handleBlur("estateName")}
-                error={isEditing && touched.estateName ? errors.estateName : undefined}
-                editable={isEditing}
+                error={touched.estateName ? errors.estateName : undefined}
+                editable={!loading && !isLoggingOut}
               />
             </View>
 
-            {isEditing ? (
-              <View style={styles.buttonGroup}>
+            <View style={styles.buttonGroup}>
+              {showUpdateButton && (
                 <Button 
-                  title={loading ? "Saving..." : "Save"} 
+                  title={loading ? "Updating..." : "Update"} 
                   onPress={handleSave} 
-                  disabled={isSaveDisabled || loading}
+                  disabled={isUpdateDisabled}
+                  loading={loading}
                 />
-                {loading && (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                  </View>
-                )}
-                <TouchableOpacity 
-                  style={[styles.cancelButton, loading && styles.cancelButtonDisabled]} 
-                  onPress={handleCancel}
-                  disabled={loading}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.buttonGroup}>
-                <Button
-                  title="Update"
-                  onPress={() => {
-                    setEditData(profile)
-                    setErrors({})
-                    setTouched({
-                      name: false,
-                      email: false,
-                      contactNo: false,
-                      estateName: false,
-                    })
-                    setIsEditing(true)
-                  }}
-                />
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              )}
+              <TouchableOpacity 
+                style={[styles.logoutButton, (loading || isLoggingOut) && styles.logoutButtonDisabled]} 
+                onPress={handleLogout}
+                disabled={loading || isLoggingOut}
+              >
+                {isLoggingOut ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
                   <Text style={styles.logoutButtonText}>Logout</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -455,5 +471,8 @@ const styles = StyleSheet.create({
   },
   cancelButtonDisabled: {
     opacity: 0.5,
+  },
+  logoutButtonDisabled: {
+    opacity: 0.6,
   },
 })

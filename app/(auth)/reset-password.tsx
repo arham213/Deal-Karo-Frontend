@@ -25,7 +25,7 @@ export default function ResetPasswordScreen() {
     confirmPassword: false,
   })
 
-  const BASE_URL = 'http://10.190.83.91:8080/api';
+  const BASE_URL = 'http://192.168.10.48:8080/api';
 
   const validateField = (field: "password" | "confirmPassword", value: string) => {
     if (field === "password") {

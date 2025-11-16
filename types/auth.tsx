@@ -6,6 +6,7 @@ export type User = {
   estateName: string
   role: "dealer" | "admin"
   verificationStatus: "pending" | "verified" | "rejected"
+  onBoardingCompleted?: boolean
   createdAt: string
   updatedAt: string
 }

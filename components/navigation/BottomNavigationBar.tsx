@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { DisabledMyListingsIcon, DisabledNotesIcon, MyListingsIcon, NotesIcon } from "./Icons"
 
-const BASE_URL = "http://10.190.83.91:8080/api"
+const BASE_URL = "http://192.168.10.48:8080/api"
 
 export function BottomNavigationBar() {
   const router = useRouter()

@@ -1,7 +1,7 @@
 import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 const toastConfig = {
@@ -77,6 +77,17 @@ const toastConfig = {
       </TouchableOpacity>
     </View>
   ),
+  loading: ({ text1, text2 }: any) => (
+    <View style={styles.loadingContainer}>
+      <View style={styles.iconContainer}>
+        <ActivityIndicator size="small" color={Colors.white} />
+      </View>
+      <View style={styles.textContainer}>
+        {text1 && <Text style={styles.title}>{text1}</Text>}
+        {text2 && <Text style={styles.message}>{text2}</Text>}
+      </View>
+    </View>
+  ),
 };
 
 export function ToastProvider() {
@@ -129,6 +140,24 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   infoContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primary || '#3B82F6',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    minHeight: 60,
+    maxWidth: '95%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  loadingContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.primary || '#3B82F6',

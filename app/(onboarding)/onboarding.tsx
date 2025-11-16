@@ -3,8 +3,9 @@
 import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
-import { saveOnboardingCompleted } from "@/utils/secureStore"
-import { showErrorToast } from "@/utils/toast"
+import { getToken, getUser, saveUser } from "@/utils/secureStore"
+import { showErrorToast, showSuccessToast } from "@/utils/toast"
+import axios from "axios"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native"
@@ -43,6 +44,59 @@ export default function OnboardingScreen() {
   const { checkAuth } = useAuthContext()
   const [currentIndex, setCurrentIndex] = useState(0)
   const scrollViewRef = useRef<ScrollView>(null)
+  const [loading, setLoading] = useState(false)
+
+  const BASE_URL = 'http://192.168.10.48:8080/api';
+
+  const handleCompleteOnboarding = async () => {
+    setLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+      
+      const user = await getUser()
+      if (!user) {
+        router.replace("/(auth)/sign-in")
+        return
+      }
+      
+      const updateData = {
+        _id: user._id,
+        onBoardingCompleted: true
+      }
+
+      // Make API call
+      const response = await axios.put(`${BASE_URL}/users/`, updateData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      console.log('response:', response.data)
+
+      if (response.data?.success) {
+        // Update secure store
+        await saveUser({ ...user, onBoardingCompleted: true })
+        showSuccessToast("Onboarding completed successfully!")
+        // Refresh auth context to update onboarding status
+        await checkAuth()
+        router.replace("/(listings)/listings")
+      } else {
+        showErrorToast(response.data?.message || "Failed to complete onboarding")
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        showErrorToast(error?.response?.data?.error?.message || "Failed to complete onboarding. Please try again.")
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleNext = async () => {
     if (currentIndex < onboardingData.length - 1) {
@@ -54,10 +108,11 @@ export default function OnboardingScreen() {
       })
     } else {
       try {
-        await saveOnboardingCompleted("true")
+        // await saveOnboardingCompleted("true")
+        await handleCompleteOnboarding()
         // Refresh auth context to update onboarding status
-        await checkAuth()
-        router.replace("/(listings)/listings")
+        // await checkAuth()
+        // router.replace("/(listings)/listings")
       } catch (error: any) {
         showErrorToast("Failed to save onboarding completed: " + error.message)
       }

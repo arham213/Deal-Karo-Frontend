@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { ListingState } from "@/types/listings"
+import { handleContactPress } from "@/utils/dialContact"
 import { Ionicons } from "@expo/vector-icons"
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -61,7 +62,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-          <Text style={styles.headerTitle}>Details</Text>
+            <Text style={styles.headerTitle}>Details</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
@@ -74,8 +75,8 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.label}>Contact</Text>
-              <Text style={styles.value}>{listing?.forContact}</Text>
+              <Text style={styles.label}>Additional Area (Sq/ft)</Text>
+              <Text style={styles.value}>{listing?.additionalArea || '---'}</Text>
             </View>
 
             <View style={styles.detailRow}>
@@ -92,63 +93,63 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
               </View>
             </View>
 
-            <View style={styles.detailRow}>
-              <Text style={styles.label}>Description</Text>
-              <Text style={styles.value}>{listing?.description || '---'}</Text>
-            </View>
-
             {listing?.propertyType === "plot" || listing?.propertyType === "commercial plot" ? (
-                <View style={styles.detailRow}>
-                    <Text style={styles.label}>Plot No</Text>
-                    <Text style={styles.value}>{listing?.plotNo}</Text>
-                </View>
-            ): (
-                <View style={styles.detailRow}>
-                    <Text style={styles.label}>House No</Text>
-                    <Text style={styles.value}>{listing?.houseNo}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Plot No</Text>
+                <Text style={styles.value}>{listing?.plotNo}</Text>
+              </View>
+            ) : (
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>House No</Text>
+                <Text style={styles.value}>{listing?.houseNo}</Text>
+              </View>
             )}
 
             <View style={styles.detailRow}>
-              <Text style={styles.label}>Additional Area</Text>
-              <Text style={styles.value}>{listing?.additionalArea || '---'}</Text>
+              <Text style={styles.label}>Phase</Text>
+              <Text style={styles.value}>{listing?.phase || '---'}</Text>
             </View>
 
-            {listing?.propertyType === "plot" || listing?.propertyType === "commercial plot" && listing.listingType === "cash" && (
-                <View style={styles.detailRow}>
-                    <Text style={styles.label}>Price Per Marla</Text>
-                    <Text style={styles.value}>{listing?.pricePerMarla}</Text>
-                </View>
-            )}
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Block</Text>
+              <Text style={styles.value}>{listing?.block || '---'}</Text>
+            </View>
 
             {listing?.listingType === "rent" ? (
-                <View style={styles.detailRow}>
-                    <Text style={styles.label}>Price</Text>
-                    <Text style={styles.value}>{listing?.rentPerMonth}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Invoice</Text>
+                <Text style={styles.value}>Rs.{listing?.rentPerMonth}</Text>
+              </View>
             ) : (
-                <View style={styles.detailRow}>
-                    <Text style={styles.label}>Price</Text>
-                    <Text style={styles.value}>{listing?.price || listing?.totalPrice}</Text>
-                </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Invoice</Text>
+                <Text style={styles.value}>Rs.{listing?.price || listing?.totalPrice}</Text>
+              </View>
+            )}
+
+            {(listing?.propertyType === "plot" || listing?.propertyType === "commercial plot") && listing.listingType === "cash" && (
+              <View style={styles.detailRow}>
+                <Text style={styles.label}>Price Per Marla</Text>
+                <Text style={styles.value}>Rs.{listing?.pricePerMarla}</Text>
+              </View>
             )}
 
             {listing?.listingType === "installments" && (
-                <>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.label}>Installment Per Month</Text>
-                        <Text style={styles.value}>{listing?.installment?.perMonth}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                        <Text style={styles.label}>Installment Quarterly</Text>
-                        <Text style={styles.value}>{listing?.installment?.quarterly}</Text>
-                    </View>
-                </>
+              <>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Installment Per Month</Text>
+                  <Text style={styles.value}>Rs.{listing?.installment?.perMonth}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.label}>Installment Half Yearly</Text>
+                  <Text style={styles.value}>Rs.{listing?.installment?.halfYearly}</Text>
+                </View>
+              </>
             )}
 
             <View style={styles.detailRow}>
-              <Text style={styles.label}>Address</Text>
-              <Text style={styles.value}>{listing?.phase || '---'}, {listing?.block || '---'}</Text>
+              <Text style={styles.label}>Description</Text>
+              <Text style={styles.value}>{listing?.description || '---'}</Text>
             </View>
 
             <View style={styles.detailRow}>
@@ -159,6 +160,11 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             <View style={styles.detailRow}>
               <Text style={styles.label}>Estate</Text>
               <Text style={styles.value}>{listing?.userId?.estateName}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Contact</Text>
+              <Text style={styles.value}>{listing?.forContact}</Text>
             </View>
 
             <View style={styles.detailRow}>
@@ -184,7 +190,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
           <View style={styles.buttonGroup}>
             <Button
               title="Contact"
-              onPress={onClose}
+              onPress={() => handleContactPress(listing?.forContact)}
               style={{ flexDirection: "row", justifyContent: "center", gap: 8, backgroundColor: Colors.neutral90 }}
             />
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
@@ -245,14 +251,14 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.medium,
     color: Colors.black,
     fontFamily: fontFamilies.primary,
-    width: "40%",
+    width: "45%",
   },
   value: {
     fontSize: fontSizes.sm,
     fontWeight: fontWeights.bold,
     color: Colors.black,
     fontFamily: fontFamilies.primary,
-    width: "60%",
+    width: "55%",
     textAlign: "right",
   },
   typeBadge: {
