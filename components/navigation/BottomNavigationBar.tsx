@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { DisabledMyListingsIcon, DisabledNotesIcon, MyListingsIcon, NotesIcon } from "./Icons"
 
-const BASE_URL = "http://192.168.10.48:8080/api"
+const BASE_URL = "https://deal-karo-backend.vercel.app/api"
 
 export function BottomNavigationBar() {
   const router = useRouter()
@@ -44,7 +44,7 @@ export function BottomNavigationBar() {
     try {
       const token = await getToken()
       if (!token) {
-        console.error("Token missing")
+        //console.error("Token missing")
         return
       }
 
@@ -53,12 +53,12 @@ export function BottomNavigationBar() {
           Authorization: `Bearer ${token}`,
         },
       })
-      console.log('User response:', response.data);
+      //console.log('User response:', response.data);
       if (response.data.success) {
         setUser(response.data.data.user)
       }
     } catch (error) {
-      console.error("Error fetching user:", error)
+      //console.error("Error fetching user:", error)
     }
   }
 

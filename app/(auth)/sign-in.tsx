@@ -6,13 +6,14 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
+import { apiClient } from "@/utils/axiosConfig"
 import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
-import { useRouter } from "expo-router"
+import { Redirect, useRouter } from "expo-router"
 import { useMemo, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 type SignInField = "email" | "password"
@@ -32,13 +33,29 @@ const createTouchedState = (value: boolean) =>
 
 export default function SignInScreen() {
   const router = useRouter()
-  const { setUser, setToken, checkAuth } = useAuthContext()
+  const { setUser, setToken, checkAuth, isAuthenticated, isLoading, isOnboardingCompleted } = useAuthContext()
   const [form, setForm] = useState<SignInFormState>(createInitialFormState)
   const [errors, setErrors] = useState<ValidationErrors<SignInField>>({})
   const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  // Immediately redirect if already authenticated - prevents flash of sign-in screen
+  // Use Redirect component for immediate redirect without rendering anything
+  if (!isLoading && isAuthenticated) {
+    const target = isOnboardingCompleted ? "/(listings)/listings" : "/(onboarding)/onboarding"
+    return <Redirect href={target} />
+  }
+
+  // Show loading indicator while checking auth
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.neutral10 }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    )
+  }
+
+  // Using shared apiClient with global timeout handling
 
   const validateField = (field: SignInField, value: string) => {
     const trimmed = value.trim()
@@ -124,13 +141,13 @@ export default function SignInScreen() {
   const isSubmitDisabled = loading || hasEmptyField || hasAnyError
 
   const handleSignIn = async () => {
-    console.log('loggin in...')
+    //console.log('loggin in...')
     const isValid = validateForm()
     if (!isValid) {
       markAllTouched()
       return
     }
-    console.log('validating form...')
+    //console.log('validating form...')
 
     setLoading(true)
     try {
@@ -139,14 +156,14 @@ export default function SignInScreen() {
         password: form.password,
       }
 
-      console.log('userData:', userData)
+      //console.log('userData:', userData)
 
-      const response = await axios.post(`${BASE_URL}/users/signin`, userData);
+      const response = await apiClient.post(`/users/signin`, userData);
       
-      console.log('response:', response.data)
+      //console.log('response:', response.data)
 
       if (response?.data.success) {
-        console.log('saving token and user...')
+        //console.log('saving token and user...')
         // Save token and user to secure store
         await saveToken(response.data.data.token);
         await saveUser(response.data.data.user);
@@ -174,7 +191,12 @@ export default function SignInScreen() {
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Signin failed");
+        // Global interceptor shows toasts for timeouts and network errors
+        if (error.response?.data?.error?.message) {
+          showErrorToast(error.response.data.error.message);
+        } else if (error.response) {
+          showErrorToast("Signin failed");
+        }
       } else {
         showErrorToast("Something went wrong. Please try again later")
       }
@@ -225,7 +247,7 @@ export default function SignInScreen() {
               <View style={styles.forgotPasswordContainer}>
                 <TouchableOpacity 
                   onPress={() => {
-                    console.log("Navigating to forgot password...")
+                    //console.log("Navigating to forgot password...")
                     router.push("/(auth)/forgot-password")
                   }} 
                   activeOpacity={0.7}
@@ -251,7 +273,8 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.headerBackground,
+    flex: 1,
+    // backgroundColor: Colors.headerBackground,
   },
   screen: {
     backgroundColor: Colors.headerBackground,

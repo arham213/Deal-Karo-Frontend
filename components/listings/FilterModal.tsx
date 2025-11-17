@@ -158,7 +158,7 @@ export default function FilterModal({ visible, onClose, onApply, propertyType }:
       maxPrice,
       // features,
     }
-    console.log('filters:', filters);
+    //console.log('filters:', filters);
     onApply(filters)
   }
 
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     color: Colors.neutral10,
   },
   priceRangeRow: {
-    flexDirection: "row",
+    flexDirection: "column",
     gap: 12,
   },
   priceInput: {

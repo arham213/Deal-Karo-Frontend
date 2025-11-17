@@ -32,7 +32,7 @@ export default function VerifyOTPScreen() {
   const [touched, setTouched] = useState(false)
   const inputRefs = useRef<(RNTextInput | null)[]>([null, null, null, null])
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   const resetOtpFields = () => {
     setOtp(["", "", "", ""])
@@ -95,7 +95,7 @@ export default function VerifyOTPScreen() {
 
       const response = await axios.post(url, userData);
 
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       setLoading(false);
 
@@ -104,7 +104,7 @@ export default function VerifyOTPScreen() {
         setTouched(false)
         if (isSignupOTP === "true") {
           // router.push("/(auth)/sign-in");
-          console.log('saving token and user...')
+          //console.log('saving token and user...')
           // Save token and user to secure store
           await saveToken(response.data.data.token);
           await saveUser(response.data.data.user);
@@ -161,7 +161,7 @@ export default function VerifyOTPScreen() {
 
       const response = await axios.post(`${BASE_URL}/users/resendOTP`, userData);
 
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       setLoading(false);
 

@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsOnboardingCompleted(false)
       }
     } catch (error) {
-      console.error("Error checking auth:", error)
+      //console.error("Error checking auth:", error)
       setTokenState(null)
       setUser(null)
       setIsAuthenticated(false)
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsOnboardingCompleted(false)
       router.replace("/(auth)/sign-in")
     } catch (error) {
-      console.error("Error during logout:", error)
+      //console.error("Error during logout:", error)
     }
   }
 

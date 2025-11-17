@@ -13,15 +13,15 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -44,7 +44,7 @@ export default function MyNotesScreen() {
   const [noteError, setNoteError] = useState<string | undefined>(undefined)
   const [noteTouched, setNoteTouched] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
   const NOTE_MIN_LENGTH = 3
   const NOTE_MAX_LENGTH = 500
 
@@ -85,7 +85,7 @@ export default function MyNotesScreen() {
         }
       }
     } catch (error) {
-      console.error("Error checking verification status:", error)
+      //console.error("Error checking verification status:", error)
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -112,7 +112,7 @@ export default function MyNotesScreen() {
           Authorization: `Bearer ${token}`
         }
       });
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       if (response?.data.success) {
         setNotes(response.data.data?.notes)
@@ -176,7 +176,7 @@ export default function MyNotesScreen() {
           Authorization: `Bearer ${token}`
         }
       });
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       if (response?.data.success) {
         showSuccessToast("Note Added Successfully");
@@ -208,7 +208,7 @@ export default function MyNotesScreen() {
         return
       }
 
-      console.log('token:', token);
+      //console.log('token:', token);
 
       const response = await axios.delete(`${BASE_URL}/notes/${id}`, {
         headers: {
@@ -334,6 +334,7 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: Colors.headerBackground,
   },
   header: {
     paddingVertical: spacing.screen,

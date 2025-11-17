@@ -103,7 +103,7 @@ export default function AddListingScreen() {
     installmentPerMonth: "",
     installmentHalfYearly: "",
     description: "",
-    contact: "+92 ",
+    contact: "",
     hasPole: false,
     hasWire: false,
   })
@@ -115,7 +115,7 @@ export default function AddListingScreen() {
   const [touched, setTouched] = useState<Record<ListingField, boolean>>(createTouchedState(false))
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   // Check verification status on mount
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function AddListingScreen() {
         }
       }
     } catch (error) {
-      console.error("Error checking verification status:", error)
+      //console.error("Error checking verification status:", error)
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -216,7 +216,7 @@ export default function AddListingScreen() {
         return undefined
       case "contact":
         if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPhone(trimmed)) return "Enter a valid phone number with country code"
+        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
         return undefined
       default:
         return undefined
@@ -264,6 +264,29 @@ export default function AddListingScreen() {
           installmentHalfYearly: "",
         }
         return next
+      })
+      return
+    }
+
+    if (key === "contact" && typeof value === "string") {
+      const digits = Validation.digitsOnly(value).slice(0, 11)
+
+      if (!touched.contact) {
+        setTouched((prev) => ({ ...prev, contact: true }))
+      }
+
+      updateForm((prev) => ({
+        ...prev,
+        contact: digits,
+      }))
+
+      const nextState = { ...formData, contact: digits } as AddListingState
+      const errorMessage = validateField("contact", digits, nextState)
+      setErrors((prev) => {
+        const nextErrors = { ...prev }
+        if (errorMessage) nextErrors.contact = errorMessage
+        else delete nextErrors.contact
+        return nextErrors
       })
       return
     }
@@ -391,14 +414,14 @@ export default function AddListingScreen() {
           }
         }),
         description: formData.description,
-        forContact: formData.contact,
+        forContact: Validation.digitsOnly(formData.contact),
         // features: JSON.stringify({
         //   hasPole: formData.hasPole,
         //   hasWire: formData.hasWire
         // })
       }
 
-      console.log('userData:', userData);
+      //console.log('userData:', userData);
 
       const response = await axios.post(`${BASE_URL}/properties`, userData, {
         headers: {
@@ -406,7 +429,7 @@ export default function AddListingScreen() {
         }
       });
 
-      //console.log('response:', response?.data);
+      ////console.log('response:', response?.data);
 
       if (response?.data.success) {
         showSuccessToast("Listing added successfully");
@@ -482,15 +505,14 @@ export default function AddListingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
+        {/* Header */}
+        <View style={styles.header}>
             <Text style={styles.title}>Add Listing</Text>
             <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.text} />
             </TouchableOpacity>
           </View>
-
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Property Type Tabs */}
           <View style={styles.section}>
             <View style={styles.tabsContainer}>
@@ -780,11 +802,12 @@ export default function AddListingScreen() {
           <View style={styles.section}>
             <TextInput
               label="For Contact"
-              placeholder="+92 "
+              placeholder="03XXXXXXXXX"
               value={formData.contact}
               onChangeText={(value) => handleInputChange("contact", value)}
               onBlur={handleFieldBlur("contact")}
               keyboardType="phone-pad"
+              maxLength={11}
               error={touched.contact ? errors.contact : undefined}
             />
           </View>
@@ -896,6 +919,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   header: {
+    paddingHorizontal: spacing.screen,
     paddingVertical: spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",

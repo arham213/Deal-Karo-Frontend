@@ -1,6 +1,7 @@
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRegex = /^\+?[0-9\s-]{7,20}$/
 const numericRegex = /^-?\d+(\.\d+)?$/
+const pakMobile11Regex = /^03\d{9}$/ // Pakistani mobile number without country code (11 digits, starts with 03)
 
 export const Validation = {
   isRequired(value?: string | null) {
@@ -12,6 +13,16 @@ export const Validation = {
   isPhone(value: string) {
     const cleaned = value.replace(/[()\s-]/g, "")
     return /^\+?\d{7,15}$/.test(cleaned)
+  },
+  // Returns only the digits in a string
+  digitsOnly(value: string) {
+    if (!value) return ""
+    return value.replace(/[^\d]/g, "")
+  },
+  // Pakistani 11-digit mobile number validation (no country code), e.g., 03XXXXXXXXX
+  isPakistaniMobile11(value: string) {
+    const digits = this.digitsOnly(value)
+    return pakMobile11Regex.test(digits)
   },
   hasMinLength(value: string, min: number) {
     return value.trim().length >= min

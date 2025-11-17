@@ -13,7 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ListingsScreen() {
@@ -42,7 +42,7 @@ export default function ListingsScreen() {
   const isSearchingRef = useRef(false)
 
   const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
-  const BASE_URL = "http://192.168.10.48:8080/api"
+  const BASE_URL = "https://deal-karo-backend.vercel.app/api"
 
   useEffect(() => {
     getUser()
@@ -62,12 +62,17 @@ export default function ListingsScreen() {
           Authorization: `Bearer ${token}`,
         },
       })
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
       if (response.data.success) {
         setUser(response.data.data.user)
       }
     } catch (error) {
-      console.error("Error fetching user:", error)
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
+        showErrorToast(errorMessage)
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
     } finally {
       setLoading(false)
     }
@@ -80,10 +85,10 @@ export default function ListingsScreen() {
     // (Even if they're the default values, we still need to filter by them)
     const hasPropertyTypeFilter = true // Always filter by property type
     const hasActiveFilter = activeFilterTab !== "All Listings"
-
+    
     // Or if filters from modal are applied
     const hasFilters = filterObj && Object.keys(filterObj).length > 0
-
+    
     return hasPropertyTypeFilter || hasActiveFilter || hasFilters
   }, [])
 
@@ -170,7 +175,7 @@ export default function ListingsScreen() {
   const getListings = useCallback(async (page: number = 1, reset: boolean = false, search: string = "", isSearch: boolean = false) => {
     // Prevent multiple simultaneous API calls
     if (isFetchingRef.current) {
-      console.log("Already fetching, skipping...")
+      //console.log("Already fetching, skipping...")
       return
     }
 
@@ -225,7 +230,7 @@ export default function ListingsScreen() {
         },
       })
 
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       isFetchingRef.current = false
 
@@ -239,8 +244,8 @@ export default function ListingsScreen() {
       if (response?.data.success) {
         const { properties, pagination } = response.data.data
 
-        console.log('properties:', properties[0]);
-
+        //console.log('properties:', properties[0]);
+        
         if (reset) {
           setListings(properties || [])
           initialLoadCompleteRef.current = true
@@ -267,7 +272,7 @@ export default function ListingsScreen() {
         } else if (!isSearch) {
           setLoadingMore(false)
         }
-        console.error("Failed to fetch listings:", response?.data)
+        //console.error("Failed to fetch listings:", response?.data)
         // Only show alert if it's a reset (initial load or filter change), not for load more or search
         if (reset && !isSearch) {
           showErrorToast("Failed to fetch listings")
@@ -275,15 +280,15 @@ export default function ListingsScreen() {
       }
     } catch (error) {
       isFetchingRef.current = false
-
+      
       if (reset && !isSearch) {
         setLoading(false)
       } else if (!isSearch) {
         setLoadingMore(false)
       }
 
-      console.error("Error fetching listings:", error)
-
+      //console.error("Error fetching listings:", error)
+      
       // Only show alert for initial loads/resets, not for pagination failures or search
       // This prevents alert spam when scrolling or searching
       if (reset && !isSearch) {
@@ -440,10 +445,6 @@ export default function ListingsScreen() {
   //   </View>
   // )
 
-  useEffect(() => {
-    console.log('active tab:', activePropertyTab)
-  }, [activePropertyTab])
-
   const handleSetActivePropertyTab = useCallback((type: "Plots" | "Houses" | "Commercial Plots") => {
     setActivePropertyTab(type)
   }, [])
@@ -456,96 +457,112 @@ export default function ListingsScreen() {
     setShowFilterModal(true)
   }, [])
 
-  const ListHeader = () => {
-    return (
-      <View style={{ marginBottom: activePropertyTab === "Houses" ? spacing.lg : 0 }}>
-        {(user?.verificationStatus === "pending") && (
-          <View style={styles.accountVerificationContainer}>
-            <Text style={styles.accountVerificationText}>Your account will be verified under 24 hours. You will then be able to add, view and update listings.</Text>
-          </View>
-        )}
+  const ListHeader = (
+    <>
+      {(user?.verificationStatus === "pending") && (
+        <View style={styles.accountVerificationContainer}>
+          <Text style={styles.accountVerificationText}>Your account will be verified under 24 hours. You will then be able to add, view and update listings.</Text>
+        </View>
+      )}
 
-        {(user?.verificationStatus === "rejected") && (
-          <View style={styles.accountVerificationContainer}>
-            <Text style={styles.accountVerificationText}>Your account has been rejected. Please contact support.</Text>
-          </View>
-        )}
-        <View style={styles.header}>
-          {/* Header Section */}
-          <View style={styles.headerSection}>
-            <View style={styles.userGreeting}>
-              <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")} />
-              <View style={styles.greetingText}>
-                <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
-                <Text style={styles.role}>{user?.estateName.slice(0, 17)} {user?.estateName?.length && user?.estateName?.length > 17 ? "..." : ""}</Text>
-              </View>
-            </View>
-
-            {/* Property Type Dropdown */}
-            <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
-              <TouchableOpacity
-                style={styles.propertyTypeDropdownButton}
-                activeOpacity={0.85}
-                onPress={() => {
-                  dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
-                    setDropdownPosition({ x, y: y + height, width })
-                    setShowPropertyTypeDropdown(true)
-                  })
-                }}
-              >
-                <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
-                <Ionicons
-                  name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color={Colors.textSecondary}
-                />
-              </TouchableOpacity>
+      {(user?.verificationStatus === "rejected") && (
+        <View style={styles.accountVerificationContainer}>
+          <Text style={styles.accountVerificationText}>Your account has been rejected. Please contact support.</Text>
+        </View>
+      )}
+      <View style={styles.header}>
+      {/* Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.userGreeting}>
+            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")}/>
+            <View style={styles.greetingText}>
+              <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
+              <Text style={styles.role}>{ user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
             </View>
           </View>
 
-          {/* Search and Filter Bar */}
-          <View style={styles.searchFilterBar}>
-            <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={18} color={Colors.black} />
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search"
-                placeholderTextColor={Colors.black}
-                value={localSearchQuery}
-                onChangeText={handleSearchChange}
-                returnKeyType="search"
-                autoCorrect={false}
-                autoCapitalize="none"
-                blurOnSubmit={false}
+          {/* Property Type Dropdown */}
+          <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
+            <TouchableOpacity
+              style={styles.propertyTypeDropdownButton}
+              activeOpacity={0.85}
+              onPress={() => {
+                dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
+                  const screenWidth = Dimensions.get("window").width;
+                  const dropdownWidth = 200; // or a fixed width like 200
+              
+                  let posX = screenWidth - dropdownWidth - 10;
+              
+                  // clamp to screen right edge
+                  if (posX + dropdownWidth > screenWidth) {
+                    posX = screenWidth - dropdownWidth - 10;
+                  }
+              
+                  // clamp to left edge
+                  if (posX < 10) posX = 10;
+
+                  //console.log('posX:', posX)
+              
+                  setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
+                  setShowPropertyTypeDropdown(true);
+                })
+              }}
+            >
+              <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
+              <Ionicons
+                name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={Colors.textSecondary}
               />
-              <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
-        {activePropertyTab !== "Houses" &&
-          (<FlatList
-            horizontal
-            scrollEnabled
-            data={["All Listings", "For cash", "Installments"]}
-            keyExtractor={(item) => item}
-            contentContainerStyle={styles.filterCategoryScroll}
-            showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
-                onPress={() => handleSetActiveFilter(item)}
-              >
-                <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />)}
+
+        {/* Search and Filter Bar */}
+        <View style={styles.searchFilterBar}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={18} color={Colors.black} />
+            <RNTextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor={Colors.black}
+              value={localSearchQuery}
+              onChangeText={handleSearchChange}
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+            />
+          <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+            <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+          </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    )
-  }
+      {activePropertyTab !== "Houses" && (
+        <>
+      <FlatList
+        horizontal
+        scrollEnabled
+        data={["All Listings", "For cash", "Installments"]}
+        keyExtractor={(item) => item}
+        contentContainerStyle={styles.filterCategoryScroll}
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
+            onPress={() => handleSetActiveFilter(item)}
+          >
+            <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
+              {item}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+      </>
+      )}
+    </>
+  )
 
   return (
     <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
@@ -556,41 +573,38 @@ export default function ListingsScreen() {
             <Text style={styles.initialLoadingText}>Loading listings...</Text>
           </View>
         ) : (
-          <>
-            <ListHeader />
-            <FlatList
-              data={listings}
-              keyExtractor={(item, index) => item._id || `listing-${index}`}
-              renderItem={({ item }) => <PropertyCard property={item} user={user || {} as User} handlePropertyDetails={handlePropertyDetails} />}
-              // ListHeaderComponent={ListHeader}
-              ListFooterComponent={
-                loadingMore && listings.length > 0 ? (
-                  <View style={styles.loadingMoreContainer}>
-                    <ActivityIndicator size="small" color={Colors.primary} />
-                    <Text style={styles.loadingMoreText}>Loading more...</Text>
-                  </View>
-                ) : !hasMore && listings.length > 0 && !loadingMore && !isFetchingRef.current ? (
-                  <View style={styles.endOfListContainer}>
-                    <Text style={styles.endOfListText}>No more listings to load</Text>
-                  </View>
-                ) : null
-              }
-              ListEmptyComponent={
-                !loading && !isFetchingRef.current && !isSearchingRef.current && listings.length === 0 ? (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>No listings found</Text>
-                  </View>
-                ) : null
-              }
-              contentContainerStyle={styles.container}
-              scrollEnabled
-              showsVerticalScrollIndicator={false}
-              onEndReached={loadMore}
-              onEndReachedThreshold={0.7}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-            />
-          </>
+          <FlatList
+            data={listings}
+            keyExtractor={(item, index) => item._id || `listing-${index}`}
+            renderItem={({ item }) => <PropertyCard property={item} user={user || {} as User} handlePropertyDetails={handlePropertyDetails} />}
+            ListHeaderComponent={ListHeader}
+            ListFooterComponent={
+              loadingMore && listings.length > 0 ? (
+                <View style={styles.loadingMoreContainer}>
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                  <Text style={styles.loadingMoreText}>Loading more...</Text>
+                </View>
+              ) : !hasMore && listings.length > 0 && !loadingMore && !isFetchingRef.current ? (
+                <View style={styles.endOfListContainer}>
+                  <Text style={styles.endOfListText}>No more listings to load</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              !loading && !isFetchingRef.current && !isSearchingRef.current && listings.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No listings found</Text>
+                </View>
+              ) : null
+            }
+            contentContainerStyle={styles.container}
+            scrollEnabled
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.7}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
         )}
       </KeyboardAvoidingView>
 
@@ -654,10 +668,6 @@ export default function ListingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  // listHeader: {
-  //   backgroundColor: Colors.neutral10,
-  //   padding: spacing.screen,
-  // },
   header: {
     borderBottomRightRadius: 48,
     borderBottomLeftRadius: 48,

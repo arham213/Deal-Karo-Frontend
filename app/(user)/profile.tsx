@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const [showUpdateButton, setShowUpdateButton] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   useEffect(() => {
     getUserFromSecureStore()
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
 
   const getUserFromSecureStore = async () => {
     const user = await getUser()
-    console.log('user:', user)
+    //console.log('user:', user)
     if (user) {
       setProfile(user)
       setEditData(user)
@@ -63,8 +63,8 @@ export default function ProfileScreen() {
 
   // Check if any field has changed
   const hasChanges = useMemo(() => {
-    const cleanedEditContact = editData.contactNo.replace(/[^\d]/g, "")
-    const cleanedProfileContact = profile.contactNo.replace(/[^\d]/g, "")
+    const cleanedEditContact = Validation.digitsOnly(editData.contactNo)
+    const cleanedProfileContact = Validation.digitsOnly(profile.contactNo)
     
     return (
       editData.name.trim() !== profile.name.trim() ||
@@ -87,9 +87,7 @@ export default function ProfileScreen() {
         return undefined
       case "contactNo":
         if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        // Backend expects 10-15 digits only (no country code, spaces, or special characters)
-        const cleanedContact = trimmed.replace(/[^\d]/g, "")
-        if (!/^[0-9]{10,15}$/.test(cleanedContact)) return "Contact number must be 10–15 digits"
+        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
         return undefined
       case "estateName":
         if (!Validation.isRequired(trimmed)) return "Estate name is required"
@@ -119,6 +117,27 @@ export default function ProfileScreen() {
   }
 
   const handleInputChange = (key: EditableProfileField, value: string) => {
+    if (key === "contactNo") {
+      const digits = Validation.digitsOnly(value).slice(0, 11)
+      setEditData((prev) => ({
+        ...prev,
+        [key]: digits,
+      }))
+
+      if (!touched.contactNo) {
+        setTouched((prev) => ({ ...prev, contactNo: true }))
+      }
+
+      const errorMessage = validateField(key, digits)
+      setErrors((prev) => {
+        const next = { ...prev }
+        if (errorMessage) next[key] = errorMessage
+        else delete next[key]
+        return next
+      })
+      return
+    }
+
     setEditData((prev) => ({
       ...prev,
       [key]: value,
@@ -154,7 +173,7 @@ export default function ProfileScreen() {
         return
       }
       // Prepare data according to backend schema
-      const cleanedContactNo = editData.contactNo.replace(/[^\d]/g, "")
+      const cleanedContactNo = Validation.digitsOnly(editData.contactNo)
       const updateData: {
         _id: string
         name?: string
@@ -172,7 +191,7 @@ export default function ProfileScreen() {
       if (editData.email.trim() !== profile.email.trim()) {
         updateData.email = editData.email.trim()
       }
-      if (cleanedContactNo !== profile.contactNo.replace(/[^\d]/g, "")) {
+      if (cleanedContactNo !== Validation.digitsOnly(profile.contactNo)) {
         updateData.contactNo = cleanedContactNo
       }
       if (editData.estateName.trim() !== profile.estateName.trim()) {
@@ -186,7 +205,7 @@ export default function ProfileScreen() {
         }
       })
 
-      console.log('response:', response.data)
+      //console.log('response:', response.data)
 
       if (response.data?.success) {
         // Update local state with response data if available, otherwise use editData
@@ -260,7 +279,7 @@ export default function ProfileScreen() {
       Toast.hide()
       showSuccessToast("Logged out successfully!")
     } catch (error) {
-      console.error("Logout error:", error)
+      //console.error("Logout error:", error)
       Toast.hide()
       showErrorToast("Failed to logout. Please try again.")
     } finally {
@@ -332,6 +351,7 @@ export default function ProfileScreen() {
                 onChangeText={(value) => handleInputChange("contactNo", value)}
                 onBlur={handleBlur("contactNo")}
                 keyboardType="phone-pad"
+                maxLength={11}
                 error={touched.contactNo ? errors.contactNo : undefined}
                 editable={!loading && !isLoggingOut}
               />

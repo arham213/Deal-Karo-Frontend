@@ -50,7 +50,7 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
         features.push("No wire")
       }
     } catch (error) {
-      console.error("Error parsing moreOptions:", error)
+      //console.error("Error parsing moreOptions:", error)
     }
     return features
   }

@@ -57,7 +57,7 @@ const sanitizePhoneNumber = (phoneNumber: string): string => {
       await Linking.openURL(phoneUrl);
     } catch (error) {
       // Handle any unexpected errors
-      console.error("Error opening phone dialer:", error);
+      //console.error("Error opening phone dialer:", error);
       showErrorToast("Unable to open phone dialer. Please try again later.");
     }
   };

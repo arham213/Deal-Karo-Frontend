@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   const emailValidationError = useMemo(() => {
     if (!Validation.isRequired(email)) return "Email is required"
@@ -43,7 +43,7 @@ export default function ForgotPasswordScreen() {
 
       const response = await axios.post(`${BASE_URL}/users/forgotPassword`, userData);
 
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       setLoading(false);
 

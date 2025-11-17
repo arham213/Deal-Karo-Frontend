@@ -43,7 +43,7 @@ export default function SignUpScreen() {
   const [touched, setTouched] = useState<Record<SignUpField, boolean>>(createTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   const validateField = (field: SignUpField, value: string) => {
     const trimmed = value.trim()
@@ -58,7 +58,7 @@ export default function SignUpScreen() {
         return undefined
       case "contactNo": {
         if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPhone(trimmed)) return "Enter a valid phone number with country code"
+        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
         return undefined
       }
       case "estateName":
@@ -88,6 +88,28 @@ export default function SignUpScreen() {
   const handleChange =
     (field: SignUpField) =>
     (value: string) => {
+      if (field === "contactNo") {
+        const digits = Validation.digitsOnly(value).slice(0, 11)
+        setForm((prev) => ({
+          ...prev,
+          [field]: digits,
+        }))
+
+        // Mark as touched on first input so error shows while typing
+        if (!touched.contactNo) {
+          setTouched((prev) => ({ ...prev, contactNo: true }))
+        }
+
+        const errorMessage = validateField(field, digits)
+        setErrors((prev) => {
+          const next = { ...prev }
+          if (errorMessage) next[field] = errorMessage
+          else delete next[field]
+          return next
+        })
+        return
+      }
+
       setForm((prev) => ({
         ...prev,
         [field]: value,
@@ -142,11 +164,11 @@ export default function SignUpScreen() {
   const isSubmitDisabled = loading || hasEmptyRequiredField || hasAnyError
 
   const handleSignUp = async () => {
-    console.log('handleSignUp');
+    //console.log('handleSignUp');
     const isValid = validateForm()
     if (!isValid) {
       markAllTouched()
-      console.log('isValid', isValid);
+      //console.log('isValid', isValid);
       return
     }
 
@@ -155,18 +177,18 @@ export default function SignUpScreen() {
       const userData = {
         name: form.fullName.trim(),
         email: form.email.trim(),
-        contactNo: form.contactNo.trim(),
+        contactNo: Validation.digitsOnly(form.contactNo),
         estateName: form.estateName.trim(),
         password: form.password,
         role: "dealer"
       }
 
-      console.log('userData:', userData);
-      console.log('sending request to:', `${BASE_URL}/users/signup`);
+      //console.log('userData:', userData);
+      //console.log('sending request to:', `${BASE_URL}/users/signup`);
 
       const response = await axios.post(`${BASE_URL}/users/signup`, userData);
 
-      console.log('response:', response.data);
+      //console.log('response:', response.data);
 
       if (response?.data.success) {
         showSuccessToast("OTP sent successfully");
@@ -228,11 +250,12 @@ export default function SignUpScreen() {
 
                 <TextInput
                   label="Contact Number"
-                  placeholder="+92 300 xxxx xxx"
+                  placeholder="03XXXXXXXXX"
                   value={form.contactNo}
                   onChangeText={handleChange("contactNo")}
                   onBlur={handleBlur("contactNo")}
                   keyboardType="phone-pad"
+                  maxLength={11}
                   error={touched.contactNo ? errors.contactNo : undefined}
                   editable={!loading}
                   labelStyle={styles.inputLabel}
@@ -302,6 +325,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontWeight: fontWeights.medium,
+    minWidth: '100%',
   },
   button: {
     marginTop: spacing.xl,

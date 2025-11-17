@@ -13,7 +13,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function MyListingsScreen() {
@@ -43,7 +43,7 @@ export default function MyListingsScreen() {
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 })
 
   const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
-  const BASE_URL = "http://192.168.10.48:8080/api"
+  const BASE_URL = "https://deal-karo-backend.vercel.app/api"
 
   // Check verification status on mount
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function MyListingsScreen() {
         }
       }
     } catch (error) {
-      console.error("Error checking verification status:", error)
+      //console.error("Error checking verification status:", error)
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -191,14 +191,14 @@ export default function MyListingsScreen() {
   const getListings = useCallback(async (page: number = 1, reset: boolean = false, search: string = "", isSearch: boolean = false) => {
     // Prevent multiple simultaneous API calls
     if (isFetchingRef.current) {
-      console.log("Already fetching, skipping...")
+      //console.log("Already fetching, skipping...")
       return
     }
 
     const token = await getToken()
 
     if (!token) {
-      console.error("Token missing")
+      //console.error("Token missing")
       if (reset) {
         showErrorToast("Token missing. Please log in again.")
       }
@@ -210,7 +210,7 @@ export default function MyListingsScreen() {
     const userId = user?._id
 
     if (!userId) {
-      console.error("User ID missing")
+      //console.error("User ID missing")
       if (reset) {
         showErrorToast("User information missing. Please log in again.")
       }
@@ -261,7 +261,7 @@ export default function MyListingsScreen() {
         },
       })
 
-      console.log('response:', response.data)
+      //console.log('response:', response.data)
 
       isFetchingRef.current = false
 
@@ -301,7 +301,7 @@ export default function MyListingsScreen() {
         } else if (!isSearch) {
           setLoadingMore(false)
         }
-        console.error("Failed to fetch my listings:", response?.data)
+        //console.error("Failed to fetch my listings:", response?.data)
         // Only show toast if it's a reset (initial load or filter change), not for load more or search
         if (reset && !isSearch) {
           showErrorToast("Failed to fetch my listings")
@@ -316,7 +316,7 @@ export default function MyListingsScreen() {
         setLoadingMore(false)
       }
 
-      console.error("Error fetching my listings:", error)
+      //console.error("Error fetching my listings:", error)
       
       // Only show toast for initial loads/resets, not for pagination failures or search
       // This prevents toast spam when scrolling or searching
@@ -544,9 +544,8 @@ export default function MyListingsScreen() {
   //   </>
   // )
 
-  const ListHeader = () => {
-    return (
-    <View style={{ marginBottom: activePropertyTab === "Houses" ? spacing.lg : 0 }}>
+  const ListHeader = (
+    <>
       <View style={styles.header}>
       {/* Header Section */}
         <View style={styles.headerSection}>
@@ -554,7 +553,7 @@ export default function MyListingsScreen() {
             <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
             <View style={styles.greetingText}>
               <Text style={styles.greeting}>My Listings</Text>
-              <Text style={styles.role}>Capital Estate</Text>
+              <Text style={styles.role}>{ user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
             </View>
           </View>
 
@@ -565,8 +564,23 @@ export default function MyListingsScreen() {
               activeOpacity={0.85}
               onPress={() => {
                 dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
-                  setDropdownPosition({ x, y: y + height, width })
-                  setShowPropertyTypeDropdown(true)
+                  const screenWidth = Dimensions.get("window").width;
+                  const dropdownWidth = 200; // or a fixed width like 200
+              
+                  let posX = screenWidth - dropdownWidth - 10;
+              
+                  // clamp to screen right edge
+                  if (posX + dropdownWidth > screenWidth) {
+                    posX = screenWidth - dropdownWidth - 10;
+                  }
+              
+                  // clamp to left edge
+                  if (posX < 10) posX = 10;
+
+                  //console.log('posX:', posX)
+              
+                  setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
+                  setShowPropertyTypeDropdown(true);
                 })
               }}
             >
@@ -601,9 +615,7 @@ export default function MyListingsScreen() {
           </View>
         </View>
       </View>
-      
-      {activePropertyTab !== "Houses" && (
-        <FlatList
+      <FlatList
         horizontal
         scrollEnabled
         data={["All Listings", "For cash", "Installments"]}
@@ -620,9 +632,10 @@ export default function MyListingsScreen() {
             </Text>
           </TouchableOpacity>
         )}
-      />)}
-    </View>)
-  }
+      />
+      
+    </>
+  )
 
   // Show loading while checking verification
   if (loadingUser) {
@@ -650,13 +663,11 @@ export default function MyListingsScreen() {
             <Text style={styles.initialLoadingText}>Loading listings...</Text>
           </View>
         ) : (
-          <>
-          <ListHeader />
           <FlatList
             data={listings}
             keyExtractor={(item, index) => item._id || `listing-${index}`}
             renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} />}
-            // ListHeaderComponent={ListHeader}
+            ListHeaderComponent={ListHeader}
             ListFooterComponent={
               loadingMore && listings.length > 0 ? (
                 <View style={styles.loadingMoreContainer}>
@@ -684,7 +695,6 @@ export default function MyListingsScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={16}
           />
-          </>
         )}
       </KeyboardAvoidingView>
 
@@ -788,7 +798,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   greetingText: {
-    justifyContent: "center",
+    flexDirection: "column",
+    alignItems: "flex-start",
   },
   greeting: {
     color: Colors.black,

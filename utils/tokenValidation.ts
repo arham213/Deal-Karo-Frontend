@@ -63,11 +63,11 @@ function decodeJWT(token: string): { exp?: number; iat?: number } | null {
       
       return JSON.parse(jsonPayload);
     } catch (decodeError) {
-      console.error("Error decoding base64:", decodeError);
+      //console.error("Error decoding base64:", decodeError);
       return null;
     }
   } catch (error) {
-    console.error("Error decoding JWT:", error);
+    //console.error("Error decoding JWT:", error);
     return null;
   }
 }
@@ -86,7 +86,7 @@ export function isTokenExpired(token: string): boolean {
     const currentTime = Math.floor(Date.now() / 1000);
     return decoded.exp < currentTime;
   } catch (error) {
-    console.error("Error checking token expiration:", error);
+    //console.error("Error checking token expiration:", error);
     return true; // Assume expired on error
   }
 }
@@ -109,7 +109,7 @@ export async function validateAuth(): Promise<{ isValid: boolean; token: string 
     
     return { isValid: true, token };
   } catch (error) {
-    console.error("Error validating auth:", error);
+    //console.error("Error validating auth:", error);
     return { isValid: false, token: null };
   }
 }

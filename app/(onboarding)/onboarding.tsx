@@ -3,12 +3,14 @@
 import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
+import { fontFamilies, fontSizes, fontWeights, spacing } from "@/styles/tokens"
 import { getToken, getUser, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
-import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 const { width } = Dimensions.get("window")
 
@@ -25,12 +27,12 @@ const onboardingData = [
     description: "Easily find the on sale properties through real time authentic listings.",
     image: require("../../assets/images/onboarding.png"),
   },
-  {
-    id: 3,
-    title: "Deal Property required for Rent.",
-    description: "Easily find the on rent properties through real time authentic listings.",
-    image: require("../../assets/images/onboarding.png"),
-  },
+  // {
+  //   id: 3,
+  //   title: "Deal Property required for Rent.",
+  //   description: "Easily find the on rent properties through real time authentic listings.",
+  //   image: require("../../assets/images/onboarding.png"),
+  // },
   {
     id: 4,
     title: "Deal Property for Installment Plans.",
@@ -46,7 +48,7 @@ export default function OnboardingScreen() {
   const scrollViewRef = useRef<ScrollView>(null)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://192.168.10.48:8080/api';
+  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
   const handleCompleteOnboarding = async () => {
     setLoading(true)
@@ -75,7 +77,7 @@ export default function OnboardingScreen() {
         }
       })
 
-      console.log('response:', response.data)
+      //console.log('response:', response.data)
 
       if (response.data?.success) {
         // Update secure store
@@ -128,7 +130,9 @@ export default function OnboardingScreen() {
   const currentData = onboardingData[currentIndex]
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}> 
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -144,25 +148,27 @@ export default function OnboardingScreen() {
             <View style={styles.content}>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.description}>{item.description}</Text>
+              
+              <View style={styles.dotsContainer}>
+                  {onboardingData.map((_, index) => (
+                    <View key={index} style={[styles.dot, index === currentIndex && styles.activeDot]} />
+                  ))}
+                </View>
+              </View>
+            
+            <View style={styles.footer}>
+              <Button
+                title={currentIndex === onboardingData.length - 1 ? "Get Started" : "Continue"}
+                onPress={handleNext}
+                style={styles.button}
+              />
             </View>
           </View>
         ))}
       </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.dotsContainer}>
-          {onboardingData.map((_, index) => (
-            <View key={index} style={[styles.dot, index === currentIndex && styles.activeDot]} />
-          ))}
-        </View>
-
-        <Button
-          title={currentIndex === onboardingData.length - 1 ? "Get Started" : "Continue"}
-          onPress={handleNext}
-          style={styles.button}
-        />
-      </View>
     </View>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
@@ -172,40 +178,58 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral10,
   },
   slide: {
+    position: "relative",
     flex: 1,
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    // paddingHorizontal: 20,
     paddingTop: 40,
   },
   image: {
     width: "100%",
-    height: 420,
+    // height: 420,
     borderRadius: 20,
     resizeMode: "cover",
   },
   content: {
-    marginVertical: 30,
+    position: "absolute",
+    backgroundColor: Colors.neutral10,
+    top: 0,
+    // left: 0,
+    // right: 0,
+    // marginVertical: 30,
+    paddingHorizontal:spacing.screen,
+    borderBottomRightRadius: 100,
+    borderBottomLeftRadius: 100,
+    paddingTop: spacing.xxxl,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: Colors.text,
-    marginBottom: 12,
+    fontSize: fontSizes.xxl,
+    fontWeight: fontWeights.bold,
+    color: Colors.black,
+    marginBottom: spacing.lg,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.28
   },
   description: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    lineHeight: 20,
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    fontFamily: fontFamilies.primary,
+    color: "#8c8c8c",
+    letterSpacing: 0.16
   },
   footer: {
+    position: "absolute",
+    bottom: 0,
     paddingHorizontal: 20,
     paddingBottom: 40,
     gap: 20,
+    width: "100%",
   },
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     gap: 8,
+    paddingVertical: 40,
   },
   dot: {
     width: 8,
@@ -219,5 +243,9 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
+    backgroundColor: Colors.neutral100,
+    borderWidth: 1,
+    borderColor: Colors.neutral90,
+    borderRadius: 50,
   },
 })
