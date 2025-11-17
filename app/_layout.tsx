@@ -7,14 +7,28 @@ import { ToastProvider } from "@/components/Toast"
 import { Colors } from "@/constants/colors"
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext"
 import { Stack, usePathname, useRouter } from "expo-router"
+import * as SplashScreen from "expo-splash-screen"
 import { StatusBar } from "expo-status-bar"
 import { useEffect } from "react"
 import { ActivityIndicator, StyleSheet, View } from "react-native"
+
+// Prevent the splash screen from auto-hiding before asset loading is complete
+SplashScreen.preventAutoHideAsync()
 
 function RootLayoutContent() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, isLoading, isOnboardingCompleted } = useAuthContext()
+
+  // Hide splash screen once auth check is complete
+  useEffect(() => {
+    if (!isLoading) {
+      // Hide splash screen after auth check is complete
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors if splash screen is already hidden
+      })
+    }
+  }, [isLoading])
 
   // Protect routes - redirect unauthenticated users to sign-in
   // Note: Authenticated users trying to access auth screens are handled by Redirect component below
