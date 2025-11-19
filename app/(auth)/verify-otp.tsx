@@ -7,13 +7,13 @@ import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
 import {
-  KeyboardAvoidingView,
-  Platform,
-  TextInput as RNTextInput,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    TextInput as RNTextInput,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 

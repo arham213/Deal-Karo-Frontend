@@ -8,7 +8,7 @@ import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } f
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
-import { showErrorToast, showInfoToast } from "@/utils/toast"
+import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -422,6 +422,46 @@ export default function MyListingsScreen() {
     setShowDetailsModal(true)
   }
 
+  const handleDeleteProperty = useCallback(async (propertyId: string) => {
+    try {
+      const token = await getToken()
+      if (!token) {
+        showErrorToast("Token missing. Please log in again.")
+        return
+      }
+
+      const response = await axios.delete(`${BASE_URL}/properties/${propertyId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.success) {
+        showSuccessToast("Listing deleted successfully")
+        // Remove the deleted listing from the local state
+        setListings((prev) => prev.filter((listing) => listing._id !== propertyId))
+        // Refresh the listings to ensure consistency
+        setCurrentPage(1)
+        setTotalPages(1)
+        setHasMore(true)
+        initialLoadCompleteRef.current = false
+        hasScrolledRef.current = false
+        isFetchingRef.current = false
+        getListings(1, true, searchQuery)
+      } else {
+        showErrorToast("Failed to delete listing")
+      }
+    } catch (error) {
+      //console.error("Error deleting property:", error)
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
+        showErrorToast(errorMessage)
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+    }
+  }, [searchQuery, getListings])
+
   // const PropertyCard = ({ property }: { property: ListingState }) => (
   //   <View style={styles.propertyCard}>
   //     {/* Content */}
@@ -666,7 +706,7 @@ export default function MyListingsScreen() {
           <FlatList
             data={listings}
             keyExtractor={(item, index) => item._id || `listing-${index}`}
-            renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} />}
+            renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} onDelete={handleDeleteProperty} showDelete={true} />}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={
               loadingMore && listings.length > 0 ? (
