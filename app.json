@@ -4,7 +4,7 @@
     "slug": "deal-karo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/black-logo.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "dealkarofrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -31,7 +31,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/black-logo.png",
+          "image": "./assets/images/white-logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000",

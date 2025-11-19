@@ -1,5 +1,6 @@
 import axios from "axios"
-import { clearAuthData, getToken } from "./secureStore"
+import { forceLogout } from "./forcedLogout"
+import { getToken } from "./secureStore"
 import { showErrorToast } from "./toast"
 import { isTokenExpired } from "./tokenValidation"
 
@@ -21,15 +22,23 @@ apiClient.interceptors.request.use(
       if (token) {
         // Check if token is expired before making request
         if (isTokenExpired(token)) {
-          // Token expired, clear auth data
-          await clearAuthData()
-          // Reject the request - the calling code should handle navigation
+          // Token expired, force logout with message
+          await forceLogout("Your session has expired. Please sign in again.")
           return Promise.reject(new Error("Token expired"))
         }
         config.headers.Authorization = `Bearer ${token}`
+      } else {
+        // Token is missing, force logout
+        await forceLogout("You have been logged out. Please sign in again.")
+        return Promise.reject(new Error("Token missing"))
       }
     } catch (error) {
       //console.error("Error in request interceptor:", error)
+      // If error occurs, still try to force logout
+      if (error instanceof Error && (error.message === "Token expired" || error.message === "Token missing")) {
+        // Already handled by forceLogout
+        return Promise.reject(error)
+      }
     }
     return config
   },
@@ -58,7 +67,7 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // If error is 401 (Unauthorized) and we haven't retried
+    // If error is 401 (Unauthorized) or 404 with user not found message
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
@@ -66,14 +75,35 @@ apiClient.interceptors.response.use(
         // Check if token is expired
         const token = await getToken()
         if (token && isTokenExpired(token)) {
-          // Token expired, clear auth data
-          await clearAuthData()
-          // Reject the request - the calling code should handle navigation
+          // Token expired, force logout
+          await forceLogout("Your session has expired. Please sign in again.")
           return Promise.reject(new Error("Token expired. Please login again."))
+        } else {
+          // 401 but token is not expired - likely invalid token or user not found
+          const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || ""
+          const isUserNotFound = errorMessage.toLowerCase().includes("user not found") ||
+                                errorMessage.toLowerCase().includes("invalid token") ||
+                                errorMessage.toLowerCase().includes("user does not exist")
+          
+          if (isUserNotFound || !token) {
+            await forceLogout("You have been logged out. Please sign in again.")
+          } else {
+            await forceLogout("Session expired. Please sign in again.")
+          }
+          return Promise.reject(error)
         }
       } catch (error) {
         //console.error("Error in response interceptor:", error)
-        await clearAuthData()
+        await forceLogout("You have been logged out. Please sign in again.")
+        return Promise.reject(error)
+      }
+    }
+
+    // Handle 404 with user not found message
+    if (error.response?.status === 404) {
+      const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || ""
+      if (errorMessage.toLowerCase().includes("user not found")) {
+        await forceLogout("User not found. Please sign in again.")
         return Promise.reject(error)
       }
     }

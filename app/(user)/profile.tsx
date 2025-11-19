@@ -7,6 +7,7 @@ import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
+import apiClient from "@/utils/axiosConfig"
 import { getToken, getUser, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showLoadingToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
@@ -169,7 +170,8 @@ export default function ProfileScreen() {
     try {
       const token = await getToken()
       if (!token) {
-        router.replace("/(auth)/sign-in")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
       // Prepare data according to backend schema
@@ -199,11 +201,7 @@ export default function ProfileScreen() {
       }
 
       // Make API call
-      const response = await axios.put(`${BASE_URL}/users/`, updateData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await apiClient.put(`/users/`, updateData)
 
       //console.log('response:', response.data)
 
@@ -247,6 +245,23 @@ export default function ProfileScreen() {
         showErrorToast(response.data?.message || "Failed to update profile")
       }
     } catch (error: any) {
+      // Check if it's an auth error - interceptors will handle logout
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
+        
+        // Don't show error toast for auth errors - interceptors will handle logout
+        if (status === 401 || status === 404) {
+          // Check if it's a user not found error
+          if (errorMessage.toLowerCase().includes("user not found")) {
+            // Interceptor will handle logout, just return
+            return
+          }
+          // Other 401/404 errors - interceptor will handle
+          return
+        }
+      }
+      
       // Restore original form state on failure
       setEditData(profile)
       setErrors({})

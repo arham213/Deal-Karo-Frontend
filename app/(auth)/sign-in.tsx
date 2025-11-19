@@ -6,7 +6,6 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
-import { apiClient } from "@/utils/axiosConfig"
 import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
@@ -158,7 +157,7 @@ export default function SignInScreen() {
 
       //console.log('userData:', userData)
 
-      const response = await apiClient.post(`/users/signin`, userData);
+      const response = await axios.post(`https://deal-karo-backend.vercel.app/api/users/signin`, userData);
       
       //console.log('response:', response.data)
 

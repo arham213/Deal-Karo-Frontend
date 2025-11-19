@@ -53,7 +53,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
               <Text style={styles.price}>Rs. {property.rentPerMonth}</Text>
               <Text style={styles.pricePerMarlaUnit}>/month</Text>
             </>
-          ) : property.propertyType === "plot" || property.propertyType === "commercial plot" ? (
+          ) : (property.propertyType === "plot" || property.propertyType === "commercial plot") && property.listingType === "cash" ? (
             <View style={styles.pricePerMarlaContainer}>
               <Text style={styles.price}>Rs. {property.pricePerMarla}</Text>
               <Text style={styles.pricePerMarlaUnit}>/Marla</Text>

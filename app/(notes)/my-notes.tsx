@@ -5,23 +5,24 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
+import apiClient from "@/utils/axiosConfig"
 import { getToken } from "@/utils/secureStore"
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -40,13 +41,57 @@ export default function MyNotesScreen() {
   const [newNoteDescription, setNewNoteDescription] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [noteError, setNoteError] = useState<string | undefined>(undefined)
   const [noteTouched, setNoteTouched] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const hasScrolledRef = useRef(false)
+  const initialLoadCompleteRef = useRef(false)
+  const isFetchingRef = useRef(false)
+  const currentPageRef = useRef(1)
 
   const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
   const NOTE_MIN_LENGTH = 3
   const NOTE_MAX_LENGTH = 500
+
+  const formatDate = (dateString: any): string => {
+    if (!dateString) return ""
+    
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return ""
+    
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const noteDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    // Format time in 12-hour format
+    let hours = date.getHours()
+    const minutes = date.getMinutes()
+    const ampm = hours >= 12 ? "PM" : "AM"
+    hours = hours % 12
+    hours = hours ? hours : 12 // the hour '0' should be '12'
+    const minutesStr = minutes < 10 ? `0${minutes}` : minutes
+    const timeString = `${hours}:${minutesStr} ${ampm}`
+    
+    // Determine date label
+    let dateLabel = ""
+    if (noteDate.getTime() === today.getTime()) {
+      dateLabel = "Today"
+    } else if (noteDate.getTime() === yesterday.getTime()) {
+      dateLabel = "Yesterday"
+    } else {
+      // Format as "MMM DD, YYYY" for older dates
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+      dateLabel = `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+    }
+    
+    return `${dateLabel} - ${timeString}`
+  }
 
   // Check verification status on mount
   useEffect(() => {
@@ -58,15 +103,12 @@ export default function MyNotesScreen() {
       setLoadingUser(true)
       const token = await getToken()
       if (!token) {
-        router.replace("/(auth)/sign-in")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
 
-      const response = await axios.get(`${BASE_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiClient.get(`/users/me`)
 
       if (response.data.success) {
         const userData = response.data.data.user
@@ -86,6 +128,16 @@ export default function MyNotesScreen() {
       }
     } catch (error) {
       //console.error("Error checking verification status:", error)
+      // Check if it's a user not found or auth error
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
+        const status = error.response?.status
+        if (status === 401 || status === 404 || errorMessage.toLowerCase().includes("user not found")) {
+          const { forceLogout } = await import("@/utils/forcedLogout")
+          await forceLogout("You have been logged out. Please sign in again.")
+          return
+        }
+      }
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -95,40 +147,147 @@ export default function MyNotesScreen() {
   useEffect(() => {
     // Only fetch notes if user is verified
     if (user?.verificationStatus === "verified") {
-      getNotes()
+      // Reset pagination state on initial load
+      setCurrentPage(1)
+      currentPageRef.current = 1
+      setTotalPages(1)
+      setHasMore(true)
+      setNotes([])
+      initialLoadCompleteRef.current = false
+      hasScrolledRef.current = false
+      isFetchingRef.current = false
+      getNotes(1, true)
     }
   }, [user])
 
-  const getNotes = async () => {
-    setLoading(true)
-    try {
-      const token = await getToken()
-      if (!token) {
-        router.replace("/(auth)/sign-in")
+  const getNotes = useCallback(async (page: number = 1, reset: boolean = false) => {
+    // Prevent multiple simultaneous API calls
+    if (isFetchingRef.current) {
+      return
+    }
+
+    const token = await getToken()
+    if (!token) {
+      if (reset) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
-      const response = await axios.get(`${BASE_URL}/notes`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      return
+    }
+
+    isFetchingRef.current = true
+
+    // Don't show loading indicator for pagination
+    if (reset) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+
+    try {
+      const response = await apiClient.get(`/notes`, {
+        params: {
+          page,
+          limit: parseInt(process.env.PAGINATION_LIMIT || '25'),
         }
       });
       //console.log('response:', response.data);
 
-      if (response?.data.success) {
-        setNotes(response.data.data?.notes)
+      isFetchingRef.current = false
+
+      if (reset) {
+        setLoading(false)
       } else {
-        showErrorToast(response?.data.error.message || "Failed to fetch notes");
+        setLoadingMore(false)
+      }
+
+      if (response?.data.success) {
+        // Parse response - handle both { notes, pagination } and direct array
+        const data = response.data.data
+        let fetchedNotes: Note[] = []
+        let pagination: any = null
+
+        // Check if data is an array (direct notes) or object with notes property
+        if (Array.isArray(data)) {
+          fetchedNotes = data
+        } else if (data && typeof data === 'object') {
+          fetchedNotes = data.notes || []
+          pagination = data.pagination
+        }
+
+        //console.log('Notes response:', { fetchedNotes: fetchedNotes.length, pagination, page, data })
+
+        if (reset) {
+          setNotes(fetchedNotes)
+          initialLoadCompleteRef.current = true
+          hasScrolledRef.current = false
+        } else {
+          // Deduplicate notes by _id when appending
+          setNotes((prev) => {
+            const existingIds = new Set(prev.map((item) => item._id))
+            const newNotes = fetchedNotes.filter((item: Note) => !existingIds.has(item._id))
+            return [...prev, ...newNotes]
+          })
+        }
+
+        if (pagination) {
+          const pageNum = pagination.page || page || 1
+          const totalPagesNum = pagination.totalPages || 1
+          setCurrentPage(pageNum)
+          currentPageRef.current = pageNum
+          setTotalPages(totalPagesNum)
+          // Check if there are more pages (current page < total pages)
+          const hasMorePages = pageNum < totalPagesNum
+          setHasMore(hasMorePages)
+          //console.log('Pagination:', { pageNum, totalPages: totalPagesNum, hasMorePages, condition: `${pageNum} < ${totalPagesNum}` })
+        } else {
+          // If no pagination info, check if we got a full page of notes
+          const limit = parseInt(process.env.PAGINATION_LIMIT || '10')
+          const hasMoreBasedOnLength = fetchedNotes.length >= limit
+          setHasMore(hasMoreBasedOnLength)
+          //console.log('No pagination, checking length:', { length: fetchedNotes.length, limit, hasMore: hasMoreBasedOnLength })
+        }
+      } else {
+        isFetchingRef.current = false
+        if (reset) {
+          setLoading(false)
+        } else {
+          setLoadingMore(false)
+        }
+        if (reset) {
+          showErrorToast(response?.data.error?.message || "Failed to fetch notes");
+        }
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
+      isFetchingRef.current = false
+      
+      if (reset) {
+        setLoading(false)
       } else {
-        showErrorToast("Something went wrong. Please try again later")
+        setLoadingMore(false)
       }
-    } finally {
-      setLoading(false)
+
+      if (reset) {
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status
+          const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || "Failed to fetch notes"
+          
+          // Don't show error toast for auth errors - interceptors will handle logout
+          if (status === 401 || status === 404) {
+            if (errorMessage.toLowerCase().includes("user not found")) {
+              return
+            }
+            return
+          }
+          
+          showErrorToast(errorMessage)
+        } else {
+          showErrorToast("Something went wrong. Please try again later")
+        }
+      }
     }
-  }
+  }, [])
 
   const validateNote = (value: string) => {
     const trimmed = value.trim()
@@ -170,17 +329,20 @@ export default function MyNotesScreen() {
 
     setSubmitting(true)
     try {
-      const token = await getToken()
-      const response = await axios.post(`${BASE_URL}/notes`, { description: newNoteDescription.trim() }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.post(`/notes`, { description: newNoteDescription.trim() });
       //console.log('response:', response.data);
 
       if (response?.data.success) {
         showSuccessToast("Note Added Successfully");
-        getNotes()
+        // Reset and reload from page 1
+        setCurrentPage(1)
+        currentPageRef.current = 1
+        setTotalPages(1)
+        setHasMore(true)
+        setNotes([])
+        initialLoadCompleteRef.current = false
+        hasScrolledRef.current = false
+        getNotes(1, true)
         setNewNoteDescription("")
         setNoteTouched(false)
         setNoteError(undefined)
@@ -200,38 +362,65 @@ export default function MyNotesScreen() {
   }
 
   const handleMarkAsDone = async (id: string) => {
-    setLoading(true)
+    // Don't show loading for delete operation to avoid blocking UI
     try {
-      const token = await getToken()
-      if (!token) {
-        router.replace("/(auth)/sign-in")
-        return
-      }
-
-      //console.log('token:', token);
-
-      const response = await axios.delete(`${BASE_URL}/notes/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.delete(`/notes/${id}`);
 
       if (response?.data.success) {
         showSuccessToast("Note Marked as Done Successfully");
-        setNotes(notes.filter((note) => note?._id !== id))
+        // Remove the note from the list
+        setNotes((prevNotes) => prevNotes.filter((note) => note?._id !== id))
       } else {
         showErrorToast(response?.data.error.message || "Failed to fetch notes");
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
+        const status = error.response?.status
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || "Failed to delete note"
+        
+        // Don't show error toast for auth errors - interceptors will handle logout
+        if (status === 401 || status === 404) {
+          if (errorMessage.toLowerCase().includes("user not found")) {
+            return
+          }
+          return
+        }
+        
+        showErrorToast(errorMessage)
       } else {
         showErrorToast("Something went wrong. Please try again later")
       }
-    } finally {
-      setLoading(false)
     }
   }
+
+  const loadMore = useCallback(() => {
+    // Only load more if:
+    // 1. Not already loading more
+    // 2. Has more pages
+    // 3. Initial load is complete
+    // 4. Not currently fetching
+    // Note: onEndReached only fires when user scrolls, so we don't need hasScrolledRef check here
+    if (!loadingMore && hasMore && !loading && !isFetchingRef.current && initialLoadCompleteRef.current) {
+      const nextPage = currentPageRef.current + 1
+      getNotes(nextPage, false)
+    }
+  }, [loadingMore, hasMore, loading, getNotes])
+
+  const handleScroll = useCallback((event: any) => {
+    if (!hasScrolledRef.current) {
+      hasScrolledRef.current = true
+    }
+
+    // Proactively trigger loadMore when near the end
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent
+    const paddingToBottom = 400 // Trigger when 400px from bottom
+    const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom
+
+    if (isNearBottom && !loadingMore && hasMore && !loading && !isFetchingRef.current && initialLoadCompleteRef.current) {
+      const nextPage = currentPageRef.current + 1
+      getNotes(nextPage, false)
+    }
+  }, [loadingMore, hasMore, loading, getNotes])
 
   const NotesHeader = () => (
     <View style={styles.header}>
@@ -249,7 +438,7 @@ export default function MyNotesScreen() {
         <View style={styles.noteFooter}>
           <View style={styles.timeContainer}>
             <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.timestamp}>{note?.createdAt}</Text>
+            <Text style={styles.timestamp}>{formatDate(note?.createdAt)}</Text>
           </View>
           <TouchableOpacity onPress={() => handleMarkAsDone(note?._id)}>
             <Text style={styles.markAsDoneText}>Mark as done</Text>
@@ -284,9 +473,36 @@ export default function MyNotesScreen() {
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => <NoteCard note={item} />}
           ListHeaderComponent={<NotesHeader />}
-          contentContainerStyle={styles.container}
+          ListFooterComponent={
+            loadingMore && notes.length > 0 ? (
+              <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.loadingMoreText}>Loading more notes...</Text>
+              </View>
+            ) : !hasMore && notes.length > 0 && !loadingMore && !isFetchingRef.current ? (
+              <View style={styles.endOfListContainer}>
+                <Text style={styles.endOfListText}>No more notes to load</Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !loading && !isFetchingRef.current && notes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No notes found</Text>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={[
+            styles.container,
+            notes.length === 0 && { flexGrow: 1 } // Ensure container is tall enough to trigger onEndReached
+          ]}
           scrollEnabled
           showsVerticalScrollIndicator={false}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          removeClippedSubviews={false}
         />
       </KeyboardAvoidingView>
       <Modal visible={showAddModal} animationType="slide" transparent onRequestClose={handleCloseModal}>
@@ -458,6 +674,34 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  loadingMoreContainer: {
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  loadingMoreText: {
+    fontSize: fontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  endOfListContainer: {
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endOfListText: {
+    fontSize: fontSizes.sm,
+    color: Colors.textSecondary,
+  },
+  emptyContainer: {
+    paddingVertical: spacing.xxl,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontSize: fontSizes.md,
     color: Colors.textSecondary,
   },
 })

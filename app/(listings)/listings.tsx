@@ -7,6 +7,7 @@ import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
+import apiClient from "@/utils/axiosConfig"
 import { getToken } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
@@ -57,18 +58,27 @@ export default function ListingsScreen() {
         return
       }
 
-      const response = await axios.get(`${BASE_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await apiClient.get(`/users/me`)
       //console.log('response:', response.data);
       if (response.data.success) {
         setUser(response.data.data.user)
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
+        const status = error.response?.status
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || 'An error occurred'
+        
+        // Don't show error toast for auth errors - interceptors will handle logout
+        if (status === 401 || status === 404) {
+          // Check if it's a user not found error
+          if (errorMessage.toLowerCase().includes("user not found")) {
+            // Interceptor will handle logout, just return
+            return
+          }
+          // Other 401/404 errors - interceptor will handle
+          return
+        }
+        
         showErrorToast(errorMessage)
       } else {
         showErrorToast("Something went wrong. Please try again later")
@@ -183,8 +193,8 @@ export default function ListingsScreen() {
 
     if (!token) {
       if (reset) {
-        showErrorToast("Token missing. Please log in again.")
-        router.replace("/(auth)/sign-in")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
       return
@@ -203,7 +213,7 @@ export default function ListingsScreen() {
     try {
       // Check if we should use advanced search
       const useAdvancedSearch = shouldUseAdvancedSearch(filters, activePropertyTab, activeFilter)
-      let url = `${BASE_URL}/properties`
+      let url = `/properties`
       let params: Record<string, any> = {
         page,
         limit: parseInt(process.env.PAGINATION_LIMIT || '25'),
@@ -211,23 +221,20 @@ export default function ListingsScreen() {
 
       if (useAdvancedSearch && !(search && search.trim())) {
         // Use advanced search endpoint when property type, active filter, or filters are applied
-        url = `${BASE_URL}/properties/search/advanced`
+        url = `/properties/search/advanced`
         const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter)
         params = { ...params, ...filterParams }
       } else if (search && search.trim()) {
         // Simple text search - use dedicated search endpoint (only when no filters/tabs are set)
-        url = `${BASE_URL}/properties/search`
+        url = `/properties/search`
         params.searchString = search.trim()
         const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter)
         const { propertyType, listingType, ...rest } = filterParams
         params = { ...params, propertyType, listingType }
       }
 
-      const response = await axios.get(url, {
+      const response = await apiClient.get(url, {
         params,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       })
 
       //console.log('response:', response.data);
@@ -293,7 +300,20 @@ export default function ListingsScreen() {
       // This prevents alert spam when scrolling or searching
       if (reset && !isSearch) {
         if (axios.isAxiosError(error)) {
-          const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
+          const status = error.response?.status
+          const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || 'An error occurred'
+          
+          // Don't show error toast for auth errors - interceptors will handle logout
+          if (status === 401 || status === 404) {
+            // Check if it's a user not found error
+            if (errorMessage.toLowerCase().includes("user not found")) {
+              // Interceptor will handle logout, just return
+              return
+            }
+            // Other 401/404 errors - interceptor will handle
+            return
+          }
+          
           // Use a small delay to prevent multiple alerts in quick succession
           setTimeout(() => {
             showErrorToast(errorMessage)

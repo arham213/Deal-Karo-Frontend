@@ -1,10 +1,12 @@
 "use client"
 
 import { User } from "@/types/auth"
+import { setLogoutCallback } from "@/utils/forcedLogout"
 import { getOnboardingCompleted, getUser } from "@/utils/secureStore"
+import { showErrorToast } from "@/utils/toast"
 import { validateAuth } from "@/utils/tokenValidation"
 import { useRouter } from "expo-router"
-import { createContext, ReactNode, useContext, useEffect, useState } from "react"
+import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
 
 interface AuthContextType {
   user: User | null
@@ -14,7 +16,7 @@ interface AuthContextType {
   isOnboardingCompleted: boolean
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
-  logout: () => Promise<void>
+  logout: (message?: string) => Promise<void>
   checkAuth: () => Promise<void>
 }
 
@@ -71,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = async () => {
+  const logout = useCallback(async (message?: string) => {
     try {
       const { clearAuthData } = await import("@/utils/secureStore")
       await clearAuthData()
@@ -79,16 +81,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setIsAuthenticated(false)
       setIsOnboardingCompleted(false)
+      
+      // Show logout message if provided (empty string means toast already shown by forceLogout)
+      if (message && message !== "") {
+        showErrorToast(message, "Session Expired")
+      }
+      
       router.replace("/(auth)/sign-in")
     } catch (error) {
       //console.error("Error during logout:", error)
     }
-  }
+  }, [router])
 
   // Check auth status on mount
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // Register logout callback for interceptors to use
+  useEffect(() => {
+    // Set the global logout callback so interceptors can trigger logout
+    setLogoutCallback(async () => {
+      await logout()
+    })
+
+    // Cleanup: remove callback when component unmounts
+    return () => {
+      setLogoutCallback(() => Promise.resolve())
+    }
+  }, [logout])
 
   const value: AuthContextType = {
     user,

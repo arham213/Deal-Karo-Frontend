@@ -16,15 +16,15 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -127,7 +127,8 @@ export default function AddListingScreen() {
       setLoadingUser(true)
       const token = await getToken()
       if (!token) {
-        router.replace("/(auth)/sign-in")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
 
@@ -155,6 +156,16 @@ export default function AddListingScreen() {
       }
     } catch (error) {
       //console.error("Error checking verification status:", error)
+      // Check if it's a user not found or auth error
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
+        const status = error.response?.status
+        if (status === 401 || status === 404 || errorMessage.toLowerCase().includes("user not found")) {
+          const { forceLogout } = await import("@/utils/forcedLogout")
+          await forceLogout("You have been logged out. Please sign in again.")
+          return
+        }
+      }
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -388,8 +399,16 @@ export default function AddListingScreen() {
       const user: User = await getUser();
       const token = await getToken();
 
-      if (!token) throw new Error("Token missing. Please log in again.");
-      if (!user) throw new Error("User not found in storage.");
+      if (!token) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
+        throw new Error("Token missing. Please log in again.")
+      }
+      if (!user) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("User information missing. Please sign in again.")
+        throw new Error("User not found in storage.")
+      }
 
       const userData = {
         userId: user?._id,

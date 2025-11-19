@@ -55,7 +55,8 @@ export default function MyListingsScreen() {
       setLoadingUser(true)
       const token = await getToken()
       if (!token) {
-        router.replace("/(auth)/sign-in")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
         return
       }
 
@@ -83,6 +84,16 @@ export default function MyListingsScreen() {
       }
     } catch (error) {
       //console.error("Error checking verification status:", error)
+      // Check if it's a user not found or auth error
+      if (axios.isAxiosError(error)) {
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
+        const status = error.response?.status
+        if (status === 401 || status === 404 || errorMessage.toLowerCase().includes("user not found")) {
+          const { forceLogout } = await import("@/utils/forcedLogout")
+          await forceLogout("You have been logged out. Please sign in again.")
+          return
+        }
+      }
       router.replace("/listings")
     } finally {
       setLoadingUser(false)
@@ -200,7 +211,8 @@ export default function MyListingsScreen() {
     if (!token) {
       //console.error("Token missing")
       if (reset) {
-        showErrorToast("Token missing. Please log in again.")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
       }
       return
     }
@@ -212,7 +224,8 @@ export default function MyListingsScreen() {
     if (!userId) {
       //console.error("User ID missing")
       if (reset) {
-        showErrorToast("User information missing. Please log in again.")
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("User information missing. Please sign in again.")
       }
       return
     }
