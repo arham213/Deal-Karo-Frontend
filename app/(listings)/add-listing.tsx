@@ -16,15 +16,15 @@ import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"

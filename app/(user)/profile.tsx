@@ -14,7 +14,7 @@ import { Validation, type ValidationErrors } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
@@ -45,6 +45,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false)
   const [showUpdateButton, setShowUpdateButton] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
 
@@ -302,6 +304,58 @@ export default function ProfileScreen() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    console.log("handleDeleteAccount")
+    try {
+      setIsDeleting(true)
+
+      const token = await getToken()
+      if (!token) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
+        return
+      }
+
+      console.log('sending request to delete account')
+
+      // Make API call to delete account
+      const response = await apiClient.delete(`/users/delete-account`)
+
+      if (response.data?.success) {
+        // Close modal
+        setShowDeleteModal(false)
+        
+        // Show success toast before logout
+        showSuccessToast("Account deleted successfully!")
+        
+        // Use AuthContext logout which handles clearing data and navigation
+        await logout()
+      } else {
+        showErrorToast(response.data?.message || "Failed to delete account")
+      }
+    } catch (error: any) {
+      // Check if it's an auth error - interceptors will handle logout
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
+        
+        // Don't show error toast for auth errors - interceptors will handle logout
+        if (status === 401 || status === 404) {
+          if (errorMessage.toLowerCase().includes("user not found") || errorMessage.toLowerCase().includes("invalid token")) {
+            setShowDeleteModal(false)
+            return
+          }
+          return
+        }
+        showErrorToast(errorMessage || "Failed to delete account. Please try again.")
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const handleBlur = (field: EditableProfileField) => () => {
     setTouched((prev) => ({
       ...prev,
@@ -329,7 +383,12 @@ export default function ProfileScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <ScrollView style={styles.scrollView} contentContainerStyle={{paddingBottom: 110}} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>My Profile</Text>
+            <View style={styles.headerTop}>
+              <Text style={styles.title}>My Profile</Text>
+              <TouchableOpacity onPress={() => setShowDeleteModal(true)}>
+                <Text style={styles.deleteAccountText}>Delete Account</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.avatarSection}>
               <AvatarInitials name={profile.name} size={80} />
             </View>
@@ -406,6 +465,46 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isDeleting && setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Account</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete your account? Deleting your account will cause the permanent deletion of your data including listings and profile information.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+                onPress={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <View style={styles.deleteButtonLoadingContainer}>
+                    <ActivityIndicator size="small" color={Colors.white} />
+                    <Text style={styles.deleteButtonText}>Deleting...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.deleteButtonText}>Yes, Delete</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalButton, isDeleting && styles.cancelModalButtonDisabled]}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                <Text style={styles.cancelModalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -430,6 +529,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 48,
     borderBottomLeftRadius: 48,
   },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   title: {
     fontSize: fontSizes.xl,
     fontWeight: fontWeights.semibold,
@@ -437,6 +541,13 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.primary,
     letterSpacing: 0.24,
     marginBottom: spacing.lg,
+  },
+  deleteAccountText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.semibold,
+    color: Colors.error,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12,
   },
   avatarSection: {
     alignItems: "center",
@@ -509,5 +620,76 @@ const styles = StyleSheet.create({
   },
   logoutButtonDisabled: {
     opacity: 0.6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: Colors.neutral10,
+    borderRadius: radius.lg,
+    padding: spacing.screen,
+    width: "85%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: fontSizes.xl,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  modalMessage: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.regular,
+    color: Colors.textSecondary,
+    fontFamily: fontFamilies.primary,
+    textAlign: "center",
+    marginBottom: spacing.screen,
+    lineHeight: 20,
+  },
+  modalButtons: {
+    gap: spacing.md,
+  },
+  deleteButton: {
+    paddingVertical: spacing.md2,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.error,
+    alignItems: "center",
+  },
+  deleteButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.white,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12,
+  },
+  deleteButtonLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  cancelModalButton: {
+    paddingVertical: spacing.md2,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.neutral20,
+    alignItems: "center",
+  },
+  cancelModalButtonDisabled: {
+    opacity: 0.6,
+  },
+  cancelModalButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary,
+    letterSpacing: 0.12,
   },
 })

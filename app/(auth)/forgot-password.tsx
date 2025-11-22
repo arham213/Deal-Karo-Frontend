@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'http://10.190.83.91:8080/api';
 
   const emailValidationError = useMemo(() => {
     if (!Validation.isRequired(email)) return "Email is required"

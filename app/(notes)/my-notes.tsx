@@ -196,12 +196,6 @@ export default function MyNotesScreen() {
 
       isFetchingRef.current = false
 
-      if (reset) {
-        setLoading(false)
-      } else {
-        setLoadingMore(false)
-      }
-
       if (response?.data.success) {
         // Parse response - handle both { notes, pagination } and direct array
         const data = response.data.data
@@ -231,22 +225,48 @@ export default function MyNotesScreen() {
           })
         }
 
+        // Update pagination state from response (exactly like listings screen)
         if (pagination) {
           const pageNum = pagination.page || page || 1
           const totalPagesNum = pagination.totalPages || 1
+          
           setCurrentPage(pageNum)
           currentPageRef.current = pageNum
           setTotalPages(totalPagesNum)
-          // Check if there are more pages (current page < total pages)
-          const hasMorePages = pageNum < totalPagesNum
-          setHasMore(hasMorePages)
-          //console.log('Pagination:', { pageNum, totalPages: totalPagesNum, hasMorePages, condition: `${pageNum} < ${totalPagesNum}` })
+          setHasMore(pageNum < totalPagesNum)
+          
+          console.log('Notes pagination:', { 
+            pageNum, 
+            totalPagesNum, 
+            hasMore: pageNum < totalPagesNum, 
+            fetchedNotes: fetchedNotes.length,
+            reset,
+            pagination 
+          })
         } else {
-          // If no pagination info, check if we got a full page of notes
-          const limit = parseInt(process.env.PAGINATION_LIMIT || '10')
-          const hasMoreBasedOnLength = fetchedNotes.length >= limit
-          setHasMore(hasMoreBasedOnLength)
-          //console.log('No pagination, checking length:', { length: fetchedNotes.length, limit, hasMore: hasMoreBasedOnLength })
+          // If no pagination info, use fallback logic based on results
+          const limit = parseInt(process.env.PAGINATION_LIMIT || '25')
+          setCurrentPage(page)
+          currentPageRef.current = page
+          // If we got a full page of results, assume there might be more
+          const hasMoreResults = fetchedNotes.length >= limit
+          setTotalPages(hasMoreResults ? page + 1 : page)
+          setHasMore(hasMoreResults)
+          
+          console.log('Notes pagination (no pagination object):', { 
+            page, 
+            fetchedNotes: fetchedNotes.length,
+            limit,
+            hasMore: hasMoreResults,
+            reset
+          })
+        }
+
+        // Don't update loading state for pagination - do it after processing
+        if (reset) {
+          setLoading(false)
+        } else {
+          setLoadingMore(false)
         }
       } else {
         isFetchingRef.current = false
@@ -398,13 +418,21 @@ export default function MyNotesScreen() {
     // 1. Not already loading more
     // 2. Has more pages
     // 3. Initial load is complete
-    // 4. Not currently fetching
-    // Note: onEndReached only fires when user scrolls, so we don't need hasScrolledRef check here
-    if (!loadingMore && hasMore && !loading && !isFetchingRef.current && initialLoadCompleteRef.current) {
-      const nextPage = currentPageRef.current + 1
-      getNotes(nextPage, false)
+    // 4. User has scrolled (prevents immediate trigger on mount)
+    console.log('loadMore called:', { 
+      loadingMore, 
+      hasMore, 
+      loading, 
+      initialLoadComplete: initialLoadCompleteRef.current, 
+      hasScrolled: hasScrolledRef.current,
+      currentPage 
+    })
+    
+    if (!loadingMore && hasMore && !loading && initialLoadCompleteRef.current && hasScrolledRef.current) {
+      console.log('Calling getNotes with page:', currentPage + 1)
+      getNotes(currentPage + 1, false)
     }
-  }, [loadingMore, hasMore, loading, getNotes])
+  }, [loadingMore, hasMore, loading, currentPage, getNotes])
 
   const handleScroll = useCallback((event: any) => {
     if (!hasScrolledRef.current) {
@@ -416,11 +444,10 @@ export default function MyNotesScreen() {
     const paddingToBottom = 400 // Trigger when 400px from bottom
     const isNearBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom
 
-    if (isNearBottom && !loadingMore && hasMore && !loading && !isFetchingRef.current && initialLoadCompleteRef.current) {
-      const nextPage = currentPageRef.current + 1
-      getNotes(nextPage, false)
+    if (isNearBottom && !loadingMore && hasMore && !loading && initialLoadCompleteRef.current) {
+      loadMore()
     }
-  }, [loadingMore, hasMore, loading, getNotes])
+  }, [loadingMore, hasMore, loading, loadMore])
 
   const NotesHeader = () => (
     <View style={styles.header}>
