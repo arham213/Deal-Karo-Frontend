@@ -49,7 +49,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isValid && validatedToken) {
         // Token is valid, get user data
         const storedUser = await getUser()
-        const onboardingStatus = await getOnboardingCompleted()
+        let onboardingStatus = await getOnboardingCompleted()
+        
+        // Fallback: if key is missing, check user object (defensive fix for existing users)
+        if (!onboardingStatus && storedUser?.onBoardingCompleted) {
+          onboardingStatus = "true"
+          // Sync to separate key for consistency
+          const { saveOnboardingCompleted } = await import("@/utils/secureStore")
+          await saveOnboardingCompleted("true").catch(() => {
+            // Ignore errors if save fails
+          })
+        }
+        
+        // Debug logging (safe for production, can be removed after verification)
+        if (__DEV__) {
+          console.log('[AuthContext] Onboarding status:', {
+            fromKey: onboardingStatus,
+            fromUser: storedUser?.onBoardingCompleted,
+            final: onboardingStatus === "true"
+          })
+        }
         
         setTokenState(validatedToken)
         setUser(storedUser)

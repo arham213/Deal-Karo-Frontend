@@ -9,6 +9,22 @@ import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
 
+// function formatPrice(num: number | undefined): string {
+//   if (!num) return 's';
+
+//   if (num >= 1_00_00_000) {
+//     return (num / 1_00_00_000).toFixed(2).replace(/\.00$/, "") + " Crore";
+//   }
+//   if (num >= 1_00_000) {
+//     return (num / 1_00_000).toFixed(2).replace(/\.00$/, "") + " Lac";
+//   }
+//   if (num >= 1_000) {
+//     return (num / 1_000).toFixed(2).replace(/\.00$/, "") + " K";
+//   }
+//   return num.toString();
+// }
+
+
 export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, showDelete?: boolean }) => {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const menuButtonRef = useRef<View>(null);

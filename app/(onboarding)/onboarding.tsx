@@ -4,7 +4,7 @@ import { Button } from "@/components/Button"
 import { Colors } from "@/constants/colors"
 import { useAuthContext } from "@/contexts/AuthContext"
 import { fontFamilies, fontSizes, fontWeights, spacing } from "@/styles/tokens"
-import { getToken, getUser, saveUser } from "@/utils/secureStore"
+import { getToken, getUser, saveOnboardingCompleted, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -80,8 +80,9 @@ export default function OnboardingScreen() {
       //console.log('response:', response.data)
 
       if (response.data?.success) {
-        // Update secure store
+        // Update secure store - save to both user object and separate key
         await saveUser({ ...user, onBoardingCompleted: true })
+        await saveOnboardingCompleted("true")
         showSuccessToast("Onboarding completed successfully!")
         // Refresh auth context to update onboarding status
         await checkAuth()
