@@ -3,26 +3,12 @@ import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth";
 import { ListingState } from "@/types/listings";
 import { handleContactPress } from "@/utils/dialContact";
+import formatPrice from "@/utils/formatPrice";
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
 import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
-
-// function formatPrice(num: number | undefined): string {
-//   if (!num) return 's';
-
-//   if (num >= 1_00_00_000) {
-//     return (num / 1_00_00_000).toFixed(2).replace(/\.00$/, "") + " Crore";
-//   }
-//   if (num >= 1_00_000) {
-//     return (num / 1_00_000).toFixed(2).replace(/\.00$/, "") + " Lac";
-//   }
-//   if (num >= 1_000) {
-//     return (num / 1_000).toFixed(2).replace(/\.00$/, "") + " K";
-//   }
-//   return num.toString();
-// }
 
 
 export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, showDelete?: boolean }) => {
@@ -66,16 +52,16 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
           {/* {property.} */}
           {property.listingType === "rent" ? (
             <>
-              <Text style={styles.price}>Rs. {property.rentPerMonth}</Text>
+              <Text style={styles.price}>Rs. {formatPrice(Number(property.rentPerMonth))}</Text>
               <Text style={styles.pricePerMarlaUnit}>/month</Text>
             </>
           ) : (property.propertyType === "plot" || property.propertyType === "commercial plot") && property.listingType === "cash" ? (
             <View style={styles.pricePerMarlaContainer}>
-              <Text style={styles.price}>Rs. {property.pricePerMarla}</Text>
+              <Text style={styles.price}>Rs. {formatPrice(Number(property.pricePerMarla))}</Text>
               <Text style={styles.pricePerMarlaUnit}>/Marla</Text>
             </View>
           ) : (
-            <Text style={styles.price}>Rs. {property.price}</Text>
+            <Text style={styles.price}>Rs. {formatPrice(Number(property.price))}</Text>
           )}
         </View>
 

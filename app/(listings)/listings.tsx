@@ -67,7 +67,7 @@ export default function ListingsScreen() {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status
         const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || 'An error occurred'
-        
+
         // Don't show error toast for auth errors - interceptors will handle logout
         if (status === 401 || status === 404) {
           // Check if it's a user not found error
@@ -78,7 +78,7 @@ export default function ListingsScreen() {
           // Other 401/404 errors - interceptor will handle
           return
         }
-        
+
         showErrorToast(errorMessage)
       } else {
         showErrorToast("Something went wrong. Please try again later")
@@ -95,10 +95,10 @@ export default function ListingsScreen() {
     // (Even if they're the default values, we still need to filter by them)
     const hasPropertyTypeFilter = true // Always filter by property type
     const hasActiveFilter = activeFilterTab !== "All Listings"
-    
+
     // Or if filters from modal are applied
     const hasFilters = filterObj && Object.keys(filterObj).length > 0
-    
+
     return hasPropertyTypeFilter || hasActiveFilter || hasFilters
   }, [])
 
@@ -252,7 +252,7 @@ export default function ListingsScreen() {
         const { properties, pagination } = response.data.data
 
         //console.log('properties:', properties[0]);
-        
+
         if (reset) {
           setListings(properties || [])
           initialLoadCompleteRef.current = true
@@ -287,7 +287,7 @@ export default function ListingsScreen() {
       }
     } catch (error) {
       isFetchingRef.current = false
-      
+
       if (reset && !isSearch) {
         setLoading(false)
       } else if (!isSearch) {
@@ -295,14 +295,14 @@ export default function ListingsScreen() {
       }
 
       //console.error("Error fetching listings:", error)
-      
+
       // Only show alert for initial loads/resets, not for pagination failures or search
       // This prevents alert spam when scrolling or searching
       if (reset && !isSearch) {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status
           const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || 'An error occurred'
-          
+
           // Don't show error toast for auth errors - interceptors will handle logout
           if (status === 401 || status === 404) {
             // Check if it's a user not found error
@@ -313,7 +313,7 @@ export default function ListingsScreen() {
             // Other 401/404 errors - interceptor will handle
             return
           }
-          
+
           // Use a small delay to prevent multiple alerts in quick succession
           setTimeout(() => {
             showErrorToast(errorMessage)
@@ -467,6 +467,7 @@ export default function ListingsScreen() {
 
   const handleSetActivePropertyTab = useCallback((type: "Plots" | "Houses" | "Commercial Plots") => {
     setActivePropertyTab(type)
+    setActiveFilter("All Listings")
   }, [])
 
   const handleSetActiveFilter = useCallback((item: string) => {
@@ -490,97 +491,99 @@ export default function ListingsScreen() {
           <Text style={styles.accountVerificationText}>Your account has been rejected. Please contact support.</Text>
         </View>
       )}
-      <View style={styles.header}>
-      {/* Header Section */}
-        <View style={styles.headerSection}>
-          <View style={styles.userGreeting}>
-            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")}/>
-            <View style={styles.greetingText}>
-              <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
-              <Text style={styles.role}>{ user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
+      <View style={styles.headerWrapper}>
+        <View style={styles.header}>
+          {/* Header Section */}
+          <View style={styles.headerSection}>
+            <View style={styles.userGreeting}>
+              <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")} />
+              <View style={styles.greetingText}>
+                <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
+                <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
+              </View>
+            </View>
+
+            {/* Property Type Dropdown */}
+            <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
+              <TouchableOpacity
+                style={styles.propertyTypeDropdownButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
+                    const screenWidth = Dimensions.get("window").width;
+                    const dropdownWidth = 200; // or a fixed width like 200
+
+                    let posX = screenWidth - dropdownWidth - 10;
+
+                    // clamp to screen right edge
+                    if (posX + dropdownWidth > screenWidth) {
+                      posX = screenWidth - dropdownWidth - 10;
+                    }
+
+                    // clamp to left edge
+                    if (posX < 10) posX = 10;
+
+                    //console.log('posX:', posX)
+
+                    setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
+                    setShowPropertyTypeDropdown(true);
+                  })
+                }}
+              >
+                <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
+                <Ionicons
+                  name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={Colors.textSecondary}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Property Type Dropdown */}
-          <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
-            <TouchableOpacity
-              style={styles.propertyTypeDropdownButton}
-              activeOpacity={0.85}
-              onPress={() => {
-                dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
-                  const screenWidth = Dimensions.get("window").width;
-                  const dropdownWidth = 200; // or a fixed width like 200
-              
-                  let posX = screenWidth - dropdownWidth - 10;
-              
-                  // clamp to screen right edge
-                  if (posX + dropdownWidth > screenWidth) {
-                    posX = screenWidth - dropdownWidth - 10;
-                  }
-              
-                  // clamp to left edge
-                  if (posX < 10) posX = 10;
-
-                  //console.log('posX:', posX)
-              
-                  setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
-                  setShowPropertyTypeDropdown(true);
-                })
-              }}
-            >
-              <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
-              <Ionicons
-                name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={Colors.textSecondary}
+          {/* Search and Filter Bar */}
+          <View style={styles.searchFilterBar}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={18} color={Colors.black} />
+              <RNTextInput
+                style={styles.searchInput}
+                placeholder="Search"
+                placeholderTextColor={Colors.black}
+                value={localSearchQuery}
+                onChangeText={handleSearchChange}
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+                blurOnSubmit={false}
               />
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-
-        {/* Search and Filter Bar */}
-        <View style={styles.searchFilterBar}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={18} color={Colors.black} />
-            <RNTextInput
-              style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor={Colors.black}
-              value={localSearchQuery}
-              onChangeText={handleSearchChange}
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
+        {activePropertyTab !== "Houses" && (
+          <>
+            <FlatList
+              horizontal
+              scrollEnabled
+              data={["All Listings", "For cash", "Installments"]}
+              keyExtractor={(item) => item}
+              contentContainerStyle={styles.filterCategoryScroll}
+              showsHorizontalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
+                  onPress={() => handleSetActiveFilter(item)}
+                >
+                  <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              )}
             />
-          <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-            <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-          </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-      {activePropertyTab !== "Houses" && (
-        <>
-      <FlatList
-        horizontal
-        scrollEnabled
-        data={["All Listings", "For cash", "Installments"]}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.filterCategoryScroll}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
-            onPress={() => handleSetActiveFilter(item)}
-          >
-            <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
-              {item}
-            </Text>
-          </TouchableOpacity>
+          </>
         )}
-      />
-      </>
-      )}
+      </View>
     </>
   )
 
@@ -688,6 +691,9 @@ export default function ListingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerWrapper: {
+    paddingBottom: spacing.lg,
+  },
   header: {
     borderBottomRightRadius: 48,
     borderBottomLeftRadius: 48,
@@ -843,7 +849,7 @@ const styles = StyleSheet.create({
   },
   filterCategoryScroll: {
     paddingHorizontal: spacing.screen,
-    paddingVertical: 16,
+    paddingTop: 16,
     gap: 8,
   },
   filterCategoryTab: {

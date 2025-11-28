@@ -2,6 +2,7 @@ import { Colors } from "@/constants/colors"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { ListingState } from "@/types/listings"
 import { handleContactPress } from "@/utils/dialContact"
+import formatPrice from "@/utils/formatPrice"
 import { Ionicons } from "@expo/vector-icons"
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -123,14 +124,14 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             ) : (
               <View style={styles.detailRow}>
                 <Text style={styles.label}>Invoice</Text>
-                <Text style={styles.value}>Rs.{listing?.price || listing?.totalPrice}</Text>
+                <Text style={styles.value}>Rs.{formatPrice(Number(listing?.price || listing?.totalPrice))}</Text>
               </View>
             )}
 
             {(listing?.propertyType === "plot" || listing?.propertyType === "commercial plot") && listing.listingType === "cash" && (
               <View style={styles.detailRow}>
                 <Text style={styles.label}>Price Per Marla</Text>
-                <Text style={styles.value}>Rs.{listing?.pricePerMarla}</Text>
+                <Text style={styles.value}>Rs.{formatPrice(Number(listing?.pricePerMarla))}</Text>
               </View>
             )}
 

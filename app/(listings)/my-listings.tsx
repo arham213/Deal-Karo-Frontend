@@ -107,10 +107,10 @@ export default function MyListingsScreen() {
     // (Even if they're the default values, we still need to filter by them)
     const hasPropertyTypeFilter = true // Always filter by property type
     const hasActiveFilter = activeFilterTab !== "All Listings"
-    
+
     // Or if filters from modal are applied
     const hasFilters = filterObj && Object.keys(filterObj).length > 0
-    
+
     return hasPropertyTypeFilter || hasActiveFilter || hasFilters
   }, [])
 
@@ -287,7 +287,7 @@ export default function MyListingsScreen() {
 
       if (response?.data.success) {
         const { properties, pagination } = response.data.data
-        
+
         if (reset) {
           setListings(properties || [])
           initialLoadCompleteRef.current = true
@@ -322,7 +322,7 @@ export default function MyListingsScreen() {
       }
     } catch (error) {
       isFetchingRef.current = false
-      
+
       if (reset && !isSearch) {
         setLoading(false)
       } else if (!isSearch) {
@@ -330,7 +330,7 @@ export default function MyListingsScreen() {
       }
 
       //console.error("Error fetching my listings:", error)
-      
+
       // Only show toast for initial loads/resets, not for pagination failures or search
       // This prevents toast spam when scrolling or searching
       if (reset && !isSearch) {
@@ -520,6 +520,7 @@ export default function MyListingsScreen() {
 
   const handleSetActivePropertyTab = useCallback((type: "Plots" | "Houses" | "Commercial Plots") => {
     setActivePropertyTab(type)
+    setActiveFilter("All Listings")
   }, [])
 
   const handleSetActiveFilter = useCallback((item: string) => {
@@ -598,15 +599,15 @@ export default function MyListingsScreen() {
   // )
 
   const ListHeader = (
-    <>
+    <View style={styles.headerWrapper}>
       <View style={styles.header}>
-      {/* Header Section */}
+        {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.userGreeting}>
             <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
             <View style={styles.greetingText}>
               <Text style={styles.greeting}>My Listings</Text>
-              <Text style={styles.role}>{ user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
+              <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
             </View>
           </View>
 
@@ -619,19 +620,19 @@ export default function MyListingsScreen() {
                 dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
                   const screenWidth = Dimensions.get("window").width;
                   const dropdownWidth = 200; // or a fixed width like 200
-              
+
                   let posX = screenWidth - dropdownWidth - 10;
-              
+
                   // clamp to screen right edge
                   if (posX + dropdownWidth > screenWidth) {
                     posX = screenWidth - dropdownWidth - 10;
                   }
-              
+
                   // clamp to left edge
                   if (posX < 10) posX = 10;
 
                   //console.log('posX:', posX)
-              
+
                   setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
                   setShowPropertyTypeDropdown(true);
                 })
@@ -662,32 +663,33 @@ export default function MyListingsScreen() {
               autoCapitalize="none"
               blurOnSubmit={false}
             />
-          <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-            <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+              <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-      <FlatList
-        horizontal
-        scrollEnabled
-        data={["All Listings", "For cash", "Installments"]}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.filterCategoryScroll}
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
-            onPress={() => handleSetActiveFilter(item)}
-          >
-            <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
-              {item}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-      
-    </>
+      {activePropertyTab !== "Houses" && (
+        <FlatList
+          horizontal
+          scrollEnabled
+          data={["All Listings", "For cash", "Installments"]}
+          keyExtractor={(item) => item}
+          contentContainerStyle={styles.filterCategoryScroll}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
+              onPress={() => handleSetActiveFilter(item)}
+            >
+              <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />)}
+
+    </View>
   )
 
   // Show loading while checking verification
@@ -811,6 +813,9 @@ export default function MyListingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerWrapper: {
+    paddingBottom: spacing.lg
+  },
   header: {
     borderBottomRightRadius: 48,
     borderBottomLeftRadius: 48,
