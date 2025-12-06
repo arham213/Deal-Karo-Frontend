@@ -37,27 +37,6 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
     }
   }
 
-  // Parse moreOptions to get features
-  const getFeatures = () => {
-    const features: string[] = []
-    if (!listing?.features) return features
-
-    try {
-      const moreOptions = JSON.parse(listing.features)
-      if (moreOptions.hasPole) {
-        features.push("Don't have a pole")
-      }
-      if (moreOptions.hasWire) {
-        features.push("No wire")
-      }
-    } catch (error) {
-      //console.error("Error parsing moreOptions:", error)
-    }
-    return features
-  }
-
-  // const features = getFeatures()
-
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
@@ -147,6 +126,11 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
                 </View>
               </>
             )}
+
+            <View style={styles.detailRow}>
+              <Text style={styles.label}>Possession</Text>
+              <Text style={styles.value}>{listing?.possession === true ? "Yes" : listing?.possession === false ? "No" : "---"}</Text>
+            </View>
 
             <View style={styles.detailRow}>
               <Text style={styles.label}>Description</Text>

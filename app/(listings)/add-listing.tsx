@@ -11,7 +11,7 @@ import { AreaSize, ListingType, PropertyType } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Validation, type ValidationErrors } from "@/utils/validation"
-import { Ionicons } from "@expo/vector-icons"
+import { Ionicons, MaterialIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
@@ -45,8 +45,7 @@ interface AddListingState {
   installmentHalfYearly: string
   description: string
   contact: string
-  hasPole: boolean
-  hasWire: boolean
+  possession: string
 }
 
 type ListingField =
@@ -61,7 +60,7 @@ type ListingField =
   | "installmentPerMonth"
   | "installmentHalfYearly"
   | "contact"
-
+  | "possession"
 const FORM_FIELDS: ListingField[] = [
   "plotNo",
   "houseNo",
@@ -74,6 +73,7 @@ const FORM_FIELDS: ListingField[] = [
   "installmentPerMonth",
   "installmentHalfYearly",
   "contact",
+  "possession",
 ]
 
 const createTouchedState = (value: boolean): Record<ListingField, boolean> =>
@@ -81,6 +81,20 @@ const createTouchedState = (value: boolean): Record<ListingField, boolean> =>
     acc[field] = value
     return acc
   }, {} as Record<ListingField, boolean>)
+
+const getTotalPrice = (pricePerMarla: string, area: string, additionalArea: string) => {
+  let totalArea;
+  if (area?.includes("Kanal")) {
+    totalArea = Number(area.split(" ")[0]) * 20
+  } else {
+    totalArea = Number(area.split(" ")[0])
+  }
+
+  totalArea += Number(additionalArea) / 255
+
+  console.log('total price:', Number(pricePerMarla) * totalArea)
+  return (Number(pricePerMarla) * totalArea).toFixed(2)
+}
 
 export default function AddListingScreen() {
   const router = useRouter()
@@ -104,8 +118,7 @@ export default function AddListingScreen() {
     installmentHalfYearly: "",
     description: "",
     contact: "",
-    hasPole: false,
-    hasWire: false,
+    possession: "Yes",
   })
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
   const [customAreaValue, setCustomAreaValue] = useState("")
@@ -121,6 +134,61 @@ export default function AddListingScreen() {
   useEffect(() => {
     checkVerificationStatus()
   }, [])
+
+  // Auto-calculate price for plots/commercial plots when pricePerMarla, area, or additionalArea changes
+  useEffect(() => {
+    const isPlotOrCommercialPlot = formData.propertyType === "plot" || formData.propertyType === "commercial plot"
+    const isCashListing = formData.listingType === "cash"
+    
+    if (isPlotOrCommercialPlot && isCashListing) {
+      if (formData.pricePerMarla && formData.area) {
+        // Calculate and update price
+        const calculatedPrice = getTotalPrice(formData.pricePerMarla, formData.area, formData.additionalArea || "")
+        const nextState = {
+          ...formData,
+          price: calculatedPrice,
+        }
+        
+        updateForm((prev) => ({
+          ...prev,
+          price: calculatedPrice,
+        }))
+        
+        // Mark price as touched if pricePerMarla or area has been touched (so validation runs)
+        const shouldValidatePrice = touched.pricePerMarla || touched.area
+        if (shouldValidatePrice && !touched.price) {
+          setTouched((prev) => ({
+            ...prev,
+            price: true,
+          }))
+        }
+        
+        // Validate the calculated price if relevant fields have been touched
+        if (shouldValidatePrice || touched.price) {
+          const errorMessage = validateField("price", calculatedPrice, nextState)
+          setErrors((prev) => {
+            const nextErrors = { ...prev }
+            if (errorMessage) {
+              nextErrors.price = errorMessage
+            } else {
+              delete nextErrors.price
+            }
+            return nextErrors
+          })
+        }
+      } else if (touched.pricePerMarla || touched.area) {
+        // If pricePerMarla or area is cleared but was previously touched, clear price error
+        // (price will remain as last calculated value, but error should be cleared if fields are empty)
+        if (!formData.pricePerMarla || !formData.area) {
+          setErrors((prev) => {
+            const nextErrors = { ...prev }
+            delete nextErrors.price
+            return nextErrors
+          })
+        }
+      }
+    }
+  }, [formData.pricePerMarla, formData.area, formData.additionalArea, formData.propertyType, formData.listingType, touched.pricePerMarla, touched.area])
 
   const checkVerificationStatus = async () => {
     try {
@@ -204,6 +272,21 @@ export default function AddListingScreen() {
         if (!Validation.isNumeric(trimmed)) return "Additional area must be numeric"
         return undefined
       case "price":
+        // For plots/commercial plots with cash listing, price is auto-calculated
+        const isPlotOrCommercialPlot = (state.propertyType === "plot" || state.propertyType === "commercial plot")
+        const isCashListing = state.listingType === "cash"
+        if (isPlotOrCommercialPlot && isCashListing && state.pricePerMarla && state.area) {
+          // Price is auto-calculated, validate the calculated value
+          const calculatedPrice = getTotalPrice(state.pricePerMarla, state.area, state.additionalArea || "")
+          if (!calculatedPrice || calculatedPrice === "NaN" || calculatedPrice === "0.00") {
+            return "Price calculation error. Please check price per marla and area."
+          }
+          if (Validation.toNumber(calculatedPrice) <= 0) {
+            return "Calculated price must be greater than 0"
+          }
+          return undefined
+        }
+        // For other cases, validate the manually entered price
         if (!Validation.isRequired(trimmed)) return "Price is required"
         if (!Validation.isNumeric(trimmed)) return "Price must be numeric"
         if (Validation.toNumber(trimmed) <= 0) return "Price must be greater than 0"
@@ -225,9 +308,8 @@ export default function AddListingScreen() {
         if (!Validation.isRequired(trimmed)) return "Half Yearly installment is required"
         if (!Validation.isNumeric(trimmed)) return "Half Yearly installment must be numeric"
         return undefined
-      case "contact":
-        if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
+      case "possession":
+        if (!Validation.isRequired(value)) return "Possession is required"
         return undefined
       default:
         return undefined
@@ -433,22 +515,15 @@ export default function AddListingScreen() {
           }
         }),
         description: formData.description,
-        forContact: Validation.digitsOnly(formData.contact),
-        // features: JSON.stringify({
-        //   hasPole: formData.hasPole,
-        //   hasWire: formData.hasWire
-        // })
+        forContact: Validation.digitsOnly(user?.contactNo || ""),
+        possession: formData.possession === "Yes" ? true : false,
       }
-
-      //console.log('userData:', userData);
 
       const response = await axios.post(`${BASE_URL}/properties`, userData, {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-
-      ////console.log('response:', response?.data);
 
       if (response?.data.success) {
         showSuccessToast("Listing added successfully");
@@ -526,11 +601,11 @@ export default function AddListingScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         {/* Header */}
         <View style={styles.header}>
-            <Text style={styles.title}>Add Listing</Text>
-            <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.text} />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.title}>Add Listing</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+            <Ionicons name="close" size={24} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Property Type Tabs */}
           <View style={styles.section}>
@@ -733,6 +808,7 @@ export default function AddListingScreen() {
                       onBlur={handleFieldBlur("pricePerMarla")}
                       keyboardType="decimal-pad"
                       error={touched.pricePerMarla ? errors.pricePerMarla : undefined}
+                      autoCorrect={false}
                     />
                   </View>
                 </>
@@ -742,13 +818,22 @@ export default function AddListingScreen() {
 
           <View style={styles.section}>
             <TextInput
-              label={ formData.propertyType === "plot" || formData.propertyType === "commercial plot" ? "Total Price" : "Price" }
+              label={formData.propertyType === "plot" || formData.propertyType === "commercial plot" ? "Total Price" : "Price"}
               placeholder="25,000,000"
-              value={formData.price}
-              onChangeText={(value) => handleInputChange("price", value)}
+              value={(formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && formData.pricePerMarla && formData.area ? getTotalPrice(formData.pricePerMarla, formData.area, formData.additionalArea || "").toString() : formData.price}
+              onChangeText={(value) => {
+                // Only allow manual editing if price is not auto-calculated
+                const isAutoCalculated = (formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && formData.pricePerMarla && formData.area
+                if (!isAutoCalculated) {
+                  handleInputChange("price", value)
+                }
+              }}
               onBlur={handleFieldBlur("price")}
               keyboardType="decimal-pad"
               error={touched.price ? errors.price : undefined}
+              autoCorrect={false}
+              autoComplete="off"
+              editable={!((formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && formData.pricePerMarla && formData.area)}
             />
           </View>
 
@@ -804,31 +889,43 @@ export default function AddListingScreen() {
             />
           </View>
 
-          {/* More Options */}
-          {/* <View style={styles.section}>
-            <Text style={styles.sectionLabel}>More Options</Text>
-            <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>Don't have a pole</Text>
-              <Switch value={formData.hasPole} onValueChange={(value) => handleInputChange("hasPole", value)} />
-            </View>
-            <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>No wire</Text>
-              <Switch value={formData.hasWire} onValueChange={(value) => handleInputChange("hasWire", value)} />
-            </View>
-          </View> */}
-
-          {/* Contact */}
+          {/* Possession */}
           <View style={styles.section}>
-            <TextInput
-              label="For Contact"
-              placeholder="03XXXXXXXXX"
-              value={formData.contact}
-              onChangeText={(value) => handleInputChange("contact", value)}
-              onBlur={handleFieldBlur("contact")}
-              keyboardType="phone-pad"
-              maxLength={11}
-              error={touched.contact ? errors.contact : undefined}
-            />
+            <Text style={styles.sectionLabel}>Possession</Text>
+            <View style={styles.radioGroup}>
+
+              {/* Radio Button Option: Yes */}
+              <TouchableOpacity
+                style={styles.radioOption}
+                // Set the value to 'Yes' when this button is pressed
+                onPress={() => handleInputChange("possession", "Yes")}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  // If formData.possession is 'Yes', show the filled radio button icon
+                  name={formData.possession === "Yes" ? "radio-button-checked" : "radio-button-unchecked"}
+                  size={24}
+                  color={formData.possession === 'Yes' ? Colors.primary : Colors.neutral60} // Use your theme colors
+                />
+                <Text style={[styles.radioLabel, formData.possession === 'Yes' && styles.activeRadioLabel]}>Yes</Text>
+              </TouchableOpacity>
+
+              {/* Radio Button Option: No */}
+              <TouchableOpacity
+                style={styles.radioOption}
+                // Set the value to 'No' when this button is pressed
+                onPress={() => handleInputChange("possession", 'No')}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons
+                  // If formData.possession is 'No', show the filled radio button icon
+                  name={formData.possession === 'No' ? 'radio-button-checked' : 'radio-button-unchecked'}
+                  size={24}
+                  color={formData.possession === 'No' ? Colors.primary : Colors.neutral60} // Use your theme colors
+                />
+                <Text style={styles.radioLabel}>No</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Buttons */}
@@ -910,8 +1007,8 @@ export default function AddListingScreen() {
                   >
                     <Text style={styles.customModalCancelButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.customModalSaveButton, (!customAreaValue || !customAreaType) && styles.customModalSaveButtonDisabled]} 
+                  <TouchableOpacity
+                    style={[styles.customModalSaveButton, (!customAreaValue || !customAreaType) && styles.customModalSaveButtonDisabled]}
                     onPress={handleCustomAreaSave}
                     disabled={!customAreaValue || !customAreaType}
                   >
@@ -966,6 +1063,23 @@ const styles = StyleSheet.create({
     color: Colors.black,
     fontFamily: fontFamilies.primary,
     marginBottom: spacing.sm,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    gap: 30, // Spacing between 'Yes' and 'No' radio buttons
+    paddingVertical: 8,
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  activeRadioLabel: {
+    color: Colors.primary,
   },
   tabsContainer: {
     flexDirection: "row",

@@ -1,9 +1,11 @@
 "use client"
 
+import { LaunchPopup } from "@/components/LaunchPopup"
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
 import { Colors } from "@/constants/colors"
+import { useAuthContext } from "@/contexts/AuthContext"
 import { fontFamilies, fontSizes, fontWeights, layoutStyles, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
@@ -19,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ListingsScreen() {
   const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuthContext()
   const [user, setUser] = useState<User | null>(null)
   const [listings, setListings] = useState<ListingState[]>([])
   const [activePropertyTab, setActivePropertyTab] = useState<"Plots" | "Houses" | "Commercial Plots">("Plots")
@@ -164,21 +167,6 @@ export default function ListingsScreen() {
         if (!isNaN(parsed)) params.maxPrice = parsed
       }
     }
-
-    // Features - convert to backend format (only include if any feature is checked)
-    // if (filterObj.features) {
-    //   const featuresObj: Record<string, boolean> = {}
-    //   if (filterObj.features["Don't have a pole"]) {
-    //     featuresObj.hasPole = true
-    //   }
-    //   if (filterObj.features["No wire"]) {
-    //     featuresObj.hasWire = true
-    //   }
-    //   if (Object.keys(featuresObj).length > 0) {
-    //     params.features = JSON.stringify(featuresObj)
-    //   }
-    // }
-
     return params
   }, [])
 
@@ -491,6 +479,13 @@ export default function ListingsScreen() {
           <Text style={styles.accountVerificationText}>Your account has been rejected. Please contact support.</Text>
         </View>
       )}
+
+      {(user?.verificationStatus === "revoked") && (
+        <View style={styles.accountVerificationContainer}>
+          <Text style={styles.accountVerificationText}>Your account has been revoked. Please contact support.</Text>
+        </View>
+      )}
+
       <View style={styles.headerWrapper}>
         <View style={styles.header}>
           {/* Header Section */}
@@ -499,7 +494,7 @@ export default function ListingsScreen() {
               <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")} />
               <View style={styles.greetingText}>
                 <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
-                <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>
+                <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 20) + "..." : user?.estateName}</Text>
               </View>
             </View>
 
@@ -556,7 +551,13 @@ export default function ListingsScreen() {
                 blurOnSubmit={false}
               />
               <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+                <View style={styles.filterIconWrapper}>
+                  <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+                  {/* Small dot indicator when filters are applied */}
+                  {filters && Object.keys(filters).length > 0 && (
+                    <View style={styles.filterDot} />
+                  )}
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -686,6 +687,8 @@ export default function ListingsScreen() {
         onClose={() => setShowDetailsModal(false)}
         listing={clickedListing}
       />
+
+      <LaunchPopup isAuthenticated={isAuthenticated} isLoading={isLoading} />
     </SafeAreaView>
   )
 }
@@ -837,15 +840,26 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
   },
   filterIconButton: {
-    // width: 44,
-    // height: 44,
-    // // borderRadius: 12,
-    // // backgroundColor: Colors.inputBackground,
-    // // borderWidth: 1,
-    // // borderColor: Colors.border,
-    // justifyContent: "center",
-    // alignItems: "center",
     transform: [{ rotate: "90deg" }],
+  },
+  filterIconWrapper: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: Colors.neutral20,
+  },
+  filterDot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: spacing.sm2,
+    height: spacing.sm2,
+    borderRadius: radius.lg,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.neutral10,
   },
   filterCategoryScroll: {
     paddingHorizontal: spacing.screen,

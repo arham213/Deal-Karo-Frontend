@@ -5,7 +5,7 @@ export type User = {
   contactNo: string
   estateName: string
   role: "dealer" | "admin"
-  verificationStatus: "pending" | "verified" | "rejected"
+  verificationStatus: "pending" | "verified" | "rejected" | "revoked"
   onBoardingCompleted?: boolean
   createdAt: string
   updatedAt: string

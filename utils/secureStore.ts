@@ -66,6 +66,22 @@ export async function getOnboardingCompleted() {
   }
 }
 
+export async function saveLaunchPopupClosed(closed: string) {
+  try {
+    await SecureStore.setItemAsync('launchPopupClosed', closed);
+  } catch (error: any) {
+    throw new Error('Failed to save launch popup closed: ' + error.message);
+  }
+}
+
+export async function getLaunchPopupClosed() {
+  try {
+    return await SecureStore.getItemAsync('launchPopupClosed');
+  } catch (error: any) {
+    throw new Error('Failed to get launch popup closed: ' + error.message);
+  }
+}
+
 // Clear all auth-related data
 export async function clearAuthData() {
   try {

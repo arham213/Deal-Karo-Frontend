@@ -1,6 +1,8 @@
 export const Colors = {
   primary: "#262626",
   headerBackground: "#F8F9FA",
+  backgroundPossession: "#E1E6F9",
+  backgroundNonPossession: "#F0F0F0",
   neutral10: "#ffffff",
   neutral20: "#f5f5f5",
   neutral30: "#ededed",
@@ -13,6 +15,8 @@ export const Colors = {
   neutral100: "rgba(27, 27, 27, 0.96)",
   text: "#262626",
   textSecondary: "#666666",
+  textPossession: "#193080",
+  textNonPossession: "#222222",
   black: "#000000",
   white: "#ffffff",
   border: "#e0e0e0",

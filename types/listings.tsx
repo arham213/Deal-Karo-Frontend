@@ -27,7 +27,7 @@ export interface ListingState {
   }
   description: string
   forContact: string
-  hasPole?: boolean
-  hasWire?: boolean
-  features?: string
+  possession: boolean
+  createdAt: Date,
+  updatedAt: Date
 }

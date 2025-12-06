@@ -3,6 +3,7 @@ import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth";
 import { ListingState } from "@/types/listings";
 import { handleContactPress } from "@/utils/dialContact";
+import { formatRelativeTimeLibrary } from "@/utils/formatDateNow";
 import formatPrice from "@/utils/formatPrice";
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
@@ -24,7 +25,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
       let posX = x - menuWidth + width;
       if (posX < 10) posX = 10;
       if (posX + menuWidth > screenWidth - 10) posX = screenWidth - menuWidth - 10;
-      
+
       setMenuPosition({ x: posX + width + 20, y: y - height - 20 });
       setShowDeleteMenu(true);
     });
@@ -38,118 +39,137 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
   };
 
   return (
-  <View style={styles.propertyCard}>
-    {/* Content */}
-    <View style={styles.propertyContent}>
-      {/* Header with Title and Status */}
-      <View style={styles.headerWithLocation}>
-        <View style={styles.propertyHeader}>
-          <View style={styles.titleSection}>
-            <Text style={styles.propertyTitle}>
-              {property.area}
-            </Text>
+    <View style={styles.propertyCard}>
+      {user?.verificationStatus === "verified" && (
+        property.possession === true ? (
+          <View style={styles.possessionBadge}>
+            <Text style={styles.possessionBadgeText}>Possession</Text>
           </View>
-          {/* {property.} */}
-          {property.listingType === "rent" ? (
-            <>
-              <Text style={styles.price}>Rs. {formatPrice(Number(property.rentPerMonth))}</Text>
-              <Text style={styles.pricePerMarlaUnit}>/month</Text>
-            </>
-          ) : (property.propertyType === "plot" || property.propertyType === "commercial plot") && property.listingType === "cash" ? (
-            <View style={styles.pricePerMarlaContainer}>
-              <Text style={styles.price}>Rs. {formatPrice(Number(property.pricePerMarla))}</Text>
-              <Text style={styles.pricePerMarlaUnit}>/Marla</Text>
+        ) : (
+          <View style={styles.nonPossessionBadge}>
+            <Text style={styles.nonPossessionBadgeText}>Non-Possession</Text>
+          </View>
+        )
+      )}
+      {/* Content */}
+      <View style={styles.propertyContent}>
+        {/* Header with Title and Status */}
+        <View style={styles.headerWithLocation}>
+
+          <View style={styles.propertyHeader}>
+            <View style={styles.titleSection}>
+              <Text style={styles.propertyTitle}>
+                {property.area}
+              </Text>
             </View>
-          ) : (
-            <Text style={styles.price}>Rs. {formatPrice(Number(property.price))}</Text>
-          )}
+            {/* {property.} */}
+            {property.listingType === "rent" ? (
+              <>
+                <Text style={styles.price}>Rs. {formatPrice(Number(property.rentPerMonth))}</Text>
+                <Text style={styles.pricePerMarlaUnit}>/month</Text>
+              </>
+            ) : (property.propertyType === "plot" || property.propertyType === "commercial plot") && property.listingType === "cash" ? (
+              <View style={styles.pricePerMarlaContainer}>
+                <Text style={styles.price}>Rs. {formatPrice(Number(property.pricePerMarla))}</Text>
+                <Text style={styles.pricePerMarlaUnit}>/Marla</Text>
+              </View>
+            ) : (
+              <Text style={styles.price}>Rs. {formatPrice(Number(property.price))}</Text>
+            )}
+          </View>
+
+          {/* Location Row */}
+          <View style={styles.locationRowContainer}>
+            {user?.verificationStatus === "verified" && (
+              <View style={styles.locationRow}>
+                <LocationIcon color={Colors.neutral80} size={14} />
+                <Text style={styles.propertyLocation}>
+                  {property.plotNo || property.houseNo || ""}, {property.phase || ""}, {property.block || ""}
+                </Text>
+              </View>
+            )}
+            <View style={styles.locationRowTextContainer}>
+              <Ionicons name="time-outline" size={14} color={Colors.neutral80} />
+              <Text style={styles.locationRowText}>{formatRelativeTimeLibrary(property.createdAt)}</Text>
+            </View>
+          </View>
         </View>
 
+        {/* Meta Information */}
+        <View style={styles.propertyMetaRow}>
+          <View style={styles.addedByWrapper}>
+            {/* Added By */}
+            <View style={styles.addedByContainer}>
+              <AvatarInitials name={property.userId?.name || 'Unknown'} size={32} backgroundColor={Colors.neutral30} textColor={Colors.text} />
+              <View style={styles.addedByDetailsContainer}>
+                <Text style={styles.addedBy}>{property.userId?.name?.split(" ")[0] || 'Unknown'} {property.userId?.name?.split(" ")[1] ? property.userId?.name?.split(" ")[1][0] + "." : ""}</Text>
+                <Text style={styles.addedByLabel}>{property?.userId?.estateName && property?.userId?.estateName?.length > 17 ? property?.userId?.estateName?.slice(0, 20) + "..." : property?.userId?.estateName}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={[property.listingType === "cash" ? styles.statusBadgeCash : styles.statusBadgeInstallments]}>
+            <Text style={[property.listingType === "cash" ? styles.statusTextCash : styles.statusTextInstallments]}>{property.listingType === "cash" ? "Cash" : "Installments"}</Text>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
         {user?.verificationStatus === "verified" && (
-          <View style={styles.locationRow}>
-            <LocationIcon color={Colors.neutral80} size={14} />
-            <Text style={styles.propertyLocation}>
-              {property.plotNo || property.houseNo || ""}, {property.phase || ""}, {property.block || ""}
-            </Text>
+          <View style={styles.actionButtons}>
+            {/* Delete Menu Button - Only show on my-listings */}
+            {showDelete && (
+              <View ref={menuButtonRef} style={styles.menuButtonContainer}>
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={handleMenuPress}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="ellipsis-vertical" size={18} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
+              <DetailsIcon color={Colors.textSecondary} size={16} />
+              <Text style={styles.actionButtonText}>Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => handleContactPress(property.forContact)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="call-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.actionButtonText}>Contact</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
 
-      {/* Meta Information */}
-      <View style={styles.propertyMetaRow}>
-        <View style={styles.addedByWrapper}>
-          {/* Added By */}
-          <View style={styles.addedByContainer}>
-            <AvatarInitials name={property.userId?.name || 'Unknown'} size={32} backgroundColor={Colors.neutral30} textColor={Colors.text} />
-            <View style={styles.addedByDetailsContainer}>
-              <Text style={styles.addedByLabel}>Added by</Text>
-              <Text style={styles.addedBy}>{property.userId?.name?.split(" ")[0] || 'Unknown'} {property.userId?.name?.split(" ")[1] ? property.userId?.name?.split(" ")[1][0] + "." : ""}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={[property.listingType === "cash" ? styles.statusBadgeCash : styles.statusBadgeInstallments]}>
-          <Text style={[property.listingType === "cash" ? styles.statusTextCash : styles.statusTextInstallments]}>{property.listingType === "cash" ? "Cash" : "Installments"}</Text>
-        </View>
-      </View>
-
-      {/* Action Buttons */}
-      {user?.verificationStatus === "verified" && (
-        <View style={styles.actionButtons}>
-          {/* Delete Menu Button - Only show on my-listings */}
-          {showDelete && (
-            <View ref={menuButtonRef} style={styles.menuButtonContainer}>
+      {/* Delete Menu Modal */}
+      {showDelete && (
+        <Modal
+          transparent
+          visible={showDeleteMenu}
+          animationType="fade"
+          onRequestClose={() => setShowDeleteMenu(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.deleteMenuBackdrop}
+            onPress={() => setShowDeleteMenu(false)}
+          >
+            <View style={[styles.deleteMenuContent, { left: menuPosition.x, top: menuPosition.y }]}>
               <TouchableOpacity
-                style={styles.menuButton}
-                onPress={handleMenuPress}
+                style={styles.deleteMenuItem}
+                onPress={handleDelete}
                 activeOpacity={0.7}
               >
-                <Ionicons name="ellipsis-vertical" size={18} color={Colors.textSecondary} />
+                <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                <Text style={styles.deleteMenuText}>Delete</Text>
               </TouchableOpacity>
             </View>
-          )}
-          <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
-            <DetailsIcon color={Colors.textSecondary} size={16} />
-            <Text style={styles.actionButtonText}>Details</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => handleContactPress(property.forContact)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="call-outline" size={16} color={Colors.textSecondary} />
-            <Text style={styles.actionButtonText}>Contact</Text>
-          </TouchableOpacity>
-        </View>
+        </Modal>
       )}
     </View>
-
-    {/* Delete Menu Modal */}
-    {showDelete && (
-      <Modal
-        transparent
-        visible={showDeleteMenu}
-        animationType="fade"
-        onRequestClose={() => setShowDeleteMenu(false)}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          style={styles.deleteMenuBackdrop}
-          onPress={() => setShowDeleteMenu(false)}
-        >
-          <View style={[styles.deleteMenuContent, { left: menuPosition.x, top: menuPosition.y }]}>
-            <TouchableOpacity
-              style={styles.deleteMenuItem}
-              onPress={handleDelete}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="trash-outline" size={16} color={Colors.error} />
-              <Text style={styles.deleteMenuText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    )}
-  </View>
   )
 }
 
@@ -181,6 +201,40 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.sm
   },
+  possessionBadge: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    // borderRadius: radius.lg,
+    backgroundColor: Colors.backgroundPossession,
+  },
+  possessionBadgeText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    color: Colors.textPossession,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.12,
+  },
+  nonPossessionBadge: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    // borderRadius: radius.lg,
+    backgroundColor: Colors.backgroundNonPossession,
+  },
+  nonPossessionBadgeText: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.medium,
+    color: Colors.textNonPossession,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.12,
+  },
   propertyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -203,6 +257,26 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   propertyLocation: {
+    fontSize: fontSizes.xs,
+    color: Colors.neutral80,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    fontWeight: fontWeights.medium,
+    letterSpacing: 0.12,
+  },
+  locationRowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    marginTop: -spacing.xxs,
+  },
+  locationRowTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xxs,
+  },
+  locationRowText: {
     fontSize: fontSizes.xs,
     color: Colors.neutral80,
     fontFamily: fontFamilies.primary,
