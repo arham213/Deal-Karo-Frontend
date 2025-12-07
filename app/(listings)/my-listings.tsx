@@ -663,8 +663,17 @@ export default function MyListingsScreen() {
               autoCapitalize="none"
               blurOnSubmit={false}
             />
-            <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+            {/* <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
               <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+            </TouchableOpacity> */}
+            <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+              <View style={styles.filterIconWrapper}>
+                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+                {/* Small dot indicator when filters are applied */}
+                {filters && Object.keys(filters).length > 0 && (
+                  <View style={styles.filterDot} />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -961,15 +970,26 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
   },
   filterIconButton: {
-    // width: 44,
-    // height: 44,
-    // // borderRadius: 12,
-    // // backgroundColor: Colors.inputBackground,
-    // // borderWidth: 1,
-    // // borderColor: Colors.border,
-    // justifyContent: "center",
-    // alignItems: "center",
     transform: [{ rotate: "90deg" }],
+  },
+  filterIconWrapper: {
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: Colors.neutral20,
+  },
+  filterDot: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: spacing.sm2,
+    height: spacing.sm2,
+    borderRadius: radius.lg,
+    backgroundColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.neutral10,
   },
   filterCategoryScroll: {
     paddingHorizontal: spacing.screen,
