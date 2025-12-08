@@ -2,7 +2,7 @@
   "expo": {
     "name": "Deal Kroo",
     "slug": "deal-karo",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
     "scheme": "dealkarofrontend",
@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "3"
+      "buildNumber": "4",
+      "bundleIdentifier": "com.arham1.dealkaro"
     },
     "android": {
       "adaptiveIcon": {
