@@ -10,18 +10,35 @@ import { User } from "@/types/auth"
 import apiClient from "@/utils/axiosConfig"
 import { getToken, getUser, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showLoadingToast, showSuccessToast } from "@/utils/toast"
-import { Validation, type ValidationErrors } from "@/utils/validation"
+import { Validation } from "@/utils/validation"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
+import {
+  buildProfileUpdatePayload,
+  hasProfileChanges,
+  validateProfileField,
+  validateProfileForm,
+  type EditableProfileField,
+  type ProfileErrors,
+} from "../../packages/utils/auth/profile"
 
 export default function ProfileScreen() {
   const router = useRouter()
   const { logout, setUser } = useAuthContext()
-  type EditableProfileField = "name" | "email" | "contactNo" | "estateName"
   const [profile, setProfile] = useState<User>({
     _id: "",
     name: "",
@@ -33,9 +50,8 @@ export default function ProfileScreen() {
     createdAt: "",
     updatedAt: "",
   })
-
   const [editData, setEditData] = useState(profile)
-  const [errors, setErrors] = useState<ValidationErrors<EditableProfileField>>({})
+  const [errors, setErrors] = useState<ProfileErrors>({})
   const [touched, setTouched] = useState<Record<EditableProfileField, boolean>>({
     name: false,
     email: false,
@@ -65,40 +81,10 @@ export default function ProfileScreen() {
   }
 
   // Check if any field has changed
-  const hasChanges = useMemo(() => {
-    const cleanedEditContact = Validation.digitsOnly(editData.contactNo)
-    const cleanedProfileContact = Validation.digitsOnly(profile.contactNo)
-    
-    return (
-      editData.name.trim() !== profile.name.trim() ||
-      editData.email.trim() !== profile.email.trim() ||
-      cleanedEditContact !== cleanedProfileContact ||
-      editData.estateName.trim() !== profile.estateName.trim()
-    )
-  }, [editData, profile])
-
-  const validateField = (field: EditableProfileField, value: string) => {
-    const trimmed = value.trim()
-    switch (field) {
-      case "name":
-        if (!Validation.isRequired(trimmed)) return "Full name is required"
-        if (!Validation.hasMinLength(trimmed, 3)) return "Full name must be at least 3 characters"
-        return undefined
-      case "email":
-        if (!Validation.isRequired(trimmed)) return "Email is required"
-        if (!Validation.isEmail(trimmed)) return "Enter a valid email address"
-        return undefined
-      case "contactNo":
-        if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
-        return undefined
-      case "estateName":
-        if (!Validation.isRequired(trimmed)) return "Estate name is required"
-        return undefined
-      default:
-        return undefined
-    }
-  }
+  const hasChanges = useMemo(
+    () => hasProfileChanges(profile, editData),
+    [editData, profile],
+  )
 
   const markAllTouched = () => {
     setTouched({
@@ -107,16 +93,6 @@ export default function ProfileScreen() {
       contactNo: true,
       estateName: true,
     })
-  }
-
-  const validateForm = (data: User) => {
-    const newErrors: ValidationErrors<EditableProfileField> = {}
-    ;(["name", "email", "contactNo", "estateName"] as EditableProfileField[]).forEach((field) => {
-      const errorMessage = validateField(field, data[field] ?? "")
-      if (errorMessage) newErrors[field] = errorMessage
-    })
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
   const handleInputChange = (key: EditableProfileField, value: string) => {
@@ -131,7 +107,7 @@ export default function ProfileScreen() {
         setTouched((prev) => ({ ...prev, contactNo: true }))
       }
 
-      const errorMessage = validateField(key, digits)
+      const errorMessage = validateProfileField(key, digits)
       setErrors((prev) => {
         const next = { ...prev }
         if (errorMessage) next[key] = errorMessage
@@ -147,7 +123,7 @@ export default function ProfileScreen() {
     }))
 
     if (touched[key]) {
-      const errorMessage = validateField(key, value)
+      const errorMessage = validateProfileField(key, value)
       setErrors((prev) => {
         const next = { ...prev }
         if (errorMessage) next[key] = errorMessage
@@ -163,7 +139,9 @@ export default function ProfileScreen() {
   }, [hasChanges])
 
   const handleSave = async () => {
-    if (!validateForm(editData)) {
+    const { isValid, errors: validationErrors } = validateProfileForm(editData)
+    setErrors(validationErrors)
+    if (!isValid) {
       markAllTouched()
       return
     }
@@ -176,31 +154,8 @@ export default function ProfileScreen() {
         await forceLogout("You have been logged out. Please sign in again.")
         return
       }
-      // Prepare data according to backend schema
-      const cleanedContactNo = Validation.digitsOnly(editData.contactNo)
-      const updateData: {
-        _id: string
-        name?: string
-        email?: string
-        contactNo?: string
-        estateName?: string
-      } = {
-        _id: profile._id,
-      }
-
-      // Only include fields that have changed
-      if (editData.name.trim() !== profile.name.trim()) {
-        updateData.name = editData.name.trim()
-      }
-      if (editData.email.trim() !== profile.email.trim()) {
-        updateData.email = editData.email.trim()
-      }
-      if (cleanedContactNo !== Validation.digitsOnly(profile.contactNo)) {
-        updateData.contactNo = cleanedContactNo
-      }
-      if (editData.estateName.trim() !== profile.estateName.trim()) {
-        updateData.estateName = editData.estateName.trim()
-      }
+      // Prepare data according to backend schema (only changed fields)
+      const updateData = buildProfileUpdatePayload(profile, editData)
 
       // Make API call
       const response = await apiClient.put(`/users/`, updateData)
@@ -211,7 +166,7 @@ export default function ProfileScreen() {
         // Update local state with response data if available, otherwise use editData
         const updatedUser = response.data.data?.user || {
           ...editData,
-          contactNo: cleanedContactNo,
+          contactNo: Validation.digitsOnly(editData.contactNo),
         }
 
         // Update profile state
@@ -362,7 +317,7 @@ export default function ProfileScreen() {
       [field]: true,
     }))
 
-    const errorMessage = validateField(field, editData[field] ?? "")
+    const errorMessage = validateProfileField(field, editData[field] ?? "")
     setErrors((prev) => {
       const next = { ...prev }
       if (errorMessage) next[field] = errorMessage
@@ -372,7 +327,10 @@ export default function ProfileScreen() {
   }
 
   const editableErrors = useMemo(
-    () => (["name", "email", "contactNo", "estateName"] as EditableProfileField[]).some((field) => Boolean(validateField(field, editData[field] ?? ""))),
+    () =>
+      (["name", "email", "contactNo", "estateName"] as EditableProfileField[]).some((field) =>
+        Boolean(validateProfileField(field, editData[field] ?? "")),
+      ),
     [editData],
   )
 

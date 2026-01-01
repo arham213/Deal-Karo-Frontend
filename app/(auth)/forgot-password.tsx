@@ -6,12 +6,14 @@ import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
-import { Validation } from "@/utils/validation"
-import axios from "axios"
 import { useRouter } from "expo-router"
 import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import {
+  getForgotPasswordEmailError,
+  sendForgotPasswordOtp,
+} from "../../packages/utils/auth/forgotPassword"
 
 export default function ForgotPasswordScreen() {
   const router = useRouter()
@@ -19,12 +21,8 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
-
   const emailValidationError = useMemo(() => {
-    if (!Validation.isRequired(email)) return "Email is required"
-    if (!Validation.isEmail(email)) return "Enter a valid email address"
-    return undefined
+    return getForgotPasswordEmailError(email)
   }, [email])
 
   const isSubmitDisabled = loading || Boolean(emailValidationError)
@@ -35,37 +33,24 @@ export default function ForgotPasswordScreen() {
       return
     }
 
-    setLoading(true)
     try {
-      const userData = {
-        email: email,
-      }
+      setLoading(true)
 
-      const response = await axios.post(`${BASE_URL}/users/forgotPassword`, userData);
+      const { userId } = await sendForgotPasswordOtp(email)
 
-      //console.log('response:', response.data);
-
-      setLoading(false);
-
-      if (response?.data.success) {
-        showSuccessToast("OTP sent successfully");
-        setEmail("")
-        setTouched(false)
-        router.push({
-           pathname: '/verify-otp',
-           params: { userId: response.data.data.userId}
-        });
-      } else {
-        showErrorToast(response?.data.error.message || "Failed to send OTP");
-      }
+      showSuccessToast("OTP sent successfully")
+      setEmail("")
+      setTouched(false)
+      router.push({
+        pathname: "/verify-otp",
+        params: { userId },
+      })
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
+    } finally {
       setLoading(false)
-
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to send OTP");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
     }
   }
 
@@ -115,7 +100,6 @@ export default function ForgotPasswordScreen() {
     </SafeAreaView>
   )
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: Colors.neutral10,

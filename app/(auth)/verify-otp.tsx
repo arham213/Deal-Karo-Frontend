@@ -3,17 +3,16 @@
 import { Button } from "@/components/Button"
 import { Header } from "@/components/auth/Header"
 import { Colors } from "@/constants/colors"
-import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect, useRef, useState } from "react"
 import {
-    KeyboardAvoidingView,
-    Platform,
-    TextInput as RNTextInput,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput as RNTextInput,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
@@ -21,21 +20,28 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
+import {
+  OTP_LENGTH,
+  createInitialOtpState,
+  formatOtpDigitInput,
+  getOtpCodeFromArray,
+  isOtpComplete,
+  resendOtp,
+  verifyOtp,
+} from "../../packages/utils/auth/verifyOtp"
 
 export default function VerifyOTPScreen() {
   const router = useRouter()
   const { setUser, setToken, checkAuth } = useAuthContext()
   const { userId, isSignupOTP } = useLocalSearchParams<{ userId: string, isSignupOTP: string }>();
-  const [otp, setOtp] = useState(["", "", "", ""])
+  const [otp, setOtp] = useState<string[]>(createInitialOtpState())
   const [loading, setLoading] = useState(false)
   const [resendTimer, setResendTimer] = useState(0)
   const [touched, setTouched] = useState(false)
   const inputRefs = useRef<(RNTextInput | null)[]>([null, null, null, null])
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
-
   const resetOtpFields = () => {
-    setOtp(["", "", "", ""])
+    setOtp(createInitialOtpState())
     setTouched(false)
     // Focus first input if available for better UX
     inputRefs.current[0]?.focus()
@@ -58,7 +64,7 @@ export default function VerifyOTPScreen() {
   }, [])
 
   const handleOTPChange = (index: number, value: string) => {
-    const sanitized = value.replace(/\D/g, "").slice(0, 1)
+    const sanitized = formatOtpDigitInput(value)
 
     const newOtp = [...otp]
     newOtp[index] = sanitized
@@ -78,62 +84,47 @@ export default function VerifyOTPScreen() {
   }
 
   const handleVerifyOTP = async () => {
-    const otpCode = otp.join("")
-    if (otpCode.length !== 4) {
+    const otpCode = getOtpCodeFromArray(otp)
+    if (!isOtpComplete(otp)) {
       setTouched(true)
       return
     }
 
-    setLoading(true)
     try {
-      const userData = {
-        userId: userId,
-        OTP: otpCode
-      }
+      setLoading(true)
 
-      const url = isSignupOTP === "true" ? `${BASE_URL}/users/verifyEmail` : `${BASE_URL}/users/verify-reset-password-otp`;
+      const result = await verifyOtp({
+        userId: String(userId),
+        isSignupOtp: isSignupOTP === "true",
+        otpCode,
+      })
 
-      const response = await axios.post(url, userData);
+      showSuccessToast("OTP verified successfully")
+      setTouched(false)
 
-      //console.log('response:', response.data);
+      if (result.type === "signup") {
+        // Save token and user to secure store
+        await saveToken(result.token)
+        await saveUser(result.user)
 
-      setLoading(false);
+        // Update auth context
+        setToken(result.token)
+        setUser(result.user)
 
-      if (response?.data.success) {
-        showSuccessToast("OTP verified successfully");
-        setTouched(false)
-        if (isSignupOTP === "true") {
-          // router.push("/(auth)/sign-in");
-          //console.log('saving token and user...')
-          // Save token and user to secure store
-          await saveToken(response.data.data.token);
-          await saveUser(response.data.data.user);
-          
-          // Update auth context
-          setToken(response.data.data.token);
-          setUser(response.data.data.user);
-          
-          // Refresh auth state to get onboarding status
-          await checkAuth();
-          
-          router.replace("/(onboarding)/onboarding");
-        } else {
-          router.push({
-            pathname: '/reset-password',
-            params: { userId: response.data.data.userId }
-          });
-        }
+        // Refresh auth state to get onboarding status
+        await checkAuth()
+
+        router.replace("/(onboarding)/onboarding")
       } else {
-        showErrorToast(response?.data.error.message || "OTP verification failed");
+        router.push({
+          pathname: "/reset-password",
+          params: { userId: result.userId },
+        })
       }
     } catch (error) {
-      setLoading(false)
-
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "OTP verification failed");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       // Clear OTP inputs after API response arrives
       resetOtpFields()
@@ -154,39 +145,28 @@ export default function VerifyOTPScreen() {
     }, 1000)
 
     try {
-      const userData = {
-        userId: userId,
-        isSimpleOTP: false
-      }
+      setLoading(true)
 
-      const response = await axios.post(`${BASE_URL}/users/resendOTP`, userData);
+      await resendOtp({
+        userId: String(userId),
+        isSimpleOtp: false,
+      })
 
-      //console.log('response:', response.data);
-
-      setLoading(false);
-
-      if (response?.data.success) {
-        showSuccessToast("OTP resent successfully");
-      } else {
-        showErrorToast(response?.data.error.message || "Failed to resend OTP");
-      }
+      showSuccessToast("OTP resent successfully")
     } catch (error) {
-      setLoading(false)
-
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to resend OTP");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       // Clear OTP inputs after API response arrives
       resetOtpFields()
+      setLoading(false)
     }
   }
 
-  const otpCode = otp.join("")
-  const showError = touched && otpCode.length !== 4
-  const isSubmitDisabled = loading || otpCode.length !== 4
+  const otpCode = getOtpCodeFromArray(otp)
+  const showError = touched && otpCode.length !== OTP_LENGTH
+  const isSubmitDisabled = loading || otpCode.length !== OTP_LENGTH
 
   return (
     <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>

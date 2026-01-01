@@ -8,34 +8,39 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { saveToken, saveUser } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
-import { Validation, type ValidationErrors } from "@/utils/validation"
-import axios from "axios"
 import { Redirect, useRouter } from "expo-router"
 import { useMemo, useState } from "react"
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-
-type SignInField = "email" | "password"
-
-type SignInFormState = Record<SignInField, string>
-
-const createInitialFormState = (): SignInFormState => ({
-  email: "",
-  password: "",
-})
-
-const createTouchedState = (value: boolean) =>
-  ({
-    email: value,
-    password: value,
-  }) as Record<SignInField, boolean>
+import {
+  createInitialSignInFormState,
+  createSignInTouchedState,
+  hasAnySignInError,
+  hasEmptySignInField,
+  signInWithEmailAndPassword,
+  validateSignInField,
+  validateSignInForm,
+  type SignInField,
+  type SignInFormState,
+  type SignInTouchedState,
+  type SignInValidationErrors,
+} from "../../packages/utils/auth/signIn"
 
 export default function SignInScreen() {
   const router = useRouter()
   const { setUser, setToken, checkAuth, isAuthenticated, isLoading, isOnboardingCompleted } = useAuthContext()
-  const [form, setForm] = useState<SignInFormState>(createInitialFormState)
-  const [errors, setErrors] = useState<ValidationErrors<SignInField>>({})
-  const [touched, setTouched] = useState<Record<SignInField, boolean>>(createTouchedState(false))
+  const [form, setForm] = useState<SignInFormState>(createInitialSignInFormState)
+  const [errors, setErrors] = useState<SignInValidationErrors>({})
+  const [touched, setTouched] = useState<SignInTouchedState>(createSignInTouchedState(false))
   const [loading, setLoading] = useState(false)
 
   // Immediately redirect if already authenticated - prevents flash of sign-in screen
@@ -54,33 +59,10 @@ export default function SignInScreen() {
     )
   }
 
-  // Using shared apiClient with global timeout handling
-
-  const validateField = (field: SignInField, value: string) => {
-    const trimmed = value.trim()
-    switch (field) {
-      case "email":
-        if (!Validation.isRequired(trimmed)) return "Email is required"
-        if (!Validation.isEmail(trimmed)) return "Enter a valid email address"
-        return undefined
-      case "password":
-        if (!Validation.isRequired(value)) return "Password is required"
-        return undefined
-      default:
-        return undefined
-    }
-  }
-
   const validateForm = () => {
-    const newErrors: ValidationErrors<SignInField> = {}
-    ;(Object.keys(form) as SignInField[]).forEach((field) => {
-      const errorMessage = validateField(field, form[field])
-      if (errorMessage) {
-        newErrors[field] = errorMessage
-      }
-    })
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    const { isValid, errors: validationErrors } = validateSignInForm(form)
+    setErrors(validationErrors)
+    return isValid
   }
 
   const handleChange =
@@ -92,7 +74,7 @@ export default function SignInScreen() {
       }))
 
       if (touched[field]) {
-        const errorMessage = validateField(field, value)
+        const errorMessage = validateSignInField(field, value)
         setErrors((prev) => {
           const next = { ...prev }
           if (errorMessage) {
@@ -111,7 +93,7 @@ export default function SignInScreen() {
       [field]: true,
     }))
 
-    const errorMessage = validateField(field, form[field])
+    const errorMessage = validateSignInField(field, form[field])
     setErrors((prev) => {
       const next = { ...prev }
       if (errorMessage) {
@@ -124,16 +106,16 @@ export default function SignInScreen() {
   }
 
   const markAllTouched = () => {
-    setTouched(createTouchedState(true))
+    setTouched(createSignInTouchedState(true))
   }
 
   const hasEmptyField = useMemo(
-    () => (Object.keys(form) as SignInField[]).some((field) => !Validation.isRequired(form[field])),
+    () => hasEmptySignInField(form),
     [form],
   )
 
   const hasAnyError = useMemo(
-    () => (Object.keys(form) as SignInField[]).some((field) => Boolean(validateField(field, form[field]))),
+    () => hasAnySignInError(form),
     [form],
   )
 
@@ -150,55 +132,36 @@ export default function SignInScreen() {
 
     setLoading(true)
     try {
-      const userData = {
-        email: form.email.trim(),
+      const { token, user } = await signInWithEmailAndPassword({
+        email: form.email,
         password: form.password,
-      }
+      })
 
-      //console.log('userData:', userData)
+      // Save token and user to secure store
+      await saveToken(token)
+      await saveUser(user)
 
-      const response = await axios.post(`https://deal-karo-backend.vercel.app/api/users/signin`, userData);
-      
-      //console.log('response:', response.data)
+      // Update auth context
+      setToken(token)
+      setUser(user)
 
-      if (response?.data.success) {
-        //console.log('saving token and user...')
-        // Save token and user to secure store
-        await saveToken(response.data.data.token);
-        await saveUser(response.data.data.user);
-        
-        // Update auth context
-        setToken(response.data.data.token);
-        setUser(response.data.data.user);
-        
-        // Refresh auth state to get onboarding status
-        await checkAuth();
-        
-        setErrors({})
-        setTouched(createTouchedState(false))
+      // Refresh auth state to get onboarding status
+      await checkAuth()
 
-        // Check onboarding status and redirect
-        // const onboardingCompleted = await getOnboardingCompleted();
-        const onboardingCompleted = response.data.data.user.onBoardingCompleted;
-        if (onboardingCompleted) {
-          router.replace("/(listings)/listings");
-        } else {
-          router.replace("/(onboarding)/onboarding");
-        }
+      setErrors({})
+      setTouched(createSignInTouchedState(false))
+
+      // Check onboarding status and redirect
+      const onboardingCompleted = user.onBoardingCompleted
+      if (onboardingCompleted) {
+        router.replace("/(listings)/listings")
       } else {
-        showErrorToast(response?.data.error.message || "Signin failed");
+        router.replace("/(onboarding)/onboarding")
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        // Global interceptor shows toasts for timeouts and network errors
-        if (error.response?.data?.error?.message) {
-          showErrorToast(error.response.data.error.message);
-        } else if (error.response) {
-          showErrorToast("Signin failed");
-        }
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       setLoading(false)
     }

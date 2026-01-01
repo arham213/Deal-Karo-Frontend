@@ -6,90 +6,50 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
-import { Validation, type ValidationErrors } from "@/utils/validation"
-import axios from "axios"
 import { useRouter } from "expo-router"
 import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-
-type SignUpField = "fullName" | "email" | "contactNo" | "estateName" | "password"
-
-type SignUpFormState = Record<SignUpField, string>
-
-const createInitialFormState = (): SignUpFormState => ({
-  fullName: "",
-  email: "",
-  contactNo: "",
-  estateName: "",
-  password: "",
-})
-
-const createTouchedState = (value: boolean) =>
-  ({
-    fullName: value,
-    email: value,
-    contactNo: value,
-    estateName: value,
-    password: value,
-  }) as Record<SignUpField, boolean>
+import {
+  buildSignUpRequestBody,
+  createInitialSignUpFormState,
+  createSignUpTouchedState,
+  formatContactNumberInput,
+  hasAnySignUpError,
+  hasEmptyRequiredSignUpField,
+  signUpUser,
+  validateSignUpField,
+  validateSignUpForm,
+  type SignUpField,
+  type SignUpFormState,
+  type SignUpTouchedState,
+  type SignUpValidationErrors,
+} from "../../packages/utils/auth/signUp"
 
 const PASSWORD_HELPER_TEXT = "Use at least 8 characters with upper, lower case letters and a number"
 
 export default function SignUpScreen() {
   const router = useRouter()
-  const [form, setForm] = useState<SignUpFormState>(createInitialFormState)
-  const [errors, setErrors] = useState<ValidationErrors<SignUpField>>({})
-  const [touched, setTouched] = useState<Record<SignUpField, boolean>>(createTouchedState(false))
+  const [form, setForm] = useState<SignUpFormState>(createInitialSignUpFormState)
+  const [errors, setErrors] = useState<SignUpValidationErrors>({})
+  const [touched, setTouched] = useState<SignUpTouchedState>(createSignUpTouchedState(false))
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
-
   const validateField = (field: SignUpField, value: string) => {
-    const trimmed = value.trim()
-    switch (field) {
-      case "fullName":
-        if (!Validation.isRequired(trimmed)) return "Full name is required"
-        if (!Validation.hasMinLength(trimmed, 3)) return "Full name must be at least 3 characters"
-        return undefined
-      case "email":
-        if (!Validation.isRequired(trimmed)) return "Email is required"
-        if (!Validation.isEmail(trimmed)) return "Enter a valid email address"
-        return undefined
-      case "contactNo": {
-        if (!Validation.isRequired(trimmed)) return "Contact number is required"
-        if (!Validation.isPakistaniMobile11(trimmed)) return "Enter 11-digit Pakistani number (e.g. 03XXXXXXXXX)"
-        return undefined
-      }
-      case "estateName":
-        if (!Validation.isRequired(trimmed)) return "Estate name is required"
-        return undefined
-      case "password":
-        if (!Validation.isRequired(value)) return "Password is required"
-        if (!Validation.isStrongPassword(value)) return "Password must include upper, lower case letters and a number"
-        return undefined
-      default:
-        return undefined
-    }
+    return validateSignUpField(field, value)
   }
 
   const validateForm = () => {
-    const newErrors: ValidationErrors<SignUpField> = {}
-    ;(Object.keys(form) as SignUpField[]).forEach((field) => {
-      const errorMessage = validateField(field, form[field])
-      if (errorMessage) {
-        newErrors[field] = errorMessage
-      }
-    })
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    const { isValid, errors: validationErrors } = validateSignUpForm(form)
+    setErrors(validationErrors)
+    return isValid
   }
 
   const handleChange =
     (field: SignUpField) =>
     (value: string) => {
       if (field === "contactNo") {
-        const digits = Validation.digitsOnly(value).slice(0, 11)
+        const digits = formatContactNumberInput(value)
         setForm((prev) => ({
           ...prev,
           [field]: digits,
@@ -148,16 +108,16 @@ export default function SignUpScreen() {
   }
 
   const markAllTouched = () => {
-    setTouched(createTouchedState(true))
+    setTouched(createSignUpTouchedState(true))
   }
 
   const hasEmptyRequiredField = useMemo(
-    () => (Object.keys(form) as SignUpField[]).some((field) => !Validation.isRequired(form[field])),
+    () => hasEmptyRequiredSignUpField(form),
     [form],
   )
 
   const hasAnyError = useMemo(
-    () => (Object.keys(form) as SignUpField[]).some((field) => Boolean(validateField(field, form[field]))),
+    () => hasAnySignUpError(form),
     [form],
   )
 
@@ -174,41 +134,22 @@ export default function SignUpScreen() {
 
     setLoading(true)
     try {
-      const userData = {
-        name: form.fullName.trim(),
-        email: form.email.trim(),
-        contactNo: Validation.digitsOnly(form.contactNo),
-        estateName: form.estateName.trim(),
-        password: form.password,
-        role: "dealer"
-      }
+      const requestBody = buildSignUpRequestBody(form, "dealer")
+      const { userId } = await signUpUser(requestBody)
 
-      //console.log('userData:', userData);
-      //console.log('sending request to:', `${BASE_URL}/users/signup`);
-
-      const response = await axios.post(`${BASE_URL}/users/signup`, userData);
-
-      //console.log('response:', response.data);
-
-      if (response?.data.success) {
-        showSuccessToast("OTP sent successfully");
-        setForm(createInitialFormState())
-        setErrors({})
-        setTouched(createTouchedState(false))
-        // router.push("/(auth)/sign-in");
-        router.push({
-          pathname: '/verify-otp',
-          params: { userId: response.data.data.userId, isSignupOTP: "true" }
-       });
-      } else {
-        showErrorToast(response?.data.error.message || "Signup failed");
-      }
+      showSuccessToast("OTP sent successfully")
+      setForm(createInitialSignUpFormState())
+      setErrors({})
+      setTouched(createSignUpTouchedState(false))
+      // router.push("/(auth)/sign-in");
+      router.push({
+        pathname: "/verify-otp",
+        params: { userId, isSignupOTP: "true" },
+      })
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Signup failed");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       setLoading(false)
     }

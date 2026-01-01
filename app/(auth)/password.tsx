@@ -115,7 +115,6 @@ export default function ForgotPasswordScreen() {
     </SafeAreaView>
   )
 }
-
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: Colors.neutral10,

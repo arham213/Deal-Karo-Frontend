@@ -18,18 +18,24 @@ import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import {
+  buildListingsRequest,
+  type ActiveFilterTab,
+  type ListingsFilters,
+  type PropertyTypeTab,
+} from "../../packages/utils/listings/listingsQuery"
 
 export default function ListingsScreen() {
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuthContext()
   const [user, setUser] = useState<User | null>(null)
   const [listings, setListings] = useState<ListingState[]>([])
-  const [activePropertyTab, setActivePropertyTab] = useState<"Plots" | "Houses" | "Commercial Plots">("Plots")
-  const [activeFilter, setActiveFilter] = useState("All Listings")
+  const [activePropertyTab, setActivePropertyTab] = useState<PropertyTypeTab>("Plots")
+  const [activeFilter, setActiveFilter] = useState<ActiveFilterTab>("All Listings")
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [clickedListing, setClickedListing] = useState<ListingState>()
-  const [filters, setFilters] = useState({})
+  const [filters, setFilters] = useState<ListingsFilters>({})
   const [showPropertyTypeDropdown, setShowPropertyTypeDropdown] = useState(false)
   const dropdownButtonRef = useRef<View>(null)
   const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0, width: 0 })
@@ -45,8 +51,8 @@ export default function ListingsScreen() {
   const isFetchingRef = useRef(false)
   const isSearchingRef = useRef(false)
 
-  const propertyTypeOptions: Array<"Plots" | "Houses" | "Commercial Plots"> = ["Plots", "Houses", "Commercial Plots"]
-  const BASE_URL = "https://deal-karo-backend.vercel.app/api"
+  const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
+  const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
 
   useEffect(() => {
     getUser()
@@ -91,85 +97,6 @@ export default function ListingsScreen() {
     }
   }
 
-  // Helper function to check if we should use advanced search
-  // Use advanced search if: filters are applied OR property type/active filter tabs are set
-  const shouldUseAdvancedSearch = useCallback((filterObj: Record<string, any>, propertyTab: string, activeFilterTab: string) => {
-    // Always use advanced search when property type or active filter tabs are set
-    // (Even if they're the default values, we still need to filter by them)
-    const hasPropertyTypeFilter = true // Always filter by property type
-    const hasActiveFilter = activeFilterTab !== "All Listings"
-
-    // Or if filters from modal are applied
-    const hasFilters = filterObj && Object.keys(filterObj).length > 0
-
-    return hasPropertyTypeFilter || hasActiveFilter || hasFilters
-  }, [])
-
-  // Helper function to transform filter values for backend
-  const transformFiltersForBackend = useCallback((filterObj: Record<string, any>, propertyTab: string, activeFilterTab: string) => {
-    const params: Record<string, any> = {}
-
-    // Map propertyType from activePropertyTab (always include)
-    if (propertyTab === "Plots") {
-      params.propertyType = "plot"
-    } else if (propertyTab === "Houses") {
-      params.propertyType = "house"
-    } else if (propertyTab === "Commercial Plots") {
-      params.propertyType = "commercial plot"
-    }
-
-    // Map listingType from activeFilterTab (if not "All Listings")
-    if (activeFilterTab === "For cash") {
-      params.listingType = "cash"
-    } else if (activeFilterTab === "Installments") {
-      params.listingType = "installments"
-    }
-    // "All Listings" means no listingType filter
-
-    // Map listingType from typeOfPlot in filterObj (only if typeOfPlot is set and activeFilterTab is "All Listings")
-    // This allows filter modal to override the activeFilterTab
-    if (filterObj.typeOfPlot && activeFilterTab === "All Listings") {
-      if (filterObj.typeOfPlot === "On Cash") {
-        params.listingType = "cash"
-      } else if (filterObj.typeOfPlot === "On Installments") {
-        params.listingType = "installments"
-      }
-    }
-
-    // Phase (only include if not null/empty)
-    if (filterObj.phase && filterObj.phase.trim() !== "") {
-      params.phase = filterObj.phase
-    }
-
-    // Block (only include if not null/empty)
-    if (filterObj.block && filterObj.block.trim() !== "") {
-      params.block = filterObj.block
-    }
-
-    // Area - send selected area (backend accepts single area string)
-    // Only include if area is selected and not "All"
-    if (filterObj.selectedArea && filterObj.selectedArea !== "All") {
-      params.area = filterObj.selectedArea
-    }
-
-    // Price range - extract numeric values (only include if not default values)
-    if (filterObj.minPrice && filterObj.minPrice !== "Rs.1 Crore") {
-      const minPriceNum = filterObj.minPrice.replace(/[^0-9]/g, "")
-      if (minPriceNum) {
-        const parsed = parseInt(minPriceNum, 10)
-        if (!isNaN(parsed)) params.minPrice = parsed
-      }
-    }
-    if (filterObj.maxPrice && filterObj.maxPrice !== "Rs. 2 Crore") {
-      const maxPriceNum = filterObj.maxPrice.replace(/[^0-9]/g, "")
-      if (maxPriceNum) {
-        const parsed = parseInt(maxPriceNum, 10)
-        if (!isNaN(parsed)) params.maxPrice = parsed
-      }
-    }
-    return params
-  }, [])
-
   const getListings = useCallback(async (page: number = 1, reset: boolean = false, search: string = "", isSearch: boolean = false) => {
     // Prevent multiple simultaneous API calls
     if (isFetchingRef.current) {
@@ -199,27 +126,14 @@ export default function ListingsScreen() {
     }
 
     try {
-      // Check if we should use advanced search
-      const useAdvancedSearch = shouldUseAdvancedSearch(filters, activePropertyTab, activeFilter)
-      let url = `/properties`
-      let params: Record<string, any> = {
+      const { url, params } = buildListingsRequest({
         page,
-        limit: parseInt(process.env.PAGINATION_LIMIT || '25'),
-      }
-
-      if (useAdvancedSearch && !(search && search.trim())) {
-        // Use advanced search endpoint when property type, active filter, or filters are applied
-        url = `/properties/search/advanced`
-        const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter)
-        params = { ...params, ...filterParams }
-      } else if (search && search.trim()) {
-        // Simple text search - use dedicated search endpoint (only when no filters/tabs are set)
-        url = `/properties/search`
-        params.searchString = search.trim()
-        const filterParams = transformFiltersForBackend(filters, activePropertyTab, activeFilter)
-        const { propertyType, listingType, ...rest } = filterParams
-        params = { ...params, propertyType, listingType }
-      }
+        limit: parseInt(process.env.PAGINATION_LIMIT || "25", 10),
+        search,
+        filters,
+        propertyTab: activePropertyTab,
+        activeFilterTab: activeFilter,
+      })
 
       const response = await apiClient.get(url, {
         params,
@@ -313,7 +227,7 @@ export default function ListingsScreen() {
         }
       }
     }
-  }, [filters, activePropertyTab, activeFilter, shouldUseAdvancedSearch, transformFiltersForBackend])
+  }, [filters, activePropertyTab, activeFilter])
 
   // Initial load and handle filters, property tab, and active filter changes (immediate)
   useEffect(() => {
@@ -453,12 +367,12 @@ export default function ListingsScreen() {
   //   </View>
   // )
 
-  const handleSetActivePropertyTab = useCallback((type: "Plots" | "Houses" | "Commercial Plots") => {
+  const handleSetActivePropertyTab = useCallback((type: PropertyTypeTab) => {
     setActivePropertyTab(type)
     setActiveFilter("All Listings")
   }, [])
 
-  const handleSetActiveFilter = useCallback((item: string) => {
+  const handleSetActiveFilter = useCallback((item: ActiveFilterTab) => {
     setActiveFilter(item)
   }, [])
 
@@ -567,7 +481,7 @@ export default function ListingsScreen() {
             <FlatList
               horizontal
               scrollEnabled
-              data={["All Listings", "For cash", "Installments"]}
+              data={filterTabs}
               keyExtractor={(item) => item}
               contentContainerStyle={styles.filterCategoryScroll}
               showsHorizontalScrollIndicator={false}

@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     width: 120,
-    height: 52
+    height: 120
   },
   textContainer: {
     alignItems: "center",

@@ -6,11 +6,11 @@ import { useAuthContext } from "@/contexts/AuthContext"
 import { fontFamilies, fontSizes, fontWeights, spacing } from "@/styles/tokens"
 import { getToken, getUser, saveOnboardingCompleted, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
-import axios from "axios"
 import { useRouter } from "expo-router"
 import { useRef, useState } from "react"
 import { Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { completeOnboarding } from "../../packages/utils/auth/onboarding"
 
 const { width } = Dimensions.get("window")
 
@@ -65,37 +65,25 @@ export default function OnboardingScreen() {
         return
       }
       
-      const updateData = {
-        _id: user._id,
-        onBoardingCompleted: true
-      }
-
-      // Make API call
-      const response = await axios.put(`${BASE_URL}/users/`, updateData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const { user: updatedUser } = await completeOnboarding({
+        token,
+        userId: user._id,
+        baseUrl: BASE_URL,
       })
 
-      //console.log('response:', response.data)
-
-      if (response.data?.success) {
-        // Update secure store - save to both user object and separate key
-        await saveUser({ ...user, onBoardingCompleted: true })
-        await saveOnboardingCompleted("true")
-        showSuccessToast("Onboarding completed successfully!")
-        // Refresh auth context to update onboarding status
-        await checkAuth()
-        router.replace("/(listings)/listings")
-      } else {
-        showErrorToast(response.data?.message || "Failed to complete onboarding")
-      }
-    } catch (error: any) {
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to complete onboarding. Please try again.")
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      // Update secure store - save to both user object and separate key
+      await saveUser(updatedUser)
+      await saveOnboardingCompleted("true")
+      showSuccessToast("Onboarding completed successfully!")
+      // Refresh auth context to update onboarding status
+      await checkAuth()
+      router.replace("/(listings)/listings")
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to complete onboarding. Please try again."
+      showErrorToast(message)
     } finally {
       setLoading(false)
     }

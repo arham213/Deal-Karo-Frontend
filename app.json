@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Deal Kroo",
-    "slug": "deal-kroo",
+    "name": "Deal Krein",
+    "slug": "deal-karo",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
@@ -10,11 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "4",
+      "buildNumber": "5",
       "bundleIdentifier": "com.arham1.dealkaro"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
@@ -30,8 +31,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/white-logo.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash-screen-logo.png",
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#000000",
           "dark": {

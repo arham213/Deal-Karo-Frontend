@@ -8,29 +8,30 @@ import { User } from "@/types/auth"
 import apiClient from "@/utils/axiosConfig"
 import { getToken } from "@/utils/secureStore"
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
-import { Validation } from "@/utils/validation"
 import { Ionicons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-
-interface Note {
-  _id: string
-  description: string
-  createdAt: any
-}
+import {
+  NOTE_MAX_LENGTH,
+  createNote,
+  deleteNoteById,
+  formatNoteDate,
+  validateNoteDescription,
+  type Note
+} from "../../packages/utils/notes/notes"
 
 export default function MyNotesScreen() {
   const router = useRouter()
@@ -54,45 +55,6 @@ export default function MyNotesScreen() {
   const currentPageRef = useRef(1)
 
   const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
-  const NOTE_MIN_LENGTH = 3
-  const NOTE_MAX_LENGTH = 500
-
-  const formatDate = (dateString: any): string => {
-    if (!dateString) return ""
-    
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return ""
-    
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const noteDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    
-    // Format time in 12-hour format
-    let hours = date.getHours()
-    const minutes = date.getMinutes()
-    const ampm = hours >= 12 ? "PM" : "AM"
-    hours = hours % 12
-    hours = hours ? hours : 12 // the hour '0' should be '12'
-    const minutesStr = minutes < 10 ? `0${minutes}` : minutes
-    const timeString = `${hours}:${minutesStr} ${ampm}`
-    
-    // Determine date label
-    let dateLabel = ""
-    if (noteDate.getTime() === today.getTime()) {
-      dateLabel = "Today"
-    } else if (noteDate.getTime() === yesterday.getTime()) {
-      dateLabel = "Yesterday"
-    } else {
-      // Format as "MMM DD, YYYY" for older dates
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-      dateLabel = `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
-    }
-    
-    return `${dateLabel} - ${timeString}`
-  }
-
   // Check verification status on mount
   useEffect(() => {
     checkVerificationStatus()
@@ -309,14 +271,6 @@ export default function MyNotesScreen() {
     }
   }, [])
 
-  const validateNote = (value: string) => {
-    const trimmed = value.trim()
-    if (!Validation.isRequired(trimmed)) return "Note cannot be empty"
-    if (!Validation.hasMinLength(trimmed, NOTE_MIN_LENGTH)) return `Note must be at least ${NOTE_MIN_LENGTH} characters`
-    if (!Validation.hasMaxLength(trimmed, NOTE_MAX_LENGTH)) return `Note cannot exceed ${NOTE_MAX_LENGTH} characters`
-    return undefined
-  }
-
   const handleOpenModal = () => {
     setNewNoteDescription("")
     setNoteError(undefined)
@@ -333,14 +287,14 @@ export default function MyNotesScreen() {
   const handleNoteChange = (value: string) => {
     setNewNoteDescription(value)
     if (noteTouched) {
-      setNoteError(validateNote(value))
+      setNoteError(validateNoteDescription(value))
     }
   }
 
   const noteHelperText = noteError ? undefined : `Max ${NOTE_MAX_LENGTH} characters`
 
   const handleAddNote = async () => {
-    const errorMessage = validateNote(newNoteDescription)
+    const errorMessage = validateNoteDescription(newNoteDescription)
     if (errorMessage) {
       setNoteError(errorMessage)
       setNoteTouched(true)
@@ -349,33 +303,26 @@ export default function MyNotesScreen() {
 
     setSubmitting(true)
     try {
-      const response = await apiClient.post(`/notes`, { description: newNoteDescription.trim() });
-      //console.log('response:', response.data);
+      await createNote(newNoteDescription)
 
-      if (response?.data.success) {
-        showSuccessToast("Note Added Successfully");
-        // Reset and reload from page 1
-        setCurrentPage(1)
-        currentPageRef.current = 1
-        setTotalPages(1)
-        setHasMore(true)
-        setNotes([])
-        initialLoadCompleteRef.current = false
-        hasScrolledRef.current = false
-        getNotes(1, true)
-        setNewNoteDescription("")
-        setNoteTouched(false)
-        setNoteError(undefined)
-        setShowAddModal(false)
-      } else {
-        showErrorToast(response?.data.error.message || "Failed to fetch notes");
-      }
+      showSuccessToast("Note Added Successfully")
+      // Reset and reload from page 1
+      setCurrentPage(1)
+      currentPageRef.current = 1
+      setTotalPages(1)
+      setHasMore(true)
+      setNotes([])
+      initialLoadCompleteRef.current = false
+      hasScrolledRef.current = false
+      getNotes(1, true)
+      setNewNoteDescription("")
+      setNoteTouched(false)
+      setNoteError(undefined)
+      setShowAddModal(false)
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to fetch notes");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       setSubmitting(false)
     }
@@ -384,32 +331,15 @@ export default function MyNotesScreen() {
   const handleMarkAsDone = async (id: string) => {
     // Don't show loading for delete operation to avoid blocking UI
     try {
-      const response = await apiClient.delete(`/notes/${id}`);
+      await deleteNoteById(id)
 
-      if (response?.data.success) {
-        showSuccessToast("Note Marked as Done Successfully");
-        // Remove the note from the list
-        setNotes((prevNotes) => prevNotes.filter((note) => note?._id !== id))
-      } else {
-        showErrorToast(response?.data.error.message || "Failed to fetch notes");
-      }
+      showSuccessToast("Note Marked as Done Successfully")
+      // Remove the note from the list
+      setNotes((prevNotes) => prevNotes.filter((note) => note?._id !== id))
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status
-        const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || "Failed to delete note"
-        
-        // Don't show error toast for auth errors - interceptors will handle logout
-        if (status === 401 || status === 404) {
-          if (errorMessage.toLowerCase().includes("user not found")) {
-            return
-          }
-          return
-        }
-        
-        showErrorToast(errorMessage)
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     }
   }
 
@@ -465,7 +395,7 @@ export default function MyNotesScreen() {
         <View style={styles.noteFooter}>
           <View style={styles.timeContainer}>
             <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.timestamp}>{formatDate(note?.createdAt)}</Text>
+            <Text style={styles.timestamp}>{formatNoteDate(note?.createdAt)}</Text>
           </View>
           <TouchableOpacity onPress={() => handleMarkAsDone(note?._id)}>
             <Text style={styles.markAsDoneText}>Mark as done</Text>
@@ -543,7 +473,7 @@ export default function MyNotesScreen() {
               onChangeText={handleNoteChange}
               onBlur={() => {
                 setNoteTouched(true)
-                setNoteError(validateNote(newNoteDescription))
+            setNoteError(validateNoteDescription(newNoteDescription))
               }}
               multiline
               style={styles.noteInput}
@@ -554,7 +484,12 @@ export default function MyNotesScreen() {
             />
 
             <View style={styles.modalButtons}>
-              <Button title="Add" onPress={handleAddNote} loading={submitting} disabled={submitting || Boolean(validateNote(newNoteDescription))} />
+              <Button
+                title="Add"
+                onPress={handleAddNote}
+                loading={submitting}
+                disabled={submitting || Boolean(validateNoteDescription(newNoteDescription))}
+              />
               <TouchableOpacity style={styles.cancelButton} onPress={handleCloseModal}>
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>

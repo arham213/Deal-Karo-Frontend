@@ -6,12 +6,18 @@ import { TextInput } from "@/components/TextInput"
 import { Colors } from "@/constants/colors"
 import { fontSizes, fontWeights, layoutStyles, radius, spacing, typographyStyles } from "@/styles"
 import { showErrorToast, showSuccessToast } from "@/utils/toast"
-import { Validation, type ValidationErrors } from "@/utils/validation"
-import axios from "axios"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useMemo, useState } from "react"
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import {
+  getPasswordChecks,
+  resetPasswordForUser,
+  validateResetPasswordField,
+  validateResetPasswordForm,
+  type ResetPasswordErrors,
+  type ResetPasswordField,
+} from "../../packages/utils/auth/resetPassword"
 
 export default function ResetPasswordScreen() {
   const router = useRouter()
@@ -19,39 +25,19 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<ValidationErrors<"password" | "confirmPassword">>({})
-  const [touched, setTouched] = useState<Record<"password" | "confirmPassword", boolean>>({
+  const [errors, setErrors] = useState<ResetPasswordErrors>({})
+  const [touched, setTouched] = useState<Record<ResetPasswordField, boolean>>({
     password: false,
     confirmPassword: false,
   })
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
-
-  const validateField = (field: "password" | "confirmPassword", value: string) => {
-    if (field === "password") {
-      if (!Validation.isRequired(value)) return "Password is required"
-      if (!Validation.hasMinLength(value, 8)) return "Password must be at least 8 characters long"
-      if (!Validation.hasUppercase(value)) return "Include at least one uppercase letter"
-      if (!Validation.hasLowercase(value)) return "Include at least one lowercase letter"
-      if (!Validation.hasNumber(value)) return "Include at least one number"
-      return undefined
-    }
-
-    if (!Validation.isRequired(value)) return "Please confirm your password"
-    if (value !== password) return "Passwords do not match"
-    return undefined
-  }
-
   const runValidation = () => {
-    const passwordError = validateField("password", password)
-    const confirmError = validateField("confirmPassword", confirmPassword)
-
-    const nextErrors: ValidationErrors<"password" | "confirmPassword"> = {}
-    if (passwordError) nextErrors.password = passwordError
-    if (confirmError) nextErrors.confirmPassword = confirmError
-
-    setErrors(nextErrors)
-    return !passwordError && !confirmError
+    const { isValid, errors: validationErrors } = validateResetPasswordForm(
+      password,
+      confirmPassword,
+    )
+    setErrors(validationErrors)
+    return isValid
   }
 
   const markAllTouched = () => {
@@ -67,40 +53,27 @@ export default function ResetPasswordScreen() {
       return
     }
 
-    setLoading(true)
     try {
-      const userData = {
-        userId: userId,
-        password: password,
-      }
+      setLoading(true)
 
-      const response = await axios.post(`${BASE_URL}/users/resetPassword`, userData);
+      await resetPasswordForUser({
+        userId: String(userId),
+        password,
+      })
 
-      //console.log('response:', response.data);
-
-      setLoading(false);
-
-      if (response?.data.success) {
-        showSuccessToast("Password reset successfully");
-        setPassword("")
-        setConfirmPassword("")
-        setErrors({})
-        setTouched({
-          password: false,
-          confirmPassword: false,
-        })
-        router.push("/(auth)/sign-in");
-      } else {
-        showErrorToast(response?.data.error.message || "Failed to reset password");
-      }
+      showSuccessToast("Password reset successfully")
+      setPassword("")
+      setConfirmPassword("")
+      setErrors({})
+      setTouched({
+        password: false,
+        confirmPassword: false,
+      })
+      router.push("/(auth)/sign-in")
     } catch (error) {
-      setLoading(false)
-
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Failed to reset password");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       setLoading(false)
     }
@@ -110,7 +83,7 @@ export default function ResetPasswordScreen() {
   const handlePasswordChange = (value: string) => {
     setPassword(value)
     if (touched.password) {
-      const errorMessage = validateField("password", value)
+      const errorMessage = validateResetPasswordField("password", value, value)
       setErrors((prev) => {
         const next = { ...prev }
         if (errorMessage) next.password = errorMessage
@@ -120,7 +93,11 @@ export default function ResetPasswordScreen() {
     }
 
     if (touched.confirmPassword) {
-      const confirmError = validateField("confirmPassword", confirmPassword)
+      const confirmError = validateResetPasswordField(
+        "confirmPassword",
+        confirmPassword,
+        value,
+      )
       setErrors((prev) => {
         const next = { ...prev }
         if (confirmError) next.confirmPassword = confirmError
@@ -133,7 +110,11 @@ export default function ResetPasswordScreen() {
   const handleConfirmPasswordChange = (value: string) => {
     setConfirmPassword(value)
     if (touched.confirmPassword) {
-      const errorMessage = validateField("confirmPassword", value)
+      const errorMessage = validateResetPasswordField(
+        "confirmPassword",
+        value,
+        password,
+      )
       setErrors((prev) => {
         const next = { ...prev }
         if (errorMessage) next.confirmPassword = errorMessage
@@ -143,14 +124,14 @@ export default function ResetPasswordScreen() {
     }
   }
 
-  const handleBlur = (field: "password" | "confirmPassword") => () => {
+  const handleBlur = (field: ResetPasswordField) => () => {
     setTouched((prev) => ({
       ...prev,
       [field]: true,
     }))
 
     const value = field === "password" ? password : confirmPassword
-    const errorMessage = validateField(field, value)
+    const errorMessage = validateResetPasswordField(field, value, password)
     setErrors((prev) => {
       const next = { ...prev }
       if (errorMessage) next[field] = errorMessage
@@ -160,20 +141,16 @@ export default function ResetPasswordScreen() {
   }
 
   const passwordChecks = useMemo(
-    () => ({
-      length: Validation.hasMinLength(password, 8),
-      uppercase: Validation.hasUppercase(password),
-      lowercase: Validation.hasLowercase(password),
-      number: Validation.hasNumber(password),
-      match: Boolean(password) && password === confirmPassword,
-    }),
+    () => getPasswordChecks(password, confirmPassword),
     [password, confirmPassword],
   )
 
   const isSubmitDisabled =
     loading ||
-    Boolean(validateField("password", password)) ||
-    Boolean(validateField("confirmPassword", confirmPassword))
+    Boolean(validateResetPasswordField("password", password, password)) ||
+    Boolean(
+      validateResetPasswordField("confirmPassword", confirmPassword, password),
+    )
 
   return (
     <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>

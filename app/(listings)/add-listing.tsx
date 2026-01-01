@@ -7,94 +7,42 @@ import { Colors } from "@/constants/colors"
 import { COMMERCIAL_BLOCKS, PHASE_OPTIONS, RESEDENTIAL_BLOCKS } from "@/constants/listingOptions"
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles"
 import { User } from "@/types/auth"
-import { AreaSize, ListingType, PropertyType } from "@/types/listings"
+import { AreaSize } from "@/types/listings"
 import { getToken, getUser } from "@/utils/secureStore"
 import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
-import { Validation, type ValidationErrors } from "@/utils/validation"
+import { Validation } from "@/utils/validation"
 import { Ionicons, MaterialIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native"
 
 import { SafeAreaView } from "react-native-safe-area-context"
-
-interface AddListingState {
-  propertyType: PropertyType
-  listingType: ListingType
-  plotNo: string
-  houseNo: string
-  block: string
-  phase: string
-  area: AreaSize
-  additionalArea: string
-  price: string
-  pricePerMarla: string
-  rentPerMonth: string
-  installmentPerMonth: string
-  installmentHalfYearly: string
-  description: string
-  contact: string
-  possession: string
-}
-
-type ListingField =
-  | "plotNo"
-  | "houseNo"
-  | "block"
-  | "phase"
-  | "area"
-  | "additionalArea"
-  | "price"
-  | "pricePerMarla"
-  | "installmentPerMonth"
-  | "installmentHalfYearly"
-  | "contact"
-  | "possession"
-const FORM_FIELDS: ListingField[] = [
-  "plotNo",
-  "houseNo",
-  "block",
-  "phase",
-  "area",
-  "additionalArea",
-  "price",
-  "pricePerMarla",
-  "installmentPerMonth",
-  "installmentHalfYearly",
-  "contact",
-  "possession",
-]
-
-const createTouchedState = (value: boolean): Record<ListingField, boolean> =>
-  FORM_FIELDS.reduce((acc, field) => {
-    acc[field] = value
-    return acc
-  }, {} as Record<ListingField, boolean>)
-
-const getTotalPrice = (pricePerMarla: string, area: string, additionalArea: string) => {
-  let totalArea;
-  if (area?.includes("Kanal")) {
-    totalArea = Number(area.split(" ")[0]) * 20
-  } else {
-    totalArea = Number(area.split(" ")[0])
-  }
-
-  totalArea += Number(additionalArea) / 255
-
-  console.log('total price:', Number(pricePerMarla) * totalArea)
-  return (Number(pricePerMarla) * totalArea).toFixed(2)
-}
+import {
+  buildAddListingPayload,
+  createAddListingTouchedState,
+  createInitialAddListingState,
+  createListing,
+  FORM_FIELDS,
+  getTotalPrice,
+  hasBlockingListingErrors,
+  isValidatableListingField,
+  validateAddListingForm,
+  validateListingField,
+  type AddListingErrors,
+  type AddListingState,
+  type ListingField,
+} from "../../packages/utils/listings/addListing"
 
 export default function AddListingScreen() {
   const router = useRouter()
@@ -102,30 +50,15 @@ export default function AddListingScreen() {
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<AddListingState>({
-    propertyType: "plot",
-    listingType: "cash",
-    plotNo: "",
-    houseNo: "",
-    block: "",
-    phase: "",
-    area: "5 Marla",
-    additionalArea: "",
-    price: "",
-    pricePerMarla: "",
-    rentPerMonth: "",
-    installmentPerMonth: "",
-    installmentHalfYearly: "",
-    description: "",
-    contact: "",
-    possession: "Yes",
-  })
+  const [formData, setFormData] = useState<AddListingState>(createInitialAddListingState)
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
   const [customAreaValue, setCustomAreaValue] = useState("")
   const [customAreaType, setCustomAreaType] = useState<string>("Marla")
   const [customAreaError, setCustomAreaError] = useState<string | undefined>(undefined)
-  const [errors, setErrors] = useState<ValidationErrors<ListingField>>({})
-  const [touched, setTouched] = useState<Record<ListingField, boolean>>(createTouchedState(false))
+  const [errors, setErrors] = useState<AddListingErrors>({})
+  const [touched, setTouched] = useState<Record<ListingField, boolean>>(
+    createAddListingTouchedState(false),
+  )
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
   const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
@@ -165,7 +98,7 @@ export default function AddListingScreen() {
         
         // Validate the calculated price if relevant fields have been touched
         if (shouldValidatePrice || touched.price) {
-          const errorMessage = validateField("price", calculatedPrice, nextState)
+          const errorMessage = validateListingField("price", calculatedPrice, nextState)
           setErrors((prev) => {
             const nextErrors = { ...prev }
             if (errorMessage) {
@@ -240,89 +173,13 @@ export default function AddListingScreen() {
     }
   }
 
-  const isValidatableField = (key: keyof AddListingState): key is ListingField => {
-    return (FORM_FIELDS as string[]).includes(key as string)
-  }
-
-  const validateField = (field: ListingField, value: string, state: AddListingState = formData) => {
-    const trimmed = value.trim()
-    switch (field) {
-      case "plotNo":
-        if (!(state.propertyType === "plot" || state.propertyType === "commercial plot")) return undefined
-        if (!Validation.isRequired(trimmed)) return "Plot number is required"
-        if (!Validation.isNumeric(trimmed)) return "Plot number must be numeric"
-        return undefined
-      case "houseNo":
-        if (state.propertyType !== "house") return undefined
-        if (!Validation.isRequired(trimmed)) return "House number is required"
-        if (!Validation.isNumeric(trimmed)) return "House number must be numeric"
-        return undefined
-      case "block":
-        if (!Validation.isRequired(trimmed)) return "Block is required"
-        return undefined
-      case "phase":
-        if (!Validation.isRequired(trimmed)) return "Phase is required"
-        return undefined
-      case "area":
-        if (!Validation.isRequired(value)) return "Area is required"
-        if (value === "custom") return "Please specify the custom area"
-        return undefined
-      case "additionalArea":
-        if (!trimmed) return undefined
-        if (!Validation.isNumeric(trimmed)) return "Additional area must be numeric"
-        return undefined
-      case "price":
-        // For plots/commercial plots with cash listing, price is auto-calculated
-        const isPlotOrCommercialPlot = (state.propertyType === "plot" || state.propertyType === "commercial plot")
-        const isCashListing = state.listingType === "cash"
-        if (isPlotOrCommercialPlot && isCashListing && state.pricePerMarla && state.area) {
-          // Price is auto-calculated, validate the calculated value
-          const calculatedPrice = getTotalPrice(state.pricePerMarla, state.area, state.additionalArea || "")
-          if (!calculatedPrice || calculatedPrice === "NaN" || calculatedPrice === "0.00") {
-            return "Price calculation error. Please check price per marla and area."
-          }
-          if (Validation.toNumber(calculatedPrice) <= 0) {
-            return "Calculated price must be greater than 0"
-          }
-          return undefined
-        }
-        // For other cases, validate the manually entered price
-        if (!Validation.isRequired(trimmed)) return "Price is required"
-        if (!Validation.isNumeric(trimmed)) return "Price must be numeric"
-        if (Validation.toNumber(trimmed) <= 0) return "Price must be greater than 0"
-        return undefined
-      case "pricePerMarla":
-        if (!((state.propertyType === "plot" || state.propertyType === "commercial plot") && state.listingType === "cash"))
-          return undefined
-        if (!Validation.isRequired(trimmed)) return "Price per marla is required"
-        if (!Validation.isNumeric(trimmed)) return "Price per marla must be numeric"
-        if (Validation.toNumber(trimmed) <= 0) return "Price per marla must be greater than 0"
-        return undefined
-      case "installmentPerMonth":
-        if (state.listingType !== "installments") return undefined
-        if (!Validation.isRequired(trimmed)) return "Monthly installment is required"
-        if (!Validation.isNumeric(trimmed)) return "Monthly installment must be numeric"
-        return undefined
-      case "installmentHalfYearly":
-        if (state.listingType !== "installments") return undefined
-        if (!Validation.isRequired(trimmed)) return "Half Yearly installment is required"
-        if (!Validation.isNumeric(trimmed)) return "Half Yearly installment must be numeric"
-        return undefined
-      case "possession":
-        if (!Validation.isRequired(value)) return "Possession is required"
-        return undefined
-      default:
-        return undefined
-    }
-  }
-
   const updateTouchedErrors = (state: AddListingState) => {
     setErrors((prev) => {
       const nextErrors = { ...prev }
       FORM_FIELDS.forEach((field) => {
         if (touched[field]) {
           const fieldValue = state[field] as string
-          const errorMessage = validateField(field, fieldValue, state)
+          const errorMessage = validateListingField(field, fieldValue, state)
           if (errorMessage) {
             nextErrors[field] = errorMessage
           } else {
@@ -344,7 +201,7 @@ export default function AddListingScreen() {
 
   const handleInputChange = (key: keyof AddListingState, value: string | boolean, options?: { forceValidate?: boolean }) => {
     if (key === "propertyType") {
-      const propertyType = value as PropertyType
+      const propertyType = value as AddListingState["propertyType"]
       updateForm((prev) => {
         const next: AddListingState = {
           ...prev,
@@ -361,31 +218,8 @@ export default function AddListingScreen() {
       return
     }
 
-    if (key === "contact" && typeof value === "string") {
-      const digits = Validation.digitsOnly(value).slice(0, 11)
-
-      if (!touched.contact) {
-        setTouched((prev) => ({ ...prev, contact: true }))
-      }
-
-      updateForm((prev) => ({
-        ...prev,
-        contact: digits,
-      }))
-
-      const nextState = { ...formData, contact: digits } as AddListingState
-      const errorMessage = validateField("contact", digits, nextState)
-      setErrors((prev) => {
-        const nextErrors = { ...prev }
-        if (errorMessage) nextErrors.contact = errorMessage
-        else delete nextErrors.contact
-        return nextErrors
-      })
-      return
-    }
-
     if (key === "listingType") {
-      const listingType = value as ListingType
+      const listingType = value as AddListingState["listingType"]
       updateForm((prev) => ({
         ...prev,
         listingType,
@@ -404,12 +238,16 @@ export default function AddListingScreen() {
       [key]: value,
     }))
 
-    if (typeof value === "string" && isValidatableField(key) && (options?.forceValidate || touched[key])) {
+    if (
+      typeof value === "string" &&
+      isValidatableListingField(key) &&
+      (options?.forceValidate || touched[key])
+    ) {
       const nextState = {
         ...formData,
         [key]: value,
       } as AddListingState
-      const errorMessage = validateField(key, value, nextState)
+      const errorMessage = validateListingField(key, value, nextState)
       setErrors((prev) => {
         const nextErrors = { ...prev }
         if (errorMessage) {
@@ -429,7 +267,7 @@ export default function AddListingScreen() {
     }))
 
     const value = (formData[field] as unknown as string) || ""
-    const errorMessage = validateField(field, value, formData)
+    const errorMessage = validateListingField(field, value, formData)
     setErrors((prev) => {
       const nextErrors = { ...prev }
       if (errorMessage) {
@@ -441,36 +279,20 @@ export default function AddListingScreen() {
     })
   }
 
-  const validateFormState = (state: AddListingState = formData) => {
-    const newErrors: ValidationErrors<ListingField> = {}
-    FORM_FIELDS.forEach((field) => {
-      const value = (state[field] as unknown as string) || ""
-      const errorMessage = validateField(field, value, state)
-      if (errorMessage) {
-        newErrors[field] = errorMessage
-      }
-    })
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
   const markAllTouched = () => {
-    setTouched(createTouchedState(true))
+    setTouched(createAddListingTouchedState(true))
   }
 
   const hasBlockingErrors = useMemo(
-    () =>
-      FORM_FIELDS.some((field) => {
-        const value = (formData[field] as unknown as string) || ""
-        return Boolean(validateField(field, value, formData))
-      }),
+    () => hasBlockingListingErrors(formData),
     [formData],
   )
 
   const isSubmitDisabled = loading || hasBlockingErrors
 
   const handleAddListing = async () => {
-    const isValid = validateFormState()
+    const { isValid, errors: validationErrors } = validateAddListingForm(formData)
+    setErrors(validationErrors)
     if (!isValid) {
       markAllTouched()
       return
@@ -492,51 +314,20 @@ export default function AddListingScreen() {
         throw new Error("User not found in storage.")
       }
 
-      const userData = {
-        userId: user?._id,
-        ...((formData.propertyType === "plot" || formData.propertyType === "commercial plot") ? { plotNo: formData.plotNo } : { houseNo: formData.houseNo }),
-        propertyType: formData.propertyType,
-        listingType: formData.listingType,
-        block: formData.block,
-        phase: formData.phase,
-        area: formData.area,
-        additionalArea: formData.additionalArea,
-        ...((formData.propertyType === "plot" || formData.propertyType === "commercial plot") && formData.listingType === "cash" && {
-          pricePerMarla: formData.pricePerMarla,
-        }),
-        price: formData.price,
-        // ...(formData.propertyType === "house" && formData.listingType === "rent" && {
-        //   rentPerMonth: formData.rentPerMonth
-        // }),
-        ...(formData.listingType === "installments" && {
-          installment: {
-            perMonth: formData.installmentPerMonth,
-            halfYearly: formData.installmentHalfYearly
-          }
-        }),
-        description: formData.description,
-        forContact: Validation.digitsOnly(user?.contactNo || ""),
-        possession: formData.possession === "Yes" ? true : false,
-      }
+      const payload = buildAddListingPayload(formData, user)
 
-      const response = await axios.post(`${BASE_URL}/properties`, userData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await createListing({
+        token,
+        payload,
+        baseUrl: BASE_URL,
+      })
 
-      if (response?.data.success) {
-        showSuccessToast("Listing added successfully");
-        router.replace("/my-listings")
-      } else {
-        showErrorToast("Listing creation failed");
-      }
+      showSuccessToast("Listing added successfully")
+      router.replace("/my-listings")
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        showErrorToast(error?.response?.data?.error?.message || "Listing creation failed");
-      } else {
-        showErrorToast("Something went wrong. Please try again later")
-      }
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again later"
+      showErrorToast(message)
     } finally {
       setLoading(false)
     }
