@@ -16,10 +16,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { ActivityIndicator, Dimensions, FlatList, KeyboardAvoidingView, Modal, Platform, TextInput as RNTextInput, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import {
-    buildMyListingsRequest,
-    type ActiveFilterTab,
-    type ListingsFilters,
-    type PropertyTypeTab,
+  buildMyListingsRequest,
+  type ActiveFilterTab,
+  type ListingsFilters,
+  type PropertyTypeTab,
 } from "../../packages/utils/listings/listingsQuery"
 
 export default function MyListingsScreen() {
@@ -50,7 +50,7 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
   const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
-  const BASE_URL = "https://deal-karo-backend.vercel.app/api"
+  const BASE_URL = "https://api.dealkroo.com/api"
 
   // Check verification status on mount
   useEffect(() => {

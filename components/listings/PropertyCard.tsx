@@ -6,14 +6,16 @@ import { handleContactPress } from "@/utils/dialContact";
 import { formatRelativeTimeLibrary } from "@/utils/formatDateNow";
 import formatPrice from "@/utils/formatPrice";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useRef, useState } from "react";
-import { Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
 
 
 export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, showDelete?: boolean }) => {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const menuButtonRef = useRef<View>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
@@ -40,19 +42,55 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
 
   return (
     <View style={styles.propertyCard}>
-      {user?.verificationStatus === "verified" && (
-        property.possession === true ? (
-          <View style={styles.possessionBadge}>
-            <Text style={styles.possessionBadgeText}>Possession</Text>
-          </View>
-        ) : (
-          <View style={styles.nonPossessionBadge}>
-            <Text style={styles.nonPossessionBadgeText}>Non-Possession</Text>
-          </View>
-        )
-      )}
+
       {/* Content */}
-      <View style={styles.propertyContent}>
+      <TouchableOpacity
+        style={styles.propertyContent}
+        onPress={() => handlePropertyDetails(property._id)}
+        activeOpacity={0.7}
+      >
+        {/* Image with overlaid badges */}
+        <View style={styles.propertyImageContainer}>
+          {property.imageUrl ? (
+            <>
+              <Image
+                source={{ uri: property.imageUrl }}
+                style={styles.propertyImage}
+                contentFit="cover"
+                onLoadStart={() => setImageLoading(true)}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+              {imageLoading && (
+                <View style={styles.imageLoadingOverlay}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="image-outline" size={48} color={Colors.neutral60} />
+              <Text style={styles.imagePlaceholderText}>No Image</Text>
+            </View>
+          )}
+          {/* Status Badge (Cash/Installments) - Top Left */}
+          <View style={[property.listingType === "cash" ? styles.statusBadgeCashOverlay : styles.statusBadgeInstallmentsOverlay]}>
+            <Text style={[property.listingType === "cash" ? styles.statusTextCash : styles.statusTextInstallments]}>
+              {property.listingType.charAt(0).toUpperCase() + property.listingType.slice(1)}
+            </Text>
+          </View>
+          {/* Possession Badge - Top Right */}
+          {user?.verificationStatus === "verified" && (
+            property.possession === true ? (
+              <View style={styles.possessionBadgeOverlay}>
+                <Text style={styles.possessionBadgeText}>Possession</Text>
+              </View>
+            ) : (
+              <View style={styles.nonPossessionBadgeOverlay}>
+                <Text style={styles.nonPossessionBadgeText}>Non-Possession</Text>
+              </View>
+            )
+          )}
+        </View>
         {/* Header with Title and Status */}
         <View style={styles.headerWithLocation}>
 
@@ -107,9 +145,6 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
               </View>
             </View>
           </View>
-          <View style={[property.listingType === "cash" ? styles.statusBadgeCash : styles.statusBadgeInstallments]}>
-            <Text style={[property.listingType === "cash" ? styles.statusTextCash : styles.statusTextInstallments]}>{property.listingType === "cash" ? "Cash" : "Installments"}</Text>
-          </View>
         </View>
 
         {/* Action Buttons */}
@@ -141,35 +176,37 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* Delete Menu Modal */}
-      {showDelete && (
-        <Modal
-          transparent
-          visible={showDeleteMenu}
-          animationType="fade"
-          onRequestClose={() => setShowDeleteMenu(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.deleteMenuBackdrop}
-            onPress={() => setShowDeleteMenu(false)}
+      {
+        showDelete && (
+          <Modal
+            transparent
+            visible={showDeleteMenu}
+            animationType="fade"
+            onRequestClose={() => setShowDeleteMenu(false)}
           >
-            <View style={[styles.deleteMenuContent, { left: menuPosition.x, top: menuPosition.y }]}>
-              <TouchableOpacity
-                style={styles.deleteMenuItem}
-                onPress={handleDelete}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={16} color={Colors.error} />
-                <Text style={styles.deleteMenuText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
-    </View>
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.deleteMenuBackdrop}
+              onPress={() => setShowDeleteMenu(false)}
+            >
+              <View style={[styles.deleteMenuContent, { left: menuPosition.x, top: menuPosition.y }]}>
+                <TouchableOpacity
+                  style={styles.deleteMenuItem}
+                  onPress={handleDelete}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash-outline" size={16} color={Colors.error} />
+                  <Text style={styles.deleteMenuText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )
+      }
+    </View >
   )
 }
 
@@ -184,14 +221,72 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   propertyImageContainer: {
-    height: 140,
+    height: 200,
     backgroundColor: Colors.inputBackground,
-    justifyContent: "center",
-    alignItems: "center",
+    position: "relative",
+    borderRadius: radius.lg,
+    overflow: "hidden",
   },
   propertyImage: {
     width: "100%",
     height: "100%",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: Colors.neutral20,
+    gap: spacing.sm,
+  },
+  imagePlaceholderText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral60,
+    fontFamily: fontFamilies.primary,
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.neutral20,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  possessionBadgeOverlay: {
+    position: "absolute",
+    top: spacing.md2,
+    right: spacing.md2,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.backgroundPossession,
+  },
+  nonPossessionBadgeOverlay: {
+    position: "absolute",
+    top: spacing.md2,
+    right: spacing.md2,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.backgroundNonPossession,
+  },
+  statusBadgeCashOverlay: {
+    position: "absolute",
+    top: spacing.md2,
+    left: spacing.md2,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.backgroundCash,
+  },
+  statusBadgeInstallmentsOverlay: {
+    position: "absolute",
+    top: spacing.md2,
+    left: spacing.md2,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: Colors.backgroundInstallments,
   },
   propertyContent: {
     padding: spacing.lg,

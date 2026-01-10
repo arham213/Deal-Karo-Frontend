@@ -25,7 +25,7 @@ interface CompleteOnboardingApiResponse {
 export const completeOnboarding = async ({
   token,
   userId,
-  baseUrl = "https://deal-karo-backend.vercel.app/api",
+  baseUrl = "https://api.dealkroo.com/api",
 }: CompleteOnboardingParams): Promise<CompleteOnboardingResult> => {
   try {
     const response = await axios.put<CompleteOnboardingApiResponse>(

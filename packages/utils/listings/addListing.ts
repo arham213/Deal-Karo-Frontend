@@ -20,6 +20,7 @@ export interface AddListingState {
   description: string
   contact: string
   possession: string
+  image: string | null
 }
 
 export type ListingField =
@@ -72,6 +73,7 @@ export const createInitialAddListingState = (): AddListingState => ({
   description: "",
   contact: "",
   possession: "Yes",
+  image: null
 })
 
 export const createAddListingTouchedState = (value: boolean): AddListingTouchedState =>
@@ -242,6 +244,7 @@ export interface AddListingPayload {
   description?: string
   forContact: string
   possession: boolean
+  image?: string | null
 }
 
 export const buildAddListingPayload = (
@@ -263,6 +266,7 @@ export const buildAddListingPayload = (
     description: state.description,
     forContact: Validation.digitsOnly(user.contactNo || ""),
     possession: state.possession === "Yes",
+    image: state.image,
   }
 
   if (isPlotOrCommercial) {
@@ -291,19 +295,85 @@ export interface CreateListingParams {
   baseUrl?: string
 }
 
+// export const createListing = async ({
+//   token,
+//   payload,
+//   baseUrl = "https://api.dealkroo.com/api",
+// }: CreateListingParams): Promise<void> => {
+//   try {
+//     const response = await axios.post(
+//       `${baseUrl}/properties`,
+//       payload,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       },
+//     )
+
+//     if (!response?.data?.success) {
+//       const message =
+//         response?.data?.error?.message || response?.data?.message || "Listing creation failed"
+//       throw new Error(message)
+//     }
+//   } catch (error) {
+//     if (axios.isAxiosError(error)) {
+//       const message =
+//         error?.response?.data?.error?.message ||
+//         error?.response?.data?.message ||
+//         error.message ||
+//         "Listing creation failed"
+//       throw new Error(message)
+//     }
+
+//     throw new Error("Something went wrong. Please try again later")
+//   }
+// }
+
 export const createListing = async ({
   token,
   payload,
-  baseUrl = "https://deal-karo-backend.vercel.app/api",
+  baseUrl = "https://api.dealkroo.com/api",
 }: CreateListingParams): Promise<void> => {
   try {
+    let data: any = payload;
+    let headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    if (payload.image) {
+      const formData = new FormData();
+      // Append all primitive fields
+      Object.keys(payload).forEach((key) => {
+        const value = payload[key as keyof AddListingPayload];
+        if (key === 'image') {
+          // Handle image specially
+          const uri = payload.image;
+          const filename = uri?.split('/').pop();
+          const match = /\.(\w+)$/.exec(filename as string);
+          const type = match ? `image/${match[1]}` : `image`;
+          // @ts-ignore
+          formData.append('image', { uri, name: filename, type });
+        } else if (key === 'installment' && typeof value === 'object') {
+          // Check if backend expects stringified JSON or separate fields for nested objects
+          // Assuming handled as JSON string or backend logic. For proper Multipart, usually we send simple keys.
+          // However existing logic sent JSON. Let's send it as JSON string if Multipart, or rely on backend handling.
+          // Safest for nested objects in FormData is often stringifying or dot notation.
+          // Given the existing payload structure, let's assume we can JSON stringify the nested implementation object
+          formData.append(key, JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      data = formData;
+      headers['Content-Type'] = 'multipart/form-data';
+    }
+
     const response = await axios.post(
       `${baseUrl}/properties`,
-      payload,
+      data,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       },
     )
 

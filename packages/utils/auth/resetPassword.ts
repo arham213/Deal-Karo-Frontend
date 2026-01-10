@@ -74,7 +74,7 @@ export const resetPasswordForUser = async ({
 }: ResetPasswordPayload): Promise<void> => {
   try {
     const response = await axios.post<ResetPasswordApiResponse>(
-      "https://deal-karo-backend.vercel.app/api/users/resetPassword",
+      "https://api.dealkroo.com/api/users/resetPassword",
       {
         userId,
         password,

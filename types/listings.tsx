@@ -28,6 +28,7 @@ export interface ListingState {
   description: string
   forContact: string
   possession: boolean
+  imageUrl?: string
   createdAt: Date,
   updatedAt: Date
 }

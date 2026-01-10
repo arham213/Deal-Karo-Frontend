@@ -64,7 +64,7 @@ export default function ProfileScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
 
   useEffect(() => {
     getUserFromSecureStore()
@@ -171,10 +171,10 @@ export default function ProfileScreen() {
 
         // Update profile state
         setProfile(updatedUser)
-        
+
         // Update secure store
         await saveUser(updatedUser)
-        
+
         // Update AuthContext
         setUser(updatedUser)
 
@@ -206,7 +206,7 @@ export default function ProfileScreen() {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status
         const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
-        
+
         // Don't show error toast for auth errors - interceptors will handle logout
         if (status === 401 || status === 404) {
           // Check if it's a user not found error
@@ -218,7 +218,7 @@ export default function ProfileScreen() {
           return
         }
       }
-      
+
       // Restore original form state on failure
       setEditData(profile)
       setErrors({})
@@ -243,10 +243,10 @@ export default function ProfileScreen() {
     try {
       setIsLoggingOut(true)
       showLoadingToast("Logging out...", "Please wait")
-      
+
       // Use AuthContext logout which handles clearing data and navigation
       await logout()
-      
+
       // Hide loading toast and show success toast
       Toast.hide()
       showSuccessToast("Logged out successfully!")
@@ -279,10 +279,10 @@ export default function ProfileScreen() {
       if (response.data?.success) {
         // Close modal
         setShowDeleteModal(false)
-        
+
         // Show success toast before logout
         showSuccessToast("Account deleted successfully!")
-        
+
         // Use AuthContext logout which handles clearing data and navigation
         await logout()
       } else {
@@ -293,7 +293,7 @@ export default function ProfileScreen() {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status
         const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || ""
-        
+
         // Don't show error toast for auth errors - interceptors will handle logout
         if (status === 401 || status === 404) {
           if (errorMessage.toLowerCase().includes("user not found") || errorMessage.toLowerCase().includes("invalid token")) {
@@ -339,7 +339,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView style={styles.scrollView} contentContainerStyle={{paddingBottom: 110}} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <View style={styles.headerTop}>
               <Text style={styles.title}>My Profile</Text>
@@ -401,15 +401,15 @@ export default function ProfileScreen() {
 
             <View style={styles.buttonGroup}>
               {showUpdateButton && (
-                <Button 
-                  title={loading ? "Updating..." : "Update"} 
-                  onPress={handleSave} 
+                <Button
+                  title={loading ? "Updating..." : "Update"}
+                  onPress={handleSave}
                   disabled={isUpdateDisabled}
                   loading={loading}
                 />
               )}
-              <TouchableOpacity 
-                style={[styles.logoutButton, (loading || isLoggingOut) && styles.logoutButtonDisabled]} 
+              <TouchableOpacity
+                style={[styles.logoutButton, (loading || isLoggingOut) && styles.logoutButtonDisabled]}
                 onPress={handleLogout}
                 disabled={loading || isLoggingOut}
               >

@@ -2,11 +2,12 @@
 
 import { User } from "@/types/auth"
 import { setLogoutCallback } from "@/utils/forcedLogout"
+import { initializeNotifications, unregisterPushToken } from "@/utils/notificationService"
 import { getOnboardingCompleted, getUser } from "@/utils/secureStore"
 import { showErrorToast } from "@/utils/toast"
 import { validateAuth } from "@/utils/tokenValidation"
 import { useRouter } from "expo-router"
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react"
 
 interface AuthContextType {
   user: User | null
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(false)
   const router = useRouter()
+  const notificationsInitialized = useRef(false)
 
   const setToken = async (newToken: string | null) => {
     setTokenState(newToken)
@@ -42,15 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     try {
       setIsLoading(true)
-      
+
       // Check if token exists and is valid
       const { isValid, token: validatedToken } = await validateAuth()
-      
+
       if (isValid && validatedToken) {
         // Token is valid, get user data
         const storedUser = await getUser()
         let onboardingStatus = await getOnboardingCompleted()
-        
+
         // Fallback: if key is missing, check user object (defensive fix for existing users)
         if (!onboardingStatus && storedUser?.onBoardingCompleted) {
           onboardingStatus = "true"
@@ -60,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Ignore errors if save fails
           })
         }
-        
+
         // Debug logging (safe for production, can be removed after verification)
         if (__DEV__) {
           console.log('[AuthContext] Onboarding status:', {
@@ -69,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             final: onboardingStatus === "true"
           })
         }
-        
+
         setTokenState(validatedToken)
         setUser(storedUser)
         setIsAuthenticated(true)
@@ -94,28 +96,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async (message?: string) => {
     try {
+      // Unregister push token before clearing auth
+      if (token) {
+        await unregisterPushToken(token)
+      }
+
       const { clearAuthData } = await import("@/utils/secureStore")
       await clearAuthData()
       setTokenState(null)
       setUser(null)
       setIsAuthenticated(false)
       setIsOnboardingCompleted(false)
-      
+
       // Show logout message if provided (empty string means toast already shown by forceLogout)
       if (message && message !== "") {
         showErrorToast(message, "Session Expired")
       }
-      
+
       router.replace("/(auth)/sign-in")
     } catch (error) {
       //console.error("Error during logout:", error)
     }
-  }, [router])
+  }, [router, token])
 
   // Check auth status on mount
   useEffect(() => {
     checkAuth()
   }, [])
+
+  // Initialize notifications when user logs in
+  useEffect(() => {
+    if (isAuthenticated && token && !notificationsInitialized.current) {
+      notificationsInitialized.current = true
+      initializeNotifications(token).catch(console.error)
+    }
+
+    // Reset flag on logout
+    if (!isAuthenticated) {
+      notificationsInitialized.current = false
+    }
+  }, [isAuthenticated, token])
 
   // Register logout callback for interceptors to use
   useEffect(() => {

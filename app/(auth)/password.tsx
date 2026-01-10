@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'http://10.137.14.91:8080/api';
 
   const emailValidationError = useMemo(() => {
     if (!Validation.isRequired(email)) return "Email is required"
@@ -52,8 +52,8 @@ export default function ForgotPasswordScreen() {
         setEmail("")
         setTouched(false)
         router.push({
-           pathname: '/verify-otp',
-           params: { userId: response.data.data.userId}
+          pathname: '/verify-otp',
+          params: { userId: response.data.data.userId }
         });
       } else {
         showErrorToast(response?.data.error.message || "Failed to send OTP");
@@ -80,38 +80,38 @@ export default function ForgotPasswordScreen() {
   return (
     <SafeAreaView style={[layoutStyles.safeArea, styles.safeArea]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={[layoutStyles.scrollContent]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Header title="Forgot Password" subtitle="Enter your email to reset your password" />
+        <ScrollView
+          contentContainerStyle={[layoutStyles.scrollContent]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Header title="Forgot Password" subtitle="Enter your email to reset your password" />
 
-        <View style={styles.mainContent}>
-        <View style={styles.form}>
-          <TextInput
-            label="Email"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={handleEmailChange}
-            onBlur={handleBlur}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={touched ? emailValidationError : undefined}
-            editable={!loading}
-            labelStyle={styles.inputLabel}
-          />
-        </View>
+          <View style={styles.mainContent}>
+            <View style={styles.form}>
+              <TextInput
+                label="Email"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={handleEmailChange}
+                onBlur={handleBlur}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={touched ? emailValidationError : undefined}
+                editable={!loading}
+                labelStyle={styles.inputLabel}
+              />
+            </View>
 
-        <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
+            <Button title="Send OTP" onPress={handleSendOTP} loading={loading} disabled={isSubmitDisabled} style={styles.button} />
 
-        <View style={styles.footer}>
-          <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
-            Back to Sign In
-          </Text>
-        </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.footer}>
+              <Text style={styles.footerLink} onPress={() => router.push("/(auth)/sign-in")}>
+                Back to Sign In
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }

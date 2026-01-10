@@ -6,6 +6,11 @@ import { BottomNavigationBar } from "@/components/navigation/BottomNavigationBar
 import { ToastProvider } from "@/components/Toast"
 import { Colors } from "@/constants/colors"
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext"
+import { NotificationProvider, useNotificationContext } from "@/contexts/NotificationContext"
+import {
+  addNotificationResponseReceivedListener,
+  getLastNotificationResponse,
+} from "@/utils/notificationService"
 import { Stack, usePathname, useRouter } from "expo-router"
 import * as SplashScreen from "expo-splash-screen"
 import { StatusBar } from "expo-status-bar"
@@ -19,6 +24,7 @@ function RootLayoutContent() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated, isLoading, isOnboardingCompleted } = useAuthContext()
+  const { openListingFromNotification } = useNotificationContext()
 
   // Hide splash screen once auth check is complete
   useEffect(() => {
@@ -38,19 +44,19 @@ function RootLayoutContent() {
 
     // Normalize pathname for checking
     const normalizedPath = pathname || ""
-    
+
     // More explicit check for auth screens including forgot-password, reset-password, verify-otp
-    const isAuthScreen = normalizedPath.startsWith("/(auth)") || 
-                        normalizedPath.startsWith("/auth") ||
-                        normalizedPath === "/sign-in" || 
-                        normalizedPath === "/sign-up" ||
-                        normalizedPath.includes("forgot-password") ||
-                        normalizedPath.includes("reset-password") ||
-                        normalizedPath.includes("verify-otp")
-    
-    const isOnboardingScreen = normalizedPath.startsWith("/(onboarding)") || 
-                               normalizedPath.startsWith("/onboarding") ||
-                               normalizedPath === "/onboarding"
+    const isAuthScreen = normalizedPath.startsWith("/(auth)") ||
+      normalizedPath.startsWith("/auth") ||
+      normalizedPath === "/sign-in" ||
+      normalizedPath === "/sign-up" ||
+      normalizedPath.includes("forgot-password") ||
+      normalizedPath.includes("reset-password") ||
+      normalizedPath.includes("verify-otp")
+
+    const isOnboardingScreen = normalizedPath.startsWith("/(onboarding)") ||
+      normalizedPath.startsWith("/onboarding") ||
+      normalizedPath === "/onboarding"
 
     // If user is not authenticated and not on auth screen, redirect to sign-in
     // Allow all auth screens including forgot-password, reset-password, verify-otp
@@ -60,9 +66,46 @@ function RootLayoutContent() {
     }
   }, [isAuthenticated, isLoading, pathname, router])
 
+  // Handle notification taps
+  useEffect(() => {
+    // Handle tap when app is running
+    const subscription = addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data
+
+      if (data?.type === 'new_listing') {
+        // If propertyId is provided, open the listing details modal
+        if (data?.propertyId && typeof data.propertyId === 'string') {
+          openListingFromNotification(data.propertyId)
+        } else {
+          // Fallback to listings page if no propertyId
+          router.push('/listings')
+        }
+      }
+      // Add more notification types as needed
+    })
+
+    // Handle tap that launched the app
+    getLastNotificationResponse().then((response) => {
+      if (response) {
+        const data = response.notification.request.content.data
+        if (data?.type === 'new_listing') {
+          // If propertyId is provided, open the listing details modal
+          if (data?.propertyId && typeof data.propertyId === 'string') {
+            openListingFromNotification(data.propertyId)
+          } else {
+            // Fallback to listings page if no propertyId
+            router.push('/listings')
+          }
+        }
+      }
+    })
+
+    return () => subscription.remove()
+  }, [router, openListingFromNotification])
+
   // Hide bottom navigation bar on auth and onboarding screens
-  const shouldShowBottomNav = 
-    !pathname?.includes("/auth/") && 
+  const shouldShowBottomNav =
+    !pathname?.includes("/auth/") &&
     !pathname?.includes("/onboarding") &&
     pathname !== "/" &&
     pathname !== "/add-listing" &&
@@ -107,7 +150,7 @@ function RootLayoutContent() {
           <Stack.Screen name="(notes)/my-notes" options={{ title: "My Notes" }} />
           <Stack.Screen name="(user)/profile" options={{ title: "Profile" }} />
         </Stack>
-        
+
         {shouldShowBottomNav && <BottomNavigationBar />}
         <ToastProvider />
       </View>
@@ -118,7 +161,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutContent />
+      <NotificationProvider>
+        <RootLayoutContent />
+      </NotificationProvider>
     </AuthProvider>
   )
 }

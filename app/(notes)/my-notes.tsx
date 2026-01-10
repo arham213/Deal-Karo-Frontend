@@ -54,7 +54,7 @@ export default function MyNotesScreen() {
   const isFetchingRef = useRef(false)
   const currentPageRef = useRef(1)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
   // Check verification status on mount
   useEffect(() => {
     checkVerificationStatus()
@@ -191,19 +191,19 @@ export default function MyNotesScreen() {
         if (pagination) {
           const pageNum = pagination.page || page || 1
           const totalPagesNum = pagination.totalPages || 1
-          
+
           setCurrentPage(pageNum)
           currentPageRef.current = pageNum
           setTotalPages(totalPagesNum)
           setHasMore(pageNum < totalPagesNum)
-          
-          console.log('Notes pagination:', { 
-            pageNum, 
-            totalPagesNum, 
-            hasMore: pageNum < totalPagesNum, 
+
+          console.log('Notes pagination:', {
+            pageNum,
+            totalPagesNum,
+            hasMore: pageNum < totalPagesNum,
             fetchedNotes: fetchedNotes.length,
             reset,
-            pagination 
+            pagination
           })
         } else {
           // If no pagination info, use fallback logic based on results
@@ -214,9 +214,9 @@ export default function MyNotesScreen() {
           const hasMoreResults = fetchedNotes.length >= limit
           setTotalPages(hasMoreResults ? page + 1 : page)
           setHasMore(hasMoreResults)
-          
-          console.log('Notes pagination (no pagination object):', { 
-            page, 
+
+          console.log('Notes pagination (no pagination object):', {
+            page,
             fetchedNotes: fetchedNotes.length,
             limit,
             hasMore: hasMoreResults,
@@ -243,7 +243,7 @@ export default function MyNotesScreen() {
       }
     } catch (error) {
       isFetchingRef.current = false
-      
+
       if (reset) {
         setLoading(false)
       } else {
@@ -254,7 +254,7 @@ export default function MyNotesScreen() {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status
           const errorMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || "Failed to fetch notes"
-          
+
           // Don't show error toast for auth errors - interceptors will handle logout
           if (status === 401 || status === 404) {
             if (errorMessage.toLowerCase().includes("user not found")) {
@@ -262,7 +262,7 @@ export default function MyNotesScreen() {
             }
             return
           }
-          
+
           showErrorToast(errorMessage)
         } else {
           showErrorToast("Something went wrong. Please try again later")
@@ -349,15 +349,15 @@ export default function MyNotesScreen() {
     // 2. Has more pages
     // 3. Initial load is complete
     // 4. User has scrolled (prevents immediate trigger on mount)
-    console.log('loadMore called:', { 
-      loadingMore, 
-      hasMore, 
-      loading, 
-      initialLoadComplete: initialLoadCompleteRef.current, 
+    console.log('loadMore called:', {
+      loadingMore,
+      hasMore,
+      loading,
+      initialLoadComplete: initialLoadCompleteRef.current,
       hasScrolled: hasScrolledRef.current,
-      currentPage 
+      currentPage
     })
-    
+
     if (!loadingMore && hasMore && !loading && initialLoadCompleteRef.current && hasScrolledRef.current) {
       console.log('Calling getNotes with page:', currentPage + 1)
       getNotes(currentPage + 1, false)
@@ -473,7 +473,7 @@ export default function MyNotesScreen() {
               onChangeText={handleNoteChange}
               onBlur={() => {
                 setNoteTouched(true)
-            setNoteError(validateNoteDescription(newNoteDescription))
+                setNoteError(validateNoteDescription(newNoteDescription))
               }}
               multiline
               style={styles.noteInput}

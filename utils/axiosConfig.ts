@@ -4,7 +4,7 @@ import { getToken } from "./secureStore"
 import { showErrorToast } from "./toast"
 import { isTokenExpired } from "./tokenValidation"
 
-const BASE_URL = "https://deal-karo-backend.vercel.app/api"
+const BASE_URL = "https://api.dealkroo.com/api"
 
 // Create axios instance
 export const apiClient = axios.create({
@@ -82,9 +82,9 @@ apiClient.interceptors.response.use(
           // 401 but token is not expired - likely invalid token or user not found
           const errorMessage = error.response?.data?.error?.message || error.response?.data?.message || ""
           const isUserNotFound = errorMessage.toLowerCase().includes("user not found") ||
-                                errorMessage.toLowerCase().includes("invalid token") ||
-                                errorMessage.toLowerCase().includes("user does not exist")
-          
+            errorMessage.toLowerCase().includes("invalid token") ||
+            errorMessage.toLowerCase().includes("user does not exist")
+
           if (isUserNotFound || !token) {
             await forceLogout("You have been logged out. Please sign in again.")
           } else {

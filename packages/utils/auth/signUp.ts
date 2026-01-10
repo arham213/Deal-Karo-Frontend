@@ -91,12 +91,12 @@ export const validateSignUpForm = (
 } => {
   const errors: SignUpValidationErrors = {}
 
-  ;(Object.keys(form) as SignUpField[]).forEach((field) => {
-    const errorMessage = validateSignUpField(field, form[field])
-    if (errorMessage) {
-      errors[field] = errorMessage
-    }
-  })
+    ; (Object.keys(form) as SignUpField[]).forEach((field) => {
+      const errorMessage = validateSignUpField(field, form[field])
+      if (errorMessage) {
+        errors[field] = errorMessage
+      }
+    })
 
   return {
     isValid: Object.keys(errors).length === 0,
@@ -129,7 +129,7 @@ export const buildSignUpRequestBody = (
 export const signUpUser = async (body: SignUpRequestBody): Promise<SignUpResult> => {
   try {
     const response = await axios.post<SignUpApiResponse>(
-      "https://deal-karo-backend.vercel.app/api/users/signup",
+      "https://api.dealkroo.com/api/users/signup",
       body,
     )
 

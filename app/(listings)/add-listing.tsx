@@ -13,6 +13,8 @@ import { showErrorToast, showInfoToast, showSuccessToast } from "@/utils/toast"
 import { Validation } from "@/utils/validation"
 import { Ionicons, MaterialIcons } from "@expo/vector-icons"
 import axios from "axios"
+import { Image as ExpoImage } from "expo-image"
+import * as ImagePicker from "expo-image-picker"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -27,6 +29,7 @@ import {
   View
 } from "react-native"
 
+import { UploadIcon } from "@/components/listings/Icons"
 import { SafeAreaView } from "react-native-safe-area-context"
 import {
   buildAddListingPayload,
@@ -52,6 +55,7 @@ export default function AddListingScreen() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<AddListingState>(createInitialAddListingState)
   const [showCustomAreaModal, setShowCustomAreaModal] = useState(false)
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false)
   const [customAreaValue, setCustomAreaValue] = useState("")
   const [customAreaType, setCustomAreaType] = useState<string>("Marla")
   const [customAreaError, setCustomAreaError] = useState<string | undefined>(undefined)
@@ -61,7 +65,7 @@ export default function AddListingScreen() {
   )
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
 
   // Check verification status on mount
   useEffect(() => {
@@ -72,7 +76,7 @@ export default function AddListingScreen() {
   useEffect(() => {
     const isPlotOrCommercialPlot = formData.propertyType === "plot" || formData.propertyType === "commercial plot"
     const isCashListing = formData.listingType === "cash"
-    
+
     if (isPlotOrCommercialPlot && isCashListing) {
       if (formData.pricePerMarla && formData.area) {
         // Calculate and update price
@@ -81,12 +85,12 @@ export default function AddListingScreen() {
           ...formData,
           price: calculatedPrice,
         }
-        
+
         updateForm((prev) => ({
           ...prev,
           price: calculatedPrice,
         }))
-        
+
         // Mark price as touched if pricePerMarla or area has been touched (so validation runs)
         const shouldValidatePrice = touched.pricePerMarla || touched.area
         if (shouldValidatePrice && !touched.price) {
@@ -95,7 +99,7 @@ export default function AddListingScreen() {
             price: true,
           }))
         }
-        
+
         // Validate the calculated price if relevant fields have been touched
         if (shouldValidatePrice || touched.price) {
           const errorMessage = validateListingField("price", calculatedPrice, nextState)
@@ -199,7 +203,7 @@ export default function AddListingScreen() {
     })
   }
 
-  const handleInputChange = (key: keyof AddListingState, value: string | boolean, options?: { forceValidate?: boolean }) => {
+  const handleInputChange = (key: keyof AddListingState, value: string | boolean | null, options?: { forceValidate?: boolean }) => {
     if (key === "propertyType") {
       const propertyType = value as AddListingState["propertyType"]
       updateForm((prev) => {
@@ -370,6 +374,42 @@ export default function AddListingScreen() {
     setCustomAreaType("Marla")
   }
 
+  const pickImageFromLibrary = async () => {
+    setShowImagePickerModal(false)
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    })
+
+    if (!result.canceled) {
+      handleInputChange("image", result.assets[0].uri)
+    }
+  }
+
+  const takePhoto = async () => {
+    setShowImagePickerModal(false)
+    // Request camera permissions
+    const { status } = await ImagePicker.requestCameraPermissionsAsync()
+
+    if (status !== 'granted') {
+      showErrorToast('Camera permission is required to take photos')
+      return
+    }
+
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+    })
+
+    if (!result.canceled) {
+      handleInputChange("image", result.assets[0].uri)
+    }
+  }
+
   // Show loading while checking verification
   if (loadingUser) {
     return (
@@ -504,6 +544,29 @@ export default function AddListingScreen() {
               />
             </View>
           )}
+
+          {/* Image Picker */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Image</Text>
+            {formData.image ? (
+              <View>
+                <View style={styles.imagePreviewContainer}>
+                  <ExpoImage source={{ uri: formData.image }} style={styles.image} contentFit="cover" />
+                </View>
+                <TouchableOpacity onPress={() => handleInputChange("image", null)} style={styles.removeImageButton}>
+                  <Text style={styles.removeImageText}>Remove Photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={() => setShowImagePickerModal(true)} activeOpacity={0.7}>
+                <View style={styles.uploadArea}>
+                  <UploadIcon color={Colors.neutral60} size={32} />
+                  <Text style={styles.uploadText}>Upload Image</Text>
+                  <Text style={styles.uploadSubtext}>File under 5 mb should be uploaded. pdf, jpg supported.</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Phase */}
           <View style={styles.section}>
@@ -811,6 +874,32 @@ export default function AddListingScreen() {
           </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.imagePickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowImagePickerModal(false)}
+        >
+          <View style={styles.imagePickerModalContent} onStartShouldSetResponder={() => true}>
+            <TouchableOpacity onPress={pickImageFromLibrary} style={styles.imagePickerOption}>
+              <Text style={styles.imagePickerOptionText}>Photo Library</Text>
+              <Ionicons name="image-outline" size={24} color={Colors.neutral90} />
+            </TouchableOpacity>
+            <View style={styles.imagePickerDivider} />
+            <TouchableOpacity onPress={takePhoto} style={styles.imagePickerOption}>
+              <Text style={styles.imagePickerOptionText}>Take Photo</Text>
+              <Ionicons name="camera-outline" size={24} color={Colors.neutral90} />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -1113,5 +1202,95 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: Colors.textSecondary,
+  },
+  uploadArea: {
+    width: "100%",
+    backgroundColor: "#f9f9f9",
+    borderRadius: radius.md,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: "#e9e9e9",
+    borderStyle: "dashed",
+  },
+  uploadText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral100,
+    fontFamily: fontFamilies.primary,
+    marginTop: spacing.sm,
+  },
+  uploadSubtext: {
+    fontSize: fontSizes.xs,
+    fontWeight: fontWeights.regular,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary,
+    marginTop: spacing.xs,
+    textAlign: "center",
+  },
+  imagePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.lg,
+  },
+  imagePickerModalContent: {
+    backgroundColor: Colors.neutral10,
+    borderRadius: radius.lg,
+    width: "90%",
+    maxWidth: 400,
+    overflow: "hidden",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  imagePickerOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: Colors.neutral10,
+  },
+  imagePickerOptionText: {
+    fontSize: fontSizes.base,
+    fontWeight: fontWeights.medium,
+    color: Colors.neutral90,
+    fontFamily: fontFamilies.primary,
+  },
+  imagePickerDivider: {
+    height: 1,
+    backgroundColor: Colors.neutral30,
+  },
+  imagePreviewContainer: {
+    width: "100%",
+    height: 200,
+    backgroundColor: Colors.neutral10,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.neutral20,
+    marginTop: spacing.sm,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  removeImageButton: {
+    marginTop: spacing.sm,
+    alignItems: "center",
+    padding: spacing.xs,
+  },
+  removeImageText: {
+    color: Colors.error,
+    fontSize: fontSizes.sm,
+    fontFamily: fontFamilies.primary,
+    fontWeight: fontWeights.medium,
   },
 })

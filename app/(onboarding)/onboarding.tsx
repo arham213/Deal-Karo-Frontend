@@ -48,7 +48,7 @@ export default function OnboardingScreen() {
   const scrollViewRef = useRef<ScrollView>(null)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.vercel.app/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
 
   const handleCompleteOnboarding = async () => {
     setLoading(true)
@@ -58,13 +58,13 @@ export default function OnboardingScreen() {
         router.replace("/(auth)/sign-in")
         return
       }
-      
+
       const user = await getUser()
       if (!user) {
         router.replace("/(auth)/sign-in")
         return
       }
-      
+
       const { user: updatedUser } = await completeOnboarding({
         token,
         userId: user._id,
@@ -119,44 +119,44 @@ export default function OnboardingScreen() {
   const currentData = onboardingData[currentIndex]
 
   return (
-    <SafeAreaView style={styles.container}> 
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-      <View style={{ flex: 1 }}>
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        scrollEventThrottle={16}
-        onScroll={handleScroll}
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={false}
-      >
-        {onboardingData.map((item) => (
-          <View key={item.id} style={[styles.slide, { width }]}>
-            <Image source={item.image} style={styles.image} />
-            <View style={styles.content}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.description}>{item.description}</Text>
-              
-              <View style={styles.dotsContainer}>
-                  {onboardingData.map((_, index) => (
-                    <View key={index} style={[styles.dot, index === currentIndex && styles.activeDot]} />
-                  ))}
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
+            showsHorizontalScrollIndicator={false}
+            scrollEnabled={false}
+          >
+            {onboardingData.map((item) => (
+              <View key={item.id} style={[styles.slide, { width }]}>
+                <Image source={item.image} style={styles.image} />
+                <View style={styles.content}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={styles.description}>{item.description}</Text>
+
+                  <View style={styles.dotsContainer}>
+                    {onboardingData.map((_, index) => (
+                      <View key={index} style={[styles.dot, index === currentIndex && styles.activeDot]} />
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.footer}>
+                  <Button
+                    title={currentIndex === onboardingData.length - 1 ? "Get Started" : "Continue"}
+                    onPress={handleNext}
+                    style={styles.button}
+                  />
                 </View>
               </View>
-            
-            <View style={styles.footer}>
-              <Button
-                title={currentIndex === onboardingData.length - 1 ? "Get Started" : "Continue"}
-                onPress={handleNext}
-                style={styles.button}
-              />
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-    </KeyboardAvoidingView>
+            ))}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     // left: 0,
     // right: 0,
     // marginVertical: 30,
-    paddingHorizontal:spacing.screen,
+    paddingHorizontal: spacing.screen,
     borderBottomRightRadius: 100,
     borderBottomLeftRadius: 100,
     paddingTop: spacing.xxxl,

@@ -4,6 +4,7 @@ import { ListingState } from "@/types/listings"
 import { handleContactPress } from "@/utils/dialContact"
 import formatPrice from "@/utils/formatPrice"
 import { Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Button } from "../Button"
@@ -48,6 +49,20 @@ export function ListingDetailsModal({ visible, onClose, listing }: ListingDetail
             </TouchableOpacity>
             {/* <View style={{ width: 24 }} /> */}
           </View>
+
+          {/* Image Section */}
+          {listing?.imageUrl && (
+            <View style={styles.imageSection}>
+              <View style={styles.imageContainer}>
+                <Image
+                  source={{ uri: listing.imageUrl }}
+                  style={styles.listingImage}
+                  contentFit="cover"
+                />
+              </View>
+            </View>
+          )}
+
           <View style={styles.detailsContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.label}>Title</Text>
@@ -217,6 +232,21 @@ const styles = StyleSheet.create({
     color: Colors.neutral100,
     fontFamily: fontFamilies.primary,
     paddingHorizontal: 24
+  },
+  imageSection: {
+    paddingHorizontal: spacing.screen,
+    marginBottom: spacing.lg,
+  },
+  imageContainer: {
+    width: "100%",
+    height: 250,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    backgroundColor: Colors.neutral20,
+  },
+  listingImage: {
+    width: "100%",
+    height: "100%",
   },
   detailsContainer: {
     gap: 20,

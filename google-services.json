@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1001677396324",
+    "project_id": "deal-krein",
+    "storage_bucket": "deal-krein.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1001677396324:android:96d0471a0c8b5f5c864271",
+        "android_client_info": {
+          "package_name": "com.arham1.dealkaro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhrPNJHldJnQZeOhJhLFoIE9ptmTYg18M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

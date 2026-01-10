@@ -62,12 +62,12 @@ export const validateSignInForm = (
 } => {
   const errors: SignInValidationErrors = {}
 
-  ;(Object.keys(form) as SignInField[]).forEach((field) => {
-    const errorMessage = validateSignInField(field, form[field])
-    if (errorMessage) {
-      errors[field] = errorMessage
-    }
-  })
+    ; (Object.keys(form) as SignInField[]).forEach((field) => {
+      const errorMessage = validateSignInField(field, form[field])
+      if (errorMessage) {
+        errors[field] = errorMessage
+      }
+    })
 
   return {
     isValid: Object.keys(errors).length === 0,
@@ -87,7 +87,7 @@ export const signInWithEmailAndPassword = async ({
 }: SignInCredentials): Promise<SignInResult> => {
   try {
     const response = await axios.post<SignInApiResponse>(
-      "https://deal-karo-backend.vercel.app/api/users/signin",
+      "https://api.dealkroo.com/api/users/signin",
       {
         email: email.trim(),
         password,
