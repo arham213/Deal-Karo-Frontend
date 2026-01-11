@@ -46,12 +46,16 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
       {/* Content */}
       <TouchableOpacity
         style={styles.propertyContent}
-        onPress={() => handlePropertyDetails(property._id)}
+        onPress={() => {
+          if (user?.verificationStatus === "verified") {
+            handlePropertyDetails(property._id)
+          }
+        }}
         activeOpacity={0.7}
       >
         {/* Image with overlaid badges */}
         <View style={styles.propertyImageContainer}>
-          {property.imageUrl ? (
+          {user?.verificationStatus === "verified" && property.imageUrl ? (
             <>
               <Image
                 source={{ uri: property.imageUrl }}
@@ -69,7 +73,7 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
           ) : (
             <View style={styles.imagePlaceholder}>
               <Ionicons name="image-outline" size={48} color={Colors.neutral60} />
-              <Text style={styles.imagePlaceholderText}>No Image</Text>
+              <Text style={styles.imagePlaceholderText}>{user?.verificationStatus !== "verified" ? "Verify to View" : "No Image"}</Text>
             </View>
           )}
           {/* Status Badge (Cash/Installments) - Top Left */}
@@ -134,18 +138,22 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
         </View>
 
         {/* Meta Information */}
-        <View style={styles.propertyMetaRow}>
-          <View style={styles.addedByWrapper}>
-            {/* Added By */}
-            <View style={styles.addedByContainer}>
-              <AvatarInitials name={property.userId?.name || 'Unknown'} size={32} backgroundColor={Colors.neutral30} textColor={Colors.text} />
-              <View style={styles.addedByDetailsContainer}>
-                <Text style={styles.addedBy}>{property.userId?.name?.split(" ")[0] || 'Unknown'} {property.userId?.name?.split(" ")[1] ? property.userId?.name?.split(" ")[1][0] + "." : ""}</Text>
-                <Text style={styles.addedByLabel}>{property?.userId?.estateName && property?.userId?.estateName?.length > 17 ? property?.userId?.estateName?.slice(0, 20) + "..." : property?.userId?.estateName}</Text>
-              </View>
+        {user?.verificationStatus === "verified" && (
+          <View style={styles.propertyMetaRow}>
+            <View style={styles.addedByWrapper}>
+              {/* Added By */}
+              {user?.verificationStatus === "verified" && (
+                <View style={styles.addedByContainer}>
+                  <AvatarInitials name={property.userId?.name || 'Unknown'} size={32} backgroundColor={Colors.neutral30} textColor={Colors.text} />
+                  <View style={styles.addedByDetailsContainer}>
+                    <Text style={styles.addedBy}>{property.userId?.name?.split(" ")[0] || 'Unknown'} {property.userId?.name?.split(" ")[1] ? property.userId?.name?.split(" ")[1][0] + "." : ""}</Text>
+                    <Text style={styles.addedByLabel}>{property?.userId?.estateName && property?.userId?.estateName?.length > 17 ? property?.userId?.estateName?.slice(0, 20) + "..." : property?.userId?.estateName}</Text>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
-        </View>
+        )}
 
         {/* Action Buttons */}
         {user?.verificationStatus === "verified" && (

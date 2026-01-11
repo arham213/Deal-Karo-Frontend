@@ -367,49 +367,6 @@ export default function MyListingsScreen() {
     }
   }, [searchQuery, getListings])
 
-  // const PropertyCard = ({ property }: { property: ListingState }) => (
-  //   <View style={styles.propertyCard}>
-  //     {/* Content */}
-  //     <View style={styles.propertyContent}>
-  //       {/* Header with Title and Status */}
-  //       <View style={styles.propertyHeader}>
-  //         <View style={styles.titleSection}>
-  //           <Text style={styles.propertyTitle}>
-  //             {property.area} {property.propertyType}
-  //           </Text>
-  //           <View style={styles.locationRow}>
-  //             <Ionicons name="location" size={12} color={Colors.textSecondary} />
-  //             <Text style={styles.propertyLocation}>
-  //               {property.block} {property.phase}
-  //             </Text>
-  //           </View>
-  //         </View>
-  //         {/* {property.} */}
-  //         {property.listingType === "rent" ? (
-  //           <Text style={styles.price}>Rs. {property.rentPerMonth}/month</Text>
-  //         ) : (
-  //           <Text style={styles.price}>Rs. {property.price || property.totalPrice}</Text>
-  //         )}
-  //       </View>
-
-  //       {/* Meta Information */}
-  //       <View style={styles.propertyMetaRow}>
-  //         <View style={[styles.statusBadge, { backgroundColor: Colors.primary }]}>
-  //           <Text style={styles.statusText}>{property.listingType}</Text>
-  //         </View>
-  //       </View>
-
-  //       {/* Action Buttons */}
-  //       <View style={styles.actionButtons}>
-  //         <TouchableOpacity style={styles.detailsButton} onPress={() => handlePropertyDetails(property._id)}>
-  //           <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
-  //           <Text style={styles.actionButtonText}>Details</Text>
-  //         </TouchableOpacity>
-  //       </View>
-  //     </View>
-  //   </View>
-  // )
-
   const handleSetActivePropertyTab = useCallback((type: PropertyTypeTab) => {
     setActivePropertyTab(type)
     setActiveFilter("All Listings")
