@@ -1,6 +1,5 @@
 "use client"
 
-import { LaunchPopup } from "@/components/LaunchPopup"
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
@@ -541,7 +540,7 @@ export default function ListingsScreen() {
         listing={clickedListing}
       />
 
-      <LaunchPopup isAuthenticated={isAuthenticated} isLoading={isLoading} />
+      {/* <LaunchPopup isAuthenticated={isAuthenticated} isLoading={isLoading} /> */}
     </SafeAreaView>
   )
 }
