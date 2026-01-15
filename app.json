@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "6",
+      "buildNumber": "5",
       "bundleIdentifier": "com.arham1.dealkaro"
     },
     "android": {
