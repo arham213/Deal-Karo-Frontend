@@ -129,7 +129,7 @@ export const buildSignUpRequestBody = (
 export const signUpUser = async (body: SignUpRequestBody): Promise<SignUpResult> => {
   try {
     const response = await axios.post<SignUpApiResponse>(
-      "https://api.dealkroo.com/api/users/signup",
+      "http://10.137.14.91:8080/api/users/signup",
       body,
     )
 

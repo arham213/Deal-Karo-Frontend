@@ -2,13 +2,16 @@
 
 import { Colors } from "@/constants/colors"
 import { Ionicons } from "@expo/vector-icons"
+import axios from "axios"
 import { Image } from "expo-image"
 import { useEffect, useRef, useState } from "react"
-import { Dimensions, Modal, StyleSheet, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Dimensions, Modal, StyleSheet, TouchableOpacity, View } from "react-native"
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window")
 
-// Image dimensions
+const BASE_URL = "http://10.137.14.91:8080/api"
+
+// Image dimensions (default for aspect ratio calculation)
 const IMAGE_WIDTH = 699
 const IMAGE_HEIGHT = 1280
 
@@ -16,6 +19,10 @@ const IMAGE_HEIGHT = 1280
 // This ensures the popup is only shown once per app launch, even if the component unmounts/remounts
 // when navigating between tabs or screens.
 let globalHasBeenClosed = false
+
+// Track if popup has already been fetched this session
+let globalHasFetched = false
+let globalPopupImageUrl: string | null = null
 
 // Calculate scaled dimensions to fit screen while maintaining aspect ratio
 const getImageDimensions = () => {
@@ -39,10 +46,39 @@ interface LaunchPopupProps {
 
 export function LaunchPopup({ isAuthenticated, isLoading }: LaunchPopupProps) {
   const [visible, setVisible] = useState(false)
+  const [popupImageUrl, setPopupImageUrl] = useState<string | null>(globalPopupImageUrl)
+  const [isLoadingPopup, setIsLoadingPopup] = useState(false)
   const [imageDimensions, setImageDimensions] = useState(getImageDimensions())
   // Track if popup has been closed in this app lifecycle.
   // Initialise from the global flag so remounts don't show it again.
   const hasBeenClosed = useRef(globalHasBeenClosed)
+  const hasFetched = useRef(globalHasFetched)
+
+  // Fetch popup image from backend
+  const fetchPopupImage = async () => {
+    // Don't fetch if already fetched or closed this session
+    if (hasFetched.current || hasBeenClosed.current) {
+      return
+    }
+
+    try {
+      setIsLoadingPopup(true)
+      const response = await axios.get(`${BASE_URL}/config/popup/public`)
+
+      if (response.data?.success && response.data.data?.showPopup) {
+        const imageUrl = response.data.data.imageUrl
+        setPopupImageUrl(imageUrl)
+        globalPopupImageUrl = imageUrl
+        setVisible(true)
+      }
+    } catch (error) {
+      console.log("Failed to fetch popup config")
+    } finally {
+      setIsLoadingPopup(false)
+      hasFetched.current = true
+      globalHasFetched = true
+    }
+  }
 
   useEffect(() => {
     // Update dimensions on screen size change
@@ -57,27 +93,32 @@ export function LaunchPopup({ isAuthenticated, isLoading }: LaunchPopupProps) {
     }
   }, [])
 
+  // Fetch popup image on app launch when authenticated
   useEffect(() => {
-    const checkAndShowPopup = () => {
-      // Don't show while loading or if not authenticated
-      if (isLoading || !isAuthenticated) {
-        setVisible(false)
-        return
-      }
-
-      // Only show if it hasn't been closed in this app lifecycle
-      if (!hasBeenClosed.current) {
-        setVisible(true)
-      }
+    // Don't fetch while loading or if not authenticated
+    if (isLoading || !isAuthenticated) {
+      return
     }
 
-    checkAndShowPopup()
+    // Only fetch if it hasn't been closed and hasn't been fetched yet
+    if (!hasBeenClosed.current && !hasFetched.current) {
+      fetchPopupImage()
+    } else if (hasFetched.current && globalPopupImageUrl && !hasBeenClosed.current) {
+      // If already fetched in a previous mount, show the popup with cached image
+      setPopupImageUrl(globalPopupImageUrl)
+      setVisible(true)
+    }
   }, [isAuthenticated, isLoading])
 
   const handleClose = () => {
     hasBeenClosed.current = true
     globalHasBeenClosed = true
     setVisible(false)
+  }
+
+  // Don't render if no image URL
+  if (!popupImageUrl && !isLoadingPopup) {
+    return null
   }
 
   return (
@@ -90,18 +131,22 @@ export function LaunchPopup({ isAuthenticated, isLoading }: LaunchPopupProps) {
     >
       <View style={styles.overlay}>
         <View style={[styles.container, { width: imageDimensions.width, height: imageDimensions.height }]}>
-          <Image
-            source={require("@/assets/images/popup-img.jpeg")}
-            style={[
-              styles.image,
-              {
-                width: imageDimensions.width,
-                height: imageDimensions.height,
-              },
-            ]}
-            contentFit="contain"
-            transition={200}
-          />
+          {isLoadingPopup ? (
+            <ActivityIndicator size="large" color={Colors.white} />
+          ) : popupImageUrl ? (
+            <Image
+              source={{ uri: popupImageUrl }}
+              style={[
+                styles.image,
+                {
+                  width: imageDimensions.width,
+                  height: imageDimensions.height,
+                },
+              ]}
+              contentFit="contain"
+              transition={200}
+            />
+          ) : null}
           <TouchableOpacity
             style={styles.closeButton}
             onPress={handleClose}
