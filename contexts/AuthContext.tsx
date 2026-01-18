@@ -1,5 +1,6 @@
 "use client"
 
+import { connectSocket, disconnectSocket } from "@/services/socketService"
 import { User } from "@/types/auth"
 import { setLogoutCallback } from "@/utils/forcedLogout"
 import { initializeNotifications, unregisterPushToken } from "@/utils/notificationService"
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(false)
   const router = useRouter()
   const notificationsInitialized = useRef(false)
+  const socketInitialized = useRef(false)
 
   const setToken = async (newToken: string | null) => {
     setTokenState(newToken)
@@ -136,6 +138,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       notificationsInitialized.current = false
     }
   }, [isAuthenticated, token])
+
+  // Global socket connection when user logs in
+  useEffect(() => {
+    const initSocket = async () => {
+      if (isAuthenticated && !socketInitialized.current) {
+        const storedUser = await getUser()
+        if (storedUser) {
+          socketInitialized.current = true
+          connectSocket(storedUser)
+          console.log('[AuthContext] Socket connected globally')
+        }
+      }
+
+      // Disconnect socket on logout
+      if (!isAuthenticated && socketInitialized.current) {
+        socketInitialized.current = false
+        disconnectSocket()
+        console.log('[AuthContext] Socket disconnected')
+      }
+    }
+
+    initSocket()
+  }, [isAuthenticated])
 
   // Register logout callback for interceptors to use
   useEffect(() => {

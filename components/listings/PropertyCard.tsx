@@ -1,12 +1,15 @@
 import { Colors } from "@/constants/colors";
+import { createChat } from "@/services/chatService";
 import { fontFamilies, fontSizes, fontWeights, radius, spacing } from "@/styles";
 import { User } from "@/types/auth";
 import { ListingState } from "@/types/listings";
 import { handleContactPress } from "@/utils/dialContact";
 import { formatRelativeTimeLibrary } from "@/utils/formatDateNow";
 import formatPrice from "@/utils/formatPrice";
+import { showErrorToast } from "@/utils/toast";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { AvatarInitials } from "../AvatarInitials";
@@ -16,8 +19,10 @@ import { DetailsIcon, LocationIcon } from "./Icons";
 export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, showDelete?: boolean }) => {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const menuButtonRef = useRef<View>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const router = useRouter();
 
   const handleMenuPress = () => {
     menuButtonRef.current?.measureInWindow((x, y, width, height) => {
@@ -37,6 +42,37 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
     if (onDelete) {
       onDelete(property._id);
       setShowDeleteMenu(false);
+    }
+  };
+
+  const handleChatPress = async () => {
+    if (!property.userId?._id) return;
+
+    // Prevent chatting with self
+    if (user && property.userId._id === user._id) {
+      showErrorToast("You cannot chat with yourself", "Action Not Allowed");
+      return;
+    }
+
+    try {
+      setIsChatLoading(true);
+      const response = await createChat(property.userId._id);
+
+      if (response && response.data?.chat) {
+        router.push({
+          pathname: "/(chat)/chat",
+          params: {
+            chatId: response.data.chat._id,
+            participantName: property.userId.name,
+            participantId: property.userId._id
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Failed to start chat:", error);
+      showErrorToast("Failed to start chat. Please try again.");
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -174,13 +210,30 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
               <DetailsIcon color={Colors.textSecondary} size={16} />
               <Text style={styles.actionButtonText}>Details</Text>
             </TouchableOpacity>
+
+            {!showDelete && (
+              <TouchableOpacity
+                style={styles.chatButton}
+                onPress={handleChatPress}
+                disabled={isChatLoading}
+                activeOpacity={0.7}
+              >
+                {isChatLoading ? (
+                  <ActivityIndicator size="small" color={Colors.textSecondary} />
+                ) : (
+                  <Ionicons name="chatbubble-outline" size={16} color={Colors.textSecondary} />
+                )}
+                <Text style={styles.actionButtonText}>Chat</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={styles.contactButton}
               onPress={() => handleContactPress(property.forContact)}
               activeOpacity={0.7}
             >
-              <Ionicons name="call-outline" size={16} color={Colors.textSecondary} />
-              <Text style={styles.actionButtonText}>Contact</Text>
+              <Ionicons name="call-outline" size={16} color={Colors.white} />
+              <Text style={styles.contactButtonText}>Contact</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -521,7 +574,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 6,
   },
-  contactButton: {
+
+  chatButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -530,6 +584,24 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     backgroundColor: Colors.neutral20,
     borderRadius: radius.lg,
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    padding: spacing.xs,
+    backgroundColor: Colors.primary,
+    borderRadius: radius.lg,
+  },
+  contactButtonText: {
+    fontSize: fontSizes.sm,
+    fontWeight: fontWeights.medium,
+    color: Colors.white,
+    fontFamily: fontFamilies.primary,
+    fontStyle: "normal",
+    letterSpacing: 0.14,
   },
   actionButtonText: {
     fontSize: fontSizes.sm,

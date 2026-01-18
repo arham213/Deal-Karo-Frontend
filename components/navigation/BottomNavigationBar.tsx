@@ -94,6 +94,9 @@ export function BottomNavigationBar() {
     if (route === "/listings") {
       return pathname === "/listings" || pathname.startsWith("/listings")
     }
+    if (route === "/chats") {
+      return pathname === "/chats" || pathname.startsWith("/chat")
+    }
     return pathname === route || pathname.startsWith(`${route}/`)
   }
 
@@ -112,6 +115,12 @@ export function BottomNavigationBar() {
         <Path d="M10.0698 2.81997L3.13978 8.36997C2.35978 8.98997 1.85978 10.3 2.02978 11.28L3.35978 19.24C3.59978 20.66 4.95978 21.81 6.39978 21.81H17.5998C19.0298 21.81 20.3998 20.65 20.6398 19.24L21.9698 11.28C22.1298 10.3 21.6298 8.98997 20.8598 8.36997L13.9298 2.82997C12.8598 1.96997 11.1298 1.96997 10.0698 2.81997Z" stroke="#C2C2C2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </Svg>
     )
+  }
+
+  // Hide bottom navigation bar on chat screens
+  const isChatScreen = pathname.startsWith('/chats') || pathname.startsWith('/chat') || pathname.includes('(chat)')
+  if (isChatScreen) {
+    return null
   }
 
   return (
@@ -146,6 +155,8 @@ export function BottomNavigationBar() {
         >
           {isActive("/my-listings") ? <MyListingsIcon color={Colors.primary} size={24} /> : <DisabledMyListingsIcon color={user !== null && !isVerified ? Colors.neutral30 : Colors.neutral50} size={24} />}
         </TouchableOpacity>
+
+
 
         <TouchableOpacity
           style={styles.navButton}

@@ -150,6 +150,10 @@ function RootLayoutContent() {
           <Stack.Screen name="(listings)/my-listings" options={{ title: "My Listings" }} />
           <Stack.Screen name="(notes)/my-notes" options={{ title: "My Notes" }} />
           <Stack.Screen name="(user)/profile" options={{ title: "Profile" }} />
+
+          {/* Chat */}
+          <Stack.Screen name="(chat)/chats" options={{ title: "Chats" }} />
+          <Stack.Screen name="(chat)/chat" options={{ title: "Chat" }} />
         </Stack>
 
         {shouldShowBottomNav && <BottomNavigationBar />}

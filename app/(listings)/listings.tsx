@@ -10,7 +10,7 @@ import { User } from "@/types/auth"
 import type { ListingState } from "@/types/listings"
 import apiClient from "@/utils/axiosConfig"
 import { getToken } from "@/utils/secureStore"
-import { showErrorToast } from "@/utils/toast"
+import { showErrorToast, showInfoToast } from "@/utils/toast"
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import axios from "axios"
 import { useRouter } from "expo-router"
@@ -350,38 +350,24 @@ export default function ListingsScreen() {
               </View>
             </View>
 
-            {/* Property Type Dropdown */}
-            <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
+            {/* Header Actions */}
+            <View style={styles.headerActions}>
               <TouchableOpacity
-                style={styles.propertyTypeDropdownButton}
-                activeOpacity={0.85}
                 onPress={() => {
-                  dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
-                    const screenWidth = Dimensions.get("window").width;
-                    const dropdownWidth = 200; // or a fixed width like 200
-
-                    let posX = screenWidth - dropdownWidth - 10;
-
-                    // clamp to screen right edge
-                    if (posX + dropdownWidth > screenWidth) {
-                      posX = screenWidth - dropdownWidth - 10;
-                    }
-
-                    // clamp to left edge
-                    if (posX < 10) posX = 10;
-
-                    //console.log('posX:', posX)
-
-                    setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
-                    setShowPropertyTypeDropdown(true);
-                  })
+                  if (user && user.verificationStatus !== "verified") {
+                    showInfoToast(
+                      "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
+                      "Access Restricted"
+                    )
+                    return
+                  }
+                  router.push("/(chat)/chats")
                 }}
               >
-                <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
                 <Ionicons
-                  name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color={Colors.textSecondary}
+                  name="chatbubble-ellipses-outline"
+                  size={24}
+                  color={user && user.verificationStatus === "verified" ? Colors.text : Colors.neutral50}
                 />
               </TouchableOpacity>
             </View>
@@ -390,11 +376,11 @@ export default function ListingsScreen() {
           {/* Search and Filter Bar */}
           <View style={styles.searchFilterBar}>
             <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={18} color={Colors.black} />
+              <Ionicons name="search" size={20} color={Colors.textSecondary} />
               <RNTextInput
                 style={styles.searchInput}
                 placeholder="Search"
-                placeholderTextColor={Colors.black}
+                placeholderTextColor={Colors.placeholder}
                 value={localSearchQuery}
                 onChangeText={handleSearchChange}
                 returnKeyType="search"
@@ -410,6 +396,32 @@ export default function ListingsScreen() {
                     <View style={styles.filterDot} />
                   )}
                 </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Property Type Dropdown */}
+            <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
+              <TouchableOpacity
+                style={styles.propertyTypeDropdownButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
+                    const screenWidth = Dimensions.get("window").width;
+                    const dropdownWidth = 160;
+
+                    let posX = screenWidth - dropdownWidth - 20; // 20px padding from right
+
+                    setDropdownPosition({ x: posX, y: y + height + 4, width: dropdownWidth });
+                    setShowPropertyTypeDropdown(true);
+                  })
+                }}
+              >
+                <Text style={styles.propertyTypeDropdownText}>{activePropertyTab === "Commercial Plots" ? "Commercial" : activePropertyTab}</Text>
+                <Ionicons
+                  name={showPropertyTypeDropdown ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={Colors.textSecondary}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -579,7 +591,13 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
   userGreeting: {
     flexDirection: "row",
@@ -610,7 +628,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12
   },
   propertyTypeDropdownWrapper: {
-    alignSelf: "flex-start",
+    // alignSelf: "flex-start",
   },
   propertyTypeDropdownButton: {
     flexDirection: "row",
@@ -618,13 +636,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.neutral60,
-    backgroundColor: Colors.neutral10,
-    gap: 10,
-    // minWidth: 140
-    // height: 36,
+    borderColor: Colors.neutral40,
+    backgroundColor: Colors.white,
+    gap: 8,
+    height: 50, // Match search input height approximately
   },
   propertyTypeDropdownText: {
     fontSize: fontSizes.sm,
@@ -674,7 +691,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.neutral10,
     borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -685,7 +702,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.text,
-    paddingVertical: 14,
+    paddingVertical: 12, // Reduced padding to match height better
   },
   searchPlaceholder: {
     fontSize: 14,
