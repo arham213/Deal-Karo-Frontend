@@ -48,7 +48,7 @@ export default function OnboardingScreen() {
   const scrollViewRef = useRef<ScrollView>(null)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'http://10.137.14.91:8080/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
 
   const handleCompleteOnboarding = async () => {
     setLoading(true)

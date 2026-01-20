@@ -298,7 +298,7 @@ export interface CreateListingParams {
 // export const createListing = async ({
 //   token,
 //   payload,
-//   baseUrl = "http://10.137.14.91:8080/api",
+//   baseUrl = "https://api.dealkroo.com/api",
 // }: CreateListingParams): Promise<void> => {
 //   try {
 //     const response = await axios.post(
@@ -333,7 +333,7 @@ export interface CreateListingParams {
 export const createListing = async ({
   token,
   payload,
-  baseUrl = "http://10.137.14.91:8080/api",
+  baseUrl = "https://api.dealkroo.com/api",
 }: CreateListingParams): Promise<void> => {
   try {
     let data: any = payload;

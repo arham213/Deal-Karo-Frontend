@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 // Use your computer's IP address (same as API)
-const SOCKET_URL = 'http://10.137.14.91:8080';
+const SOCKET_URL = 'https://api.dealkroo.com';
 
 const socket = io(SOCKET_URL, {
     transports: ['websocket', 'polling'],

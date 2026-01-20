@@ -69,7 +69,7 @@ export const verifyOtp = async ({
   otpCode,
 }: VerifyOtpParams): Promise<VerifyOtpResult> => {
   try {
-    const baseUrl = "http://10.137.14.91:8080/api"
+    const baseUrl = "https://api.dealkroo.com/api"
 
     if (isSignupOtp) {
       const response = await axios.post<VerifyEmailApiResponse>(`${baseUrl}/users/verifyEmail`, {
@@ -126,7 +126,7 @@ export const resendOtp = async ({
   isSimpleOtp = false,
 }: ResendOtpParams): Promise<void> => {
   try {
-    const baseUrl = "http://10.137.14.91:8080/api"
+    const baseUrl = "https://api.dealkroo.com/api"
 
     const response = await axios.post<ResendOtpApiResponse>(`${baseUrl}/users/resendOTP`, {
       userId,

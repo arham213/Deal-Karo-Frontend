@@ -64,7 +64,7 @@ export default function ProfileScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const BASE_URL = 'http://10.137.14.91:8080/api';
+  const BASE_URL = 'https://api.dealkroo.com/api';
 
   useEffect(() => {
     getUserFromSecureStore()

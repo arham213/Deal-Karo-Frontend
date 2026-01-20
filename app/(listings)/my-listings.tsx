@@ -50,7 +50,7 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
   const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
-  const BASE_URL = "http://10.137.14.91:8080/api"
+  const BASE_URL = "https://api.dealkroo.com/api"
 
   // Check verification status on mount
   useEffect(() => {

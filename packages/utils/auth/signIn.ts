@@ -87,7 +87,7 @@ export const signInWithEmailAndPassword = async ({
 }: SignInCredentials): Promise<SignInResult> => {
   try {
     const response = await axios.post<SignInApiResponse>(
-      "http://10.137.14.91:8080/api/users/signin",
+      "https://api.dealkroo.com/api/users/signin",
       {
         email: email.trim(),
         password,

@@ -4,7 +4,7 @@ import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
 
-const BASE_URL = 'http://10.137.14.91:8080/api'
+const BASE_URL = 'https://api.dealkroo.com/api'
 
 // Configure foreground notification behavior
 Notifications.setNotificationHandler({
