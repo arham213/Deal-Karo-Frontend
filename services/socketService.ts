@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 // Use your computer's IP address (same as API)
-const SOCKET_URL = 'https://api.dealkroo.com';
+const SOCKET_URL = 'https://deal-karo-backend.onrender.com';
 
 const socket = io(SOCKET_URL, {
     transports: ['websocket', 'polling'],

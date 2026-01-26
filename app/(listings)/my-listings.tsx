@@ -50,7 +50,7 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
   const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
-  const BASE_URL = "https://api.dealkroo.com/api"
+  const BASE_URL = "https://deal-karo-backend.onrender.com/api"
 
   // Check verification status on mount
   useEffect(() => {
@@ -380,73 +380,6 @@ export default function MyListingsScreen() {
     setShowFilterModal(true)
   }, [])
 
-  // const ListHeader = (
-  //   <>
-  //     {/* Header Section */}
-  //     <View style={styles.headerSection}>
-  //       <View style={styles.userGreeting}>
-  //         <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
-  //         <View style={styles.greetingText}>
-  //           <Text style={styles.greeting}>My Listings</Text>
-  //           <Text style={styles.role}>Capital Estate</Text>
-  //         </View>
-  //       </View>
-
-  //       {/* Property Type Tabs */}
-  //       <View style={styles.propertyTypeTabs}>
-  //         {["Plots", "Houses", "Commercial Plots"].map((type) => (
-  //           <TouchableOpacity
-  //             key={type}
-  //             style={[styles.typeTab, activePropertyTab === type && styles.activeTypeTab]}
-  //             onPress={() => handleSetActivePropertyTab(type as "Plots" | "Houses" | "Commercial Plots")}
-  //           >
-  //             <Text style={[styles.typeTabText, activePropertyTab === type && styles.activeTypeTabText]}>{type}</Text>
-  //           </TouchableOpacity>
-  //         ))}
-  //       </View>
-  //     </View>
-
-  //     {/* Search and Filter Bar */}
-  //     <View style={styles.searchFilterBar}>
-  //       <View style={styles.searchInputContainer}>
-  //         <Ionicons name="search" size={18} color={Colors.placeholder} />
-  //         <RNTextInput
-  //           style={styles.searchInput}
-  //           placeholder="Search listings..."
-  //           placeholderTextColor={Colors.placeholder}
-  //           value={localSearchQuery}
-  //           onChangeText={handleSearchChange}
-  //           returnKeyType="search"
-  //           autoCorrect={false}
-  //           autoCapitalize="none"
-  //         />
-  //       </View>
-  //       <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-  //         <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-  //       </TouchableOpacity>
-  //     </View>
-
-  //     <FlatList
-  //       horizontal
-  //       scrollEnabled
-  //       data={["All Listings", "For cash", "Installments"]}
-  //       keyExtractor={(item) => item}
-  //       contentContainerStyle={styles.filterCategoryScroll}
-  //       showsHorizontalScrollIndicator={false}
-  //       renderItem={({ item }) => (
-  //         <TouchableOpacity
-  //           style={[styles.filterCategoryTab, activeFilter === item && styles.activeFilterCategoryTab]}
-  //           onPress={() => handleSetActiveFilter(item)}
-  //         >
-  //           <Text style={[styles.filterCategoryText, activeFilter === item && styles.activeFilterCategoryText]}>
-  //             {item}
-  //           </Text>
-  //         </TouchableOpacity>
-  //       )}
-  //     />
-  //   </>
-  // )
-
   const ListHeader = (
     <View style={styles.headerWrapper}>
       <View style={styles.header}>
@@ -460,6 +393,55 @@ export default function MyListingsScreen() {
             </View>
           </View>
 
+          {/* Header Actions */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => {
+                if (user && user.verificationStatus !== "verified") {
+                  showInfoToast(
+                    "Your account needs to be verified by an admin to access this feature. Please wait for verification or contact support.",
+                    "Access Restricted"
+                  )
+                  return
+                }
+                router.push("/(chat)/chats")
+              }}
+            >
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={24}
+                color={user && user.verificationStatus === "verified" ? Colors.text : Colors.neutral50}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Search and Filter Bar */}
+        <View style={styles.searchFilterBar}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color={Colors.textSecondary} />
+            <RNTextInput
+              style={styles.searchInput}
+              placeholder="Search"
+              placeholderTextColor={Colors.placeholder}
+              value={localSearchQuery}
+              onChangeText={handleSearchChange}
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+            />
+            <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
+              <View style={styles.filterIconWrapper}>
+                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
+                {/* Small dot indicator when filters are applied */}
+                {filters && Object.keys(filters).length > 0 && (
+                  <View style={styles.filterDot} />
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Property Type Dropdown */}
           <View style={styles.propertyTypeDropdownWrapper} ref={dropdownButtonRef}>
             <TouchableOpacity
@@ -468,21 +450,11 @@ export default function MyListingsScreen() {
               onPress={() => {
                 dropdownButtonRef.current?.measureInWindow((x, y, width, height) => {
                   const screenWidth = Dimensions.get("window").width;
-                  const dropdownWidth = 200; // or a fixed width like 200
+                  const dropdownWidth = 160;
 
-                  let posX = screenWidth - dropdownWidth - 10;
+                  let posX = screenWidth - dropdownWidth - 20;
 
-                  // clamp to screen right edge
-                  if (posX + dropdownWidth > screenWidth) {
-                    posX = screenWidth - dropdownWidth - 10;
-                  }
-
-                  // clamp to left edge
-                  if (posX < 10) posX = 10;
-
-                  //console.log('posX:', posX)
-
-                  setDropdownPosition({ x: posX, y: y + height, width: dropdownWidth });
+                  setDropdownPosition({ x: posX, y: y + height + 4, width: dropdownWidth });
                   setShowPropertyTypeDropdown(true);
                 })
               }}
@@ -493,36 +465,6 @@ export default function MyListingsScreen() {
                 size={16}
                 color={Colors.textSecondary}
               />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Search and Filter Bar */}
-        <View style={styles.searchFilterBar}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={18} color={Colors.black} />
-            <RNTextInput
-              style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor={Colors.black}
-              value={localSearchQuery}
-              onChangeText={handleSearchChange}
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-              blurOnSubmit={false}
-            />
-            {/* <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-              <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-            </TouchableOpacity> */}
-            <TouchableOpacity style={styles.filterIconButton} onPress={handleOpenFilterModal}>
-              <View style={styles.filterIconWrapper}>
-                <MaterialCommunityIcons name="tune" size={18} color={Colors.text} />
-                {/* Small dot indicator when filters are applied */}
-                {filters && Object.keys(filters).length > 0 && (
-                  <View style={styles.filterDot} />
-                )}
-              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -706,12 +648,18 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
   userGreeting: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 6,
   },
   greetingText: {
     flexDirection: "column",
@@ -737,7 +685,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.12
   },
   propertyTypeDropdownWrapper: {
-    alignSelf: "flex-start",
+    // alignSelf: "flex-start",
   },
   propertyTypeDropdownButton: {
     flexDirection: "row",
@@ -745,13 +693,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: radius.xl,
+    borderRadius: radius.xxl,
     borderWidth: 1,
-    borderColor: Colors.neutral60,
-    backgroundColor: Colors.neutral10,
-    gap: 10,
-    // minWidth: 140
-    // height: 36,
+    borderColor: Colors.neutral40,
+    backgroundColor: Colors.white,
+    gap: 8,
+    height: 50, // Match search input height approximately
   },
   propertyTypeDropdownText: {
     fontSize: fontSizes.sm,
@@ -801,7 +748,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.neutral10,
     borderRadius: radius.xxl,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -819,7 +766,7 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
   },
   filterIconButton: {
-    transform: [{ rotate: "90deg" }],
+    // transform: [{ rotate: "90deg" }],
   },
   filterIconWrapper: {
     position: "relative",

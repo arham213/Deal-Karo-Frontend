@@ -54,7 +54,7 @@ export default function MyNotesScreen() {
   const isFetchingRef = useRef(false)
   const currentPageRef = useRef(1)
 
-  const BASE_URL = 'https://api.dealkroo.com/api';
+  const BASE_URL = 'https://deal-karo-backend.onrender.com/api';
   // Check verification status on mount
   useEffect(() => {
     checkVerificationStatus()

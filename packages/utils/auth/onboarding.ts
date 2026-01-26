@@ -25,7 +25,7 @@ interface CompleteOnboardingApiResponse {
 export const completeOnboarding = async ({
   token,
   userId,
-  baseUrl = "https://api.dealkroo.com/api",
+  baseUrl = "https://deal-karo-backend.onrender.com/api",
 }: CompleteOnboardingParams): Promise<CompleteOnboardingResult> => {
   try {
     const response = await axios.put<CompleteOnboardingApiResponse>(

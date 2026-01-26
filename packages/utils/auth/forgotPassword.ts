@@ -26,7 +26,7 @@ export const getForgotPasswordEmailError = (email: string): string | undefined =
 export const sendForgotPasswordOtp = async (email: string): Promise<ForgotPasswordResult> => {
   try {
     const response = await axios.post<ForgotPasswordApiResponse>(
-      "https://api.dealkroo.com/api/users/forgotPassword",
+      "https://deal-karo-backend.onrender.com/api/users/forgotPassword",
       { email },
     )
 

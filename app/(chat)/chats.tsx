@@ -358,28 +358,28 @@ export default function ChatsScreen() {
                         }
                         contentContainerStyle={filteredUsers.length === 0 ? styles.emptyListContainer : undefined}
                     />
-            ) : (
-            <FlatList
-                data={filteredChats}
-                keyExtractor={(item) => item._id}
-                renderItem={renderChatItem}
-                ListEmptyComponent={
-                    <EmptyState
-                        icon={searchString.trim() !== "" ? "🔍" : "💬"}
-                        title={searchString.trim() !== "" ? "No chats found" : "No chats yet"}
-                        subtitle={searchString.trim() !== "" ? "Try a different search" : "Start a new conversation!"}
+                ) : (
+                    <FlatList
+                        data={filteredChats}
+                        keyExtractor={(item) => item._id}
+                        renderItem={renderChatItem}
+                        ListEmptyComponent={
+                            <EmptyState
+                                icon={searchString.trim() !== "" ? "🔍" : "💬"}
+                                title={searchString.trim() !== "" ? "No chats found" : "No chats yet"}
+                                subtitle={searchString.trim() !== "" ? "Try a different search" : "Start a new conversation!"}
+                            />
+                        }
+                        contentContainerStyle={filteredChats.length === 0 ? styles.emptyListContainer : undefined}
                     />
-                }
-                contentContainerStyle={filteredChats.length === 0 ? styles.emptyListContainer : undefined}
-            />
                 )}
 
-            {loadingChat && (
-                <View style={styles.loadingOverlay}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
-                </View>
-            )}
-        </View>
+                {loadingChat && (
+                    <View style={styles.loadingOverlay}>
+                        <ActivityIndicator size="large" color={Colors.primary} />
+                    </View>
+                )}
+            </View>
         </SafeAreaView >
     )
 }

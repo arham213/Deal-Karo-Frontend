@@ -4,7 +4,7 @@ import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
 import { Platform } from 'react-native'
 
-const BASE_URL = 'https://api.dealkroo.com/api'
+const BASE_URL = 'https://deal-karo-backend.onrender.com/api'
 
 // Configure foreground notification behavior
 Notifications.setNotificationHandler({
