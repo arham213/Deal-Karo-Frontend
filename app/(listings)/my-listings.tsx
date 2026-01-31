@@ -1,5 +1,6 @@
 "use client"
 
+import { AvatarInitials } from "@/components/AvatarInitials"
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
@@ -386,7 +387,7 @@ export default function MyListingsScreen() {
         {/* Header Section */}
         <View style={styles.headerSection}>
           <View style={styles.userGreeting}>
-            <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} />
+            <AvatarInitials name={user?.name || ""} size={32} imageUri={user?.profileImage} />
             <View style={styles.greetingText}>
               <Text style={styles.greeting}>My Listings</Text>
               <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 17) + "..." : user?.estateName}</Text>

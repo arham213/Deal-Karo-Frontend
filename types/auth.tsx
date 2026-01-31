@@ -7,6 +7,7 @@ export type User = {
   role: "dealer" | "admin"
   verificationStatus: "pending" | "verified" | "rejected" | "revoked"
   onBoardingCompleted?: boolean
+  profileImage?: string
   createdAt: string
   updatedAt: string
 }

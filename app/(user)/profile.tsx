@@ -12,6 +12,7 @@ import { getToken, getUser, saveUser } from "@/utils/secureStore"
 import { showErrorToast, showLoadingToast, showSuccessToast } from "@/utils/toast"
 import { Validation } from "@/utils/validation"
 import axios from "axios"
+import * as ImagePicker from "expo-image-picker"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -63,6 +64,9 @@ export default function ProfileScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false)
+  const [localProfileImage, setLocalProfileImage] = useState<string | null>(null)
+  const [pendingImageChange, setPendingImageChange] = useState<'add' | 'remove' | null>(null)
 
   const BASE_URL = 'https://deal-karo-backend.onrender.com/api';
 
@@ -80,10 +84,10 @@ export default function ProfileScreen() {
     }
   }
 
-  // Check if any field has changed
+  // Check if any field has changed (including profile image)
   const hasChanges = useMemo(
-    () => hasProfileChanges(profile, editData),
-    [editData, profile],
+    () => hasProfileChanges(profile, editData) || pendingImageChange !== null,
+    [editData, profile, pendingImageChange],
   )
 
   const markAllTouched = () => {
@@ -157,28 +161,74 @@ export default function ProfileScreen() {
       // Prepare data according to backend schema (only changed fields)
       const updateData = buildProfileUpdatePayload(profile, editData)
 
-      // Make API call
-      const response = await apiClient.put(`/users/`, updateData)
-
-      //console.log('response:', response.data)
-
-      if (response.data?.success) {
-        // Update local state with response data if available, otherwise use editData
-        const updatedUser = response.data.data?.user || {
-          ...editData,
-          contactNo: Validation.digitsOnly(editData.contactNo),
+      // Upload profile image if there's a pending change
+      if (pendingImageChange === 'add' && localProfileImage) {
+        const imageSuccess = await uploadProfileImage(localProfileImage)
+        if (!imageSuccess) {
+          // If image upload fails, don't proceed with profile update
+          setLoading(false)
+          return
         }
+      } else if (pendingImageChange === 'remove') {
+        const removeSuccess = await deleteProfileImage()
+        if (!removeSuccess) {
+          setLoading(false)
+          return
+        }
+      }
 
-        // Update profile state
-        setProfile(updatedUser)
+      // Only make profile update API call if there are other changes
+      if (Object.keys(updateData).length > 0) {
+        // Make API call
+        const response = await apiClient.put(`/users/`, updateData)
 
-        // Update secure store
-        await saveUser(updatedUser)
+        //console.log('response:', response.data)
 
-        // Update AuthContext
-        setUser(updatedUser)
+        if (response.data?.success) {
+          // Update local state with response data if available, otherwise use editData
+          const updatedUser = response.data.data?.user || {
+            ...editData,
+            contactNo: Validation.digitsOnly(editData.contactNo),
+          }
 
-        // Reset state
+          // Update profile state
+          setProfile(updatedUser)
+
+          // Update secure store
+          await saveUser(updatedUser)
+
+          // Update AuthContext
+          setUser(updatedUser)
+
+          // Reset state
+          setErrors({})
+          setTouched({
+            name: false,
+            email: false,
+            contactNo: false,
+            estateName: false,
+          })
+          setShowUpdateButton(false)
+          setPendingImageChange(null)
+          setLocalProfileImage(null)
+
+          showSuccessToast("Profile updated successfully!")
+        } else {
+          // Restore original form state on failure
+          setEditData(profile)
+          setErrors({})
+          setTouched({
+            name: false,
+            email: false,
+            contactNo: false,
+            estateName: false,
+          })
+          setLocalProfileImage(null)
+          setPendingImageChange(null)
+          showErrorToast(response.data?.message || "Failed to update profile. Please try again.")
+        }
+      } else {
+        // No profile field changes, just image was updated
         setErrors({})
         setTouched({
           name: false,
@@ -187,19 +237,9 @@ export default function ProfileScreen() {
           estateName: false,
         })
         setShowUpdateButton(false)
-
+        setPendingImageChange(null)
+        setLocalProfileImage(null)
         showSuccessToast("Profile updated successfully!")
-      } else {
-        // Restore original form state on failure
-        setEditData(profile)
-        setErrors({})
-        setTouched({
-          name: false,
-          email: false,
-          contactNo: false,
-          estateName: false,
-        })
-        showErrorToast(response.data?.message || "Failed to update profile")
       }
     } catch (error: any) {
       // Check if it's an auth error - interceptors will handle logout
@@ -326,6 +366,141 @@ export default function ProfileScreen() {
     })
   }
 
+  // Upload profile image to backend
+  const uploadProfileImage = async (imageUri: string) => {
+    try {
+      const token = await getToken()
+      if (!token) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
+        return false
+      }
+
+      // Create FormData for multipart upload
+      const formData = new FormData()
+      const filename = imageUri.split('/').pop() || 'profile.jpg'
+      const match = /\.(\w+)$/.exec(filename)
+      const type = match ? `image/${match[1]}` : 'image/jpeg'
+
+      formData.append('image', {
+        uri: imageUri,
+        name: filename,
+        type,
+      } as any)
+
+      const response = await apiClient.post('/users/profile-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      if (response.data?.success) {
+        const updatedUser = response.data.data?.user || { ...profile, profileImage: response.data.data?.profileImage }
+        setProfile(updatedUser)
+        await saveUser(updatedUser)
+        setUser(updatedUser)
+        showSuccessToast("Profile image updated!")
+        return true
+      } else {
+        showErrorToast(response.data?.message || "Failed to upload image")
+        return false
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        if (status === 401 || status === 404) {
+          return false // Auth interceptor will handle
+        }
+        showErrorToast(error?.response?.data?.error?.message || "Failed to upload image")
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+      return false
+    }
+  }
+
+  // Delete profile image from backend
+  const deleteProfileImage = async () => {
+    try {
+      const token = await getToken()
+      if (!token) {
+        const { forceLogout } = await import("@/utils/forcedLogout")
+        await forceLogout("You have been logged out. Please sign in again.")
+        return false
+      }
+
+      const response = await apiClient.delete('/users/profile-image')
+
+      if (response.data?.success) {
+        const updatedUser = { ...profile, profileImage: undefined }
+        setProfile(updatedUser)
+        await saveUser(updatedUser)
+        setUser(updatedUser)
+        showSuccessToast("Profile image removed!")
+        return true
+      } else {
+        showErrorToast(response.data?.message || "Failed to remove image")
+        return false
+      }
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        if (status === 401 || status === 404) {
+          return false
+        }
+        showErrorToast(error?.response?.data?.error?.message || "Failed to remove image")
+      } else {
+        showErrorToast("Something went wrong. Please try again later")
+      }
+      return false
+    }
+  }
+
+  // Image picker functions
+  const pickImageFromLibrary = async () => {
+    setShowImagePickerModal(false)
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (!result.canceled) {
+      setLocalProfileImage(result.assets[0].uri)
+      setPendingImageChange('add')
+    }
+  }
+
+  const takePhoto = async () => {
+    setShowImagePickerModal(false)
+    const { status } = await ImagePicker.requestCameraPermissionsAsync()
+
+    if (status !== 'granted') {
+      showErrorToast('Camera permission is required to take photos')
+      return
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (!result.canceled) {
+      setLocalProfileImage(result.assets[0].uri)
+      setPendingImageChange('add')
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setLocalProfileImage(null)
+    setPendingImageChange('remove')
+  }
+
+  // Get the current profile image (local selection takes priority)
+  const currentProfileImage = localProfileImage || profile.profileImage
+
   const editableErrors = useMemo(
     () =>
       (["name", "email", "contactNo", "estateName"] as EditableProfileField[]).some((field) =>
@@ -348,7 +523,20 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.avatarSection}>
-              <AvatarInitials name={profile.name} size={80} />
+              <AvatarInitials name={profile.name} size={80} imageUri={currentProfileImage} />
+              <View style={styles.avatarActions}>
+                <TouchableOpacity onPress={() => setShowImagePickerModal(true)}>
+                  <Text style={styles.editText}>Edit</Text>
+                </TouchableOpacity>
+                {currentProfileImage && (
+                  <>
+                    <Text style={styles.divider}> </Text>
+                    <TouchableOpacity onPress={handleRemoveImage}>
+                      <Text style={styles.removeText}>Remove</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
             </View>
           </View>
 
@@ -462,6 +650,36 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal
+        visible={showImagePickerModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImagePickerModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.imagePickerModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowImagePickerModal(false)}
+        >
+          <View style={styles.imagePickerModalContent}>
+            <Text style={styles.imagePickerModalTitle}>Change Profile Photo</Text>
+            <TouchableOpacity style={styles.imagePickerOption} onPress={takePhoto}>
+              <Text style={styles.imagePickerOptionText}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.imagePickerOption} onPress={pickImageFromLibrary}>
+              <Text style={styles.imagePickerOptionText}>Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.imagePickerOption, styles.imagePickerCancelOption]}
+              onPress={() => setShowImagePickerModal(false)}
+            >
+              <Text style={styles.imagePickerCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   )
@@ -649,5 +867,48 @@ const styles = StyleSheet.create({
     color: Colors.neutral90,
     fontFamily: fontFamilies.primary,
     letterSpacing: 0.12,
+  },
+  imagePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  imagePickerModalContent: {
+    backgroundColor: Colors.neutral10,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.screen,
+  },
+  imagePickerModalTitle: {
+    fontSize: fontSizes.lg,
+    fontWeight: fontWeights.semibold,
+    color: Colors.black,
+    fontFamily: fontFamilies.primary,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  imagePickerOption: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.screen,
+  },
+  imagePickerOptionText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.medium,
+    color: Colors.text,
+    fontFamily: fontFamilies.primary,
+    textAlign: "center",
+  },
+  imagePickerCancelOption: {
+    marginTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  imagePickerCancelText: {
+    fontSize: fontSizes.md,
+    fontWeight: fontWeights.medium,
+    color: Colors.error,
+    fontFamily: fontFamilies.primary,
+    textAlign: "center",
   },
 })

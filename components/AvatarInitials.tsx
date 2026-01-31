@@ -1,14 +1,28 @@
+import { Colors } from "@/constants/colors"
 import { fontFamilies, fontWeights } from "@/styles"
-import { StyleSheet, Text, View } from "react-native"
+import { Image } from "expo-image"
+import { useState } from "react"
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 
 interface AvatarInitialsProps {
   name: string
   size?: number
   backgroundColor?: string
   textColor?: string
+  imageUri?: string
+  showLoading?: boolean
 }
 
-export function AvatarInitials({ name, size = 56, backgroundColor = "#000", textColor = "#fff" }: AvatarInitialsProps) {
+export function AvatarInitials({
+  name,
+  size = 56,
+  backgroundColor = "#000",
+  textColor = "#fff",
+  imageUri,
+  showLoading = true
+}: AvatarInitialsProps) {
+  const [isLoading, setIsLoading] = useState(false)
+
   const getInitials = (fullName: string) => {
     return fullName
       .split(" ")
@@ -19,9 +33,30 @@ export function AvatarInitials({ name, size = 56, backgroundColor = "#000", text
   }
 
   const initials = getInitials(name)
-  const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8"]
-  const hashCode = Array.from(initials).reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  // const backgroundColor = colors[hashCode % colors.length]
+
+  // If imageUri is provided, show the image instead of initials
+  if (imageUri) {
+    // Check if it's a remote URL (not a local file)
+    const isRemoteImage = imageUri.startsWith('http://') || imageUri.startsWith('https://')
+
+    return (
+      <View style={[styles.container, { width: size, height: size, borderRadius: size / 2, overflow: "hidden", backgroundColor }]}>
+        <Image
+          source={{ uri: imageUri }}
+          style={{ width: size, height: size }}
+          contentFit="cover"
+          onLoadStart={() => isRemoteImage && showLoading && setIsLoading(true)}
+          onLoadEnd={() => setIsLoading(false)}
+          onError={() => setIsLoading(false)}
+        />
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="small" color={Colors.white} />
+          </View>
+        )}
+      </View>
+    )
+  }
 
   return (
     <View style={[styles.container, { width: size, height: size, borderRadius: size / 2, backgroundColor }]}>
@@ -40,5 +75,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.primary,
     fontStyle: "normal",
     letterSpacing: 0.12,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
   },
 })

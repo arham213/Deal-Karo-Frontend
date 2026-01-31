@@ -1,5 +1,6 @@
 "use client"
 
+import { AvatarInitials } from "@/components/AvatarInitials"
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
@@ -343,7 +344,9 @@ export default function ListingsScreen() {
           {/* Header Section */}
           <View style={styles.headerSection}>
             <View style={styles.userGreeting}>
-              <MaterialCommunityIcons name="account-circle" size={32} color={Colors.text} onPress={() => router.push("/profile")} />
+              <TouchableOpacity onPress={() => router.push("/profile")}>
+                <AvatarInitials name={user?.name || ""} size={32} imageUri={user?.profileImage} />
+              </TouchableOpacity>
               <View style={styles.greetingText}>
                 <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
                 <Text style={styles.role}>{user?.estateName && user?.estateName?.length > 17 ? user?.estateName?.slice(0, 20) + "..." : user?.estateName}</Text>
