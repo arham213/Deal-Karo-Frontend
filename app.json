@@ -10,7 +10,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "5",
       "bundleIdentifier": "com.arham1.dealkaro"
     },
     "android": {
@@ -63,9 +62,7 @@
       }
     },
     "owner": "arham1",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.3",
     "updates": {
       "url": "https://u.expo.dev/70a69589-9bd7-41b3-9c7e-936d38f303ab"
     }
