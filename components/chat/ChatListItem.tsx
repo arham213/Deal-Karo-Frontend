@@ -27,6 +27,7 @@ export function ChatListItem({ chat, otherParticipant, isSelected, onPress, form
                     size={48}
                     backgroundColor={Colors.primary}
                     textColor={Colors.white}
+                    imageUri={otherParticipant?.profileImage}
                 />
                 {otherParticipant?.online && <View style={styles.onlineIndicator} />}
             </View>

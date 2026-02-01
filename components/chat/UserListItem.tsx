@@ -20,6 +20,7 @@ export function UserListItem({ user, onPress }: UserListItemProps) {
                 size={44}
                 backgroundColor={Colors.primary}
                 textColor={Colors.white}
+                imageUri={user?.profileImage}
             />
             <Text style={styles.username}>{user?.name || "Unknown"}</Text>
         </TouchableOpacity>

@@ -24,10 +24,11 @@ import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function ChatScreen() {
     const router = useRouter()
-    const { chatId, participantName, participantOnline } = useLocalSearchParams<{
+    const { chatId, participantName, participantOnline, participantImage } = useLocalSearchParams<{
         chatId: string
         participantName?: string
         participantOnline?: string
+        participantImage?: string
     }>()
 
     const [messages, setMessages] = useState<Array<any>>([])
@@ -391,12 +392,19 @@ export default function ChatScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.headerInfo}>
-                        <AvatarInitials
-                            name={otherParticipant?.name || participantName || "?"}
-                            size={40}
-                            backgroundColor={Colors.primary}
-                            textColor={Colors.white}
-                        />
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            disabled={!(otherParticipant?.profileImage || participantImage)}
+                            onPress={() => setViewingImage(otherParticipant?.profileImage || participantImage || null)}
+                        >
+                            <AvatarInitials
+                                name={otherParticipant?.name || participantName || "?"}
+                                size={40}
+                                backgroundColor={Colors.primary}
+                                textColor={Colors.white}
+                                imageUri={otherParticipant?.profileImage || participantImage}
+                            />
+                        </TouchableOpacity>
                         <View style={styles.headerText}>
                             <Text style={styles.headerTitle} numberOfLines={1}>
                                 {otherParticipant?.name || participantName || "Chat"}
@@ -406,7 +414,7 @@ export default function ChatScreen() {
                                 typingUser && styles.typingText
                             ]}>
                                 {typingUser ? "typing..." : (
-                                    otherParticipant?.online
+                                    (otherParticipant?.online ?? participantOnline === "true")
                                         ? "online"
                                         : otherParticipant?.lastSeen
                                             ? `last seen at ${formatTime(otherParticipant.lastSeen)}`

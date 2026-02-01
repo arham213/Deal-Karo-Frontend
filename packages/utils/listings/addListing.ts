@@ -295,41 +295,6 @@ export interface CreateListingParams {
   baseUrl?: string
 }
 
-// export const createListing = async ({
-//   token,
-//   payload,
-//   baseUrl = "https://deal-karo-backend.onrender.com/api",
-// }: CreateListingParams): Promise<void> => {
-//   try {
-//     const response = await axios.post(
-//       `${baseUrl}/properties`,
-//       payload,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       },
-//     )
-
-//     if (!response?.data?.success) {
-//       const message =
-//         response?.data?.error?.message || response?.data?.message || "Listing creation failed"
-//       throw new Error(message)
-//     }
-//   } catch (error) {
-//     if (axios.isAxiosError(error)) {
-//       const message =
-//         error?.response?.data?.error?.message ||
-//         error?.response?.data?.message ||
-//         error.message ||
-//         "Listing creation failed"
-//       throw new Error(message)
-//     }
-
-//     throw new Error("Something went wrong. Please try again later")
-//   }
-// }
-
 export const createListing = async ({
   token,
   payload,

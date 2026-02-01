@@ -102,9 +102,15 @@ export default function ChatsScreen() {
                     console.log('Chat ID:', response.data.chat)
                     console.log('Other participant:', getOtherParticipant(response.data.chat))
                     console.log('Other participant name:', getOtherParticipant(response.data.chat)?.name)
+                    const otherParticipant = getOtherParticipant(response.data.chat)
                     router.push({
                         pathname: "/(chat)/chat" as any,
-                        params: { chatId: response.data.chat?._id, participantName: getOtherParticipant(response.data.chat)?.name }
+                        params: {
+                            chatId: response.data.chat?._id,
+                            participantName: otherParticipant?.name,
+                            participantImage: otherParticipant?.profileImage || "",
+                            participantOnline: otherParticipant?.online ? "true" : "false"
+                        }
                     })
                 }
             }
@@ -128,9 +134,15 @@ export default function ChatsScreen() {
             console.log('New chat:', chat);
             console.log('Other participant:', getOtherParticipant(chat))
             console.log('Other participant name:', getOtherParticipant(chat)?.name)
+            const otherParticipant = getOtherParticipant(chat)
             router.push({
                 pathname: "/(chat)/chat" as any,
-                params: { chatId: chat._id, participantName: getOtherParticipant(chat)?.name }
+                params: {
+                    chatId: chat._id,
+                    participantName: otherParticipant?.name,
+                    participantImage: otherParticipant?.profileImage || "",
+                    participantOnline: otherParticipant?.online ? "true" : "false"
+                }
             })
         } catch (error) {
             console.error("Failed to open chat:", error)
