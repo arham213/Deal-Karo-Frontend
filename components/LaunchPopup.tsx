@@ -9,7 +9,7 @@ import { ActivityIndicator, Dimensions, Modal, StyleSheet, TouchableOpacity, Vie
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window")
 
-const BASE_URL = "https://deal-karo-backend.onrender.com/api"
+const BASE_URL = "https://deal-karo-backend-production.up.railway.app/api"
 
 // Image dimensions (default for aspect ratio calculation)
 const IMAGE_WIDTH = 699

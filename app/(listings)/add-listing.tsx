@@ -65,7 +65,7 @@ export default function AddListingScreen() {
   )
 
   const AREA_TYPE_OPTIONS = ["Marla", "Kanal"]
-  const BASE_URL = 'https://deal-karo-backend.onrender.com/api';
+  const BASE_URL = 'https://deal-karo-backend-production.up.railway.app/api';
 
   // Check verification status on mount
   useEffect(() => {

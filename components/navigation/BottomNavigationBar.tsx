@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Svg, { Path } from "react-native-svg"
 import { DisabledMyListingsIcon, DisabledNotesIcon, MyListingsIcon, NotesIcon } from "./Icons"
 
-const BASE_URL = "https://deal-karo-backend.onrender.com/api"
+const BASE_URL = "https://deal-karo-backend-production.up.railway.app/api"
 
 export function BottomNavigationBar() {
   const router = useRouter()

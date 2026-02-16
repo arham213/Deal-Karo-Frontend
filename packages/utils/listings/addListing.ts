@@ -298,7 +298,7 @@ export interface CreateListingParams {
 export const createListing = async ({
   token,
   payload,
-  baseUrl = "https://deal-karo-backend.onrender.com/api",
+  baseUrl = "https://deal-karo-backend-production.up.railway.app/api",
 }: CreateListingParams): Promise<void> => {
   try {
     let data: any = payload;

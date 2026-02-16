@@ -74,7 +74,7 @@ export const resetPasswordForUser = async ({
 }: ResetPasswordPayload): Promise<void> => {
   try {
     const response = await axios.post<ResetPasswordApiResponse>(
-      "https://deal-karo-backend.onrender.com/api/users/resetPassword",
+      "https://deal-karo-backend-production.up.railway.app/api/users/resetPassword",
       {
         userId,
         password,

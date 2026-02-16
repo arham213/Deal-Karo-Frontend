@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
   const [touched, setTouched] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const BASE_URL = 'https://deal-karo-backend.onrender.com/api';
+  const BASE_URL = 'https://deal-karo-backend-production.up.railway.app/api';
 
   const emailValidationError = useMemo(() => {
     if (!Validation.isRequired(email)) return "Email is required"
