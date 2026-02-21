@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.arham1.dealkaro"
+      "bundleIdentifier": "com.arham1.dealkaro",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Deal Krein needs access to your photo library to upload listing images.",
+        "NSCameraUsageDescription": "Deal Krein needs access to your camera to take photos for your listings.",
+        "NSPhotoLibraryAddUsageDescription": "Deal Krein needs permission to save photos to your library."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -41,6 +46,13 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Deal Krein needs access to your photo library to upload listing images.",
+          "cameraPermission": "Deal Krein needs access to your camera to take photos for your listings."
+        }
+      ],
       [
         "expo-notifications",
         {

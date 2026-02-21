@@ -376,7 +376,14 @@ export default function AddListingScreen() {
 
   const pickImageFromLibrary = async () => {
     setShowImagePickerModal(false)
-    // No permissions request is necessary for launching the image library
+
+    // iOS requires explicit permission request before accessing the photo library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      showErrorToast('Photo library permission is required to upload images')
+      return
+    }
+
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
