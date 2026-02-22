@@ -4,7 +4,7 @@ import { getToken } from "./secureStore"
 import { showErrorToast } from "./toast"
 import { isTokenExpired } from "./tokenValidation"
 
-const BASE_URL = "https://deal-karo-backend-production.up.railway.app/api"
+const BASE_URL = "http://10.103.65.91:8080/api"
 
 // Create axios instance
 export const apiClient = axios.create({

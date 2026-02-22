@@ -1,6 +1,7 @@
 "use client"
 
 import { AvatarInitials } from "@/components/AvatarInitials"
+import { EditListingModal } from "@/components/listings/EditListingModal"
 import FilterModal from "@/components/listings/FilterModal"
 import { ListingDetailsModal } from "@/components/listings/ListingsDetailsModal"
 import { PropertyCard } from "@/components/listings/PropertyCard"
@@ -32,6 +33,8 @@ export default function MyListingsScreen() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilterTab>("All Listings")
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingListing, setEditingListing] = useState<ListingState | null>(null)
   const [clickedListing, setClickedListing] = useState<ListingState>()
   const [filters, setFilters] = useState<ListingsFilters>({})
   const [loading, setLoading] = useState(false)
@@ -51,7 +54,7 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
   const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
-  const BASE_URL = "https://deal-karo-backend-production.up.railway.app/api"
+  const BASE_URL = "http://10.103.65.91:8080/api"
 
   // Check verification status on mount
   useEffect(() => {
@@ -329,6 +332,7 @@ export default function MyListingsScreen() {
   }
 
   const handleDeleteProperty = useCallback(async (propertyId: string) => {
+    // ... existing delete logic unchanged
     try {
       const token = await getToken()
       if (!token) {
@@ -344,9 +348,7 @@ export default function MyListingsScreen() {
 
       if (response.data.success) {
         showSuccessToast("Listing deleted successfully")
-        // Remove the deleted listing from the local state
         setListings((prev) => prev.filter((listing) => listing._id !== propertyId))
-        // Refresh the listings to ensure consistency
         setCurrentPage(1)
         setTotalPages(1)
         setHasMore(true)
@@ -358,7 +360,6 @@ export default function MyListingsScreen() {
         showErrorToast("Failed to delete listing")
       }
     } catch (error) {
-      //console.error("Error deleting property:", error)
       if (axios.isAxiosError(error)) {
         const errorMessage = error?.response?.data?.error?.message || error?.message || 'An error occurred'
         showErrorToast(errorMessage)
@@ -367,6 +368,32 @@ export default function MyListingsScreen() {
       }
     }
   }, [searchQuery, getListings])
+
+  const handleEditProperty = useCallback((property: ListingState) => {
+    setEditingListing(property)
+    setShowEditModal(true)
+  }, [])
+
+  const handleEditSuccess = useCallback((updatedListing: ListingState) => {
+    setShowEditModal(false)
+    const oldId = editingListing?._id
+    setEditingListing(null)
+    // Immediately splice the updated listing into local state using the OLD _id.
+    // The new object may have a different _id if propertyType changed on the backend.
+    if (oldId && updatedListing) {
+      setListings((prev) =>
+        prev.map((item) => (item._id === oldId ? updatedListing : item))
+      )
+    }
+    // Also refetch from server as a safety net
+    setCurrentPage(1)
+    setTotalPages(1)
+    setHasMore(true)
+    initialLoadCompleteRef.current = false
+    hasScrolledRef.current = false
+    isFetchingRef.current = false
+    getListings(1, true, searchQuery)
+  }, [searchQuery, getListings, editingListing])
 
   const handleSetActivePropertyTab = useCallback((type: PropertyTypeTab) => {
     setActivePropertyTab(type)
@@ -522,7 +549,7 @@ export default function MyListingsScreen() {
           <FlatList
             data={listings}
             keyExtractor={(item, index) => item._id || `listing-${index}`}
-            renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} onDelete={handleDeleteProperty} showDelete={true} />}
+            renderItem={({ item }) => <PropertyCard property={item} user={{ verificationStatus: "verified" } as User} handlePropertyDetails={handlePropertyDetails} onDelete={handleDeleteProperty} onEdit={handleEditProperty} showDelete={true} />}
             ListHeaderComponent={ListHeader}
             ListFooterComponent={
               loadingMore && listings.length > 0 ? (
@@ -570,6 +597,19 @@ export default function MyListingsScreen() {
         onClose={() => setShowDetailsModal(false)}
         listing={clickedListing}
       />
+
+      {/* Edit Listing Modal */}
+      {editingListing && (
+        <EditListingModal
+          visible={showEditModal}
+          listing={editingListing}
+          onClose={() => {
+            setShowEditModal(false)
+            setEditingListing(null)
+          }}
+          onSuccess={handleEditSuccess}
+        />
+      )}
 
       <Modal
         transparent

@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 
 // Use your computer's IP address (same as API)
-const SOCKET_URL = 'https://deal-karo-backend-production.up.railway.app';
+const SOCKET_URL = 'http://10.103.65.91:8080';
 
 const socket = io(SOCKET_URL, {
     transports: ['websocket', 'polling'],

@@ -16,7 +16,7 @@ import { AvatarInitials } from "../AvatarInitials";
 import { DetailsIcon, LocationIcon } from "./Icons";
 
 
-export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, showDelete?: boolean }) => {
+export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, onEdit, showDelete }: { property: ListingState, user: User, handlePropertyDetails: (listingId: string) => void, onDelete?: (propertyId: string) => void, onEdit?: (property: ListingState) => void, showDelete?: boolean }) => {
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -41,6 +41,13 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
   const handleDelete = () => {
     if (onDelete) {
       onDelete(property._id);
+      setShowDeleteMenu(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(property);
       setShowDeleteMenu(false);
     }
   };
@@ -254,6 +261,14 @@ export const PropertyCard = ({ property, user, handlePropertyDetails, onDelete, 
               onPress={() => setShowDeleteMenu(false)}
             >
               <View style={[styles.deleteMenuContent, { left: menuPosition.x, top: menuPosition.y }]}>
+                <TouchableOpacity
+                  style={styles.deleteMenuItem}
+                  onPress={handleEdit}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
+                  <Text style={[styles.deleteMenuText, { color: Colors.primary }]}>Edit</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteMenuItem}
                   onPress={handleDelete}

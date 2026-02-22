@@ -129,7 +129,7 @@ export const buildSignUpRequestBody = (
 export const signUpUser = async (body: SignUpRequestBody): Promise<SignUpResult> => {
   try {
     const response = await axios.post<SignUpApiResponse>(
-      "https://deal-karo-backend-production.up.railway.app/api/users/signup",
+      "http://10.103.65.91:8080/api/users/signup",
       body,
     )
 

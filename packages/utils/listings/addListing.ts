@@ -298,7 +298,7 @@ export interface CreateListingParams {
 export const createListing = async ({
   token,
   payload,
-  baseUrl = "https://deal-karo-backend-production.up.railway.app/api",
+  baseUrl = "http://10.103.65.91:8080/api",
 }: CreateListingParams): Promise<void> => {
   try {
     let data: any = payload;
@@ -361,4 +361,134 @@ export const createListing = async ({
   }
 }
 
+
+export interface UpdateListingParams {
+  token: string
+  propertyId: string
+  original: AddListingState
+  updated: AddListingState
+  baseUrl?: string
+}
+
+export const updateListing = async ({
+  token,
+  propertyId,
+  original,
+  updated,
+  baseUrl = "http://10.103.65.91:8080/api",
+}: UpdateListingParams): Promise<any> => {
+  try {
+    const formData = new FormData()
+
+    // propertyId is always required
+    formData.append('propertyId', propertyId)
+    console.log('[updateListing] propertyId:', propertyId)
+    console.log('[updateListing] original state:', JSON.stringify(original, null, 2))
+    console.log('[updateListing] updated state:', JSON.stringify(updated, null, 2))
+
+    // Scalar fields — only append if changed
+    const scalarFields: (keyof AddListingState)[] = [
+      'propertyType',
+      'listingType',
+      'plotNo',
+      'houseNo',
+      'block',
+      'phase',
+      'area',
+      'additionalArea',
+      'price',
+      'pricePerMarla',
+      'description',
+      'possession',
+    ]
+
+    const changedFields: Record<string, any> = {}
+
+    for (const field of scalarFields) {
+      const origVal = original[field]
+      const updVal = updated[field]
+      if (origVal !== updVal) {
+        if (field === 'possession') {
+          const boolVal = updVal === 'Yes' ? 'true' : 'false'
+          formData.append('possession', boolVal)
+          changedFields['possession'] = boolVal
+        } else if (updVal !== null && updVal !== undefined) {
+          formData.append(field, String(updVal))
+          changedFields[field] = String(updVal)
+        }
+      }
+    }
+
+    // installment — only append if either sub-field changed
+    const installmentChanged =
+      original.installmentPerMonth !== updated.installmentPerMonth ||
+      original.installmentHalfYearly !== updated.installmentHalfYearly
+
+    if (installmentChanged && updated.listingType === 'installments') {
+      const installmentJson = JSON.stringify({
+        perMonth: updated.installmentPerMonth,
+        halfYearly: updated.installmentHalfYearly,
+      })
+      formData.append('installment', installmentJson)
+      changedFields['installment'] = installmentJson
+    }
+
+    // image handling
+    if (updated.image && updated.image !== original.image) {
+      // New image selected — upload it
+      const uri = updated.image
+      const filename = uri.split('/').pop() || 'photo.jpg'
+      const match = /\.(\w+)$/.exec(filename)
+      const type = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg'
+      // @ts-ignore — React Native FormData accepts this object shape
+      formData.append('image', { uri, name: filename, type })
+      changedFields['image'] = { uri, name: filename, type }
+    } else if (original.image && !updated.image) {
+      // Image was removed — tell the backend to delete it
+      formData.append('removeImage', 'true')
+      changedFields['removeImage'] = 'true'
+    }
+
+    console.log('[updateListing] changed fields being sent:', JSON.stringify(changedFields, null, 2))
+    console.log('[updateListing] request URL:', `${baseUrl}/properties/`)
+    console.log('[updateListing] token (first 20 chars):', token?.substring(0, 20))
+
+    const response = await axios.put(
+      `${baseUrl}/properties/`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      },
+    )
+
+    console.log('[updateListing] response status:', response.status)
+    console.log('[updateListing] response data:', JSON.stringify(response.data, null, 2))
+
+    if (!response?.data?.success) {
+      const message =
+        response?.data?.error?.message || response?.data?.message || 'Listing update failed'
+      throw new Error(message)
+    }
+
+    // Return the updated property (may have a new _id if propertyType changed)
+    return response.data?.data?.property ?? response.data?.property ?? null
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.log('[updateListing] axios error status:', error.response?.status)
+      console.log('[updateListing] axios error response:', JSON.stringify(error.response?.data, null, 2))
+      console.log('[updateListing] axios error message:', error.message)
+      const message =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        error.message ||
+        'Listing update failed'
+      throw new Error(message)
+    }
+    console.log('[updateListing] non-axios error:', error)
+    throw new Error('Something went wrong. Please try again later')
+  }
+}
 

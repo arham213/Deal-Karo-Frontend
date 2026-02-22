@@ -69,7 +69,7 @@ export const verifyOtp = async ({
   otpCode,
 }: VerifyOtpParams): Promise<VerifyOtpResult> => {
   try {
-    const baseUrl = "https://deal-karo-backend-production.up.railway.app/api"
+    const baseUrl = "http://10.103.65.91:8080/api"
 
     if (isSignupOtp) {
       const response = await axios.post<VerifyEmailApiResponse>(`${baseUrl}/users/verifyEmail`, {
@@ -126,7 +126,7 @@ export const resendOtp = async ({
   isSimpleOtp = false,
 }: ResendOtpParams): Promise<void> => {
   try {
-    const baseUrl = "https://deal-karo-backend-production.up.railway.app/api"
+    const baseUrl = "http://10.103.65.91:8080/api"
 
     const response = await axios.post<ResendOtpApiResponse>(`${baseUrl}/users/resendOTP`, {
       userId,

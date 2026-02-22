@@ -54,7 +54,7 @@ export default function MyNotesScreen() {
   const isFetchingRef = useRef(false)
   const currentPageRef = useRef(1)
 
-  const BASE_URL = 'https://deal-karo-backend-production.up.railway.app/api';
+  const BASE_URL = 'http://10.103.65.91:8080/api';
   // Check verification status on mount
   useEffect(() => {
     checkVerificationStatus()
