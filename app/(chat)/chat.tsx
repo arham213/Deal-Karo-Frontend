@@ -167,6 +167,13 @@ export default function ChatScreen() {
     }
 
     const handleAttachImage = async () => {
+        // iOS requires explicit permission request before accessing the photo library
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+        if (status !== 'granted') {
+            showErrorToast('Photo library permission is required to send images')
+            return
+        }
+
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsEditing: true,

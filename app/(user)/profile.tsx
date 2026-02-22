@@ -459,6 +459,14 @@ export default function ProfileScreen() {
   // Image picker functions
   const pickImageFromLibrary = async () => {
     setShowImagePickerModal(false)
+
+    // iOS requires explicit permission request before accessing the photo library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      showErrorToast('Photo library permission is required to upload a profile image')
+      return
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
