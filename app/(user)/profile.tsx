@@ -68,7 +68,7 @@ export default function ProfileScreen() {
   const [localProfileImage, setLocalProfileImage] = useState<string | null>(null)
   const [pendingImageChange, setPendingImageChange] = useState<'add' | 'remove' | null>(null)
 
-  const BASE_URL = 'http://10.103.65.91:8080/api';
+  const BASE_URL = 'https://deal-karo-backend-production.up.railway.app/api';
 
   useEffect(() => {
     getUserFromSecureStore()

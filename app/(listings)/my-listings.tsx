@@ -54,7 +54,7 @@ export default function MyListingsScreen() {
 
   const propertyTypeOptions: PropertyTypeTab[] = ["Plots", "Houses", "Commercial Plots"]
   const filterTabs: ActiveFilterTab[] = ["All Listings", "For cash", "Installments"]
-  const BASE_URL = "http://10.103.65.91:8080/api"
+  const BASE_URL = "https://deal-karo-backend-production.up.railway.app/api"
 
   // Check verification status on mount
   useEffect(() => {

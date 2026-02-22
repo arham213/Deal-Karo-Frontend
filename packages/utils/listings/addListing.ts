@@ -298,7 +298,7 @@ export interface CreateListingParams {
 export const createListing = async ({
   token,
   payload,
-  baseUrl = "http://10.103.65.91:8080/api",
+  baseUrl = "https://deal-karo-backend-production.up.railway.app/api",
 }: CreateListingParams): Promise<void> => {
   try {
     let data: any = payload;
@@ -375,7 +375,7 @@ export const updateListing = async ({
   propertyId,
   original,
   updated,
-  baseUrl = "http://10.103.65.91:8080/api",
+  baseUrl = "https://deal-karo-backend-production.up.railway.app/api",
 }: UpdateListingParams): Promise<any> => {
   try {
     const formData = new FormData()
