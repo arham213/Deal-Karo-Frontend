@@ -1,50 +1,78 @@
-# Welcome to your Expo app 👋
+# Deal-Karo-Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+![React Native](https://img.shields.io/badge/React_Native-0.74-20232A?logo=react&logoColor=61DAFB&style=flat-square)
+![Expo](https://img.shields.io/badge/Expo-51-000020?logo=expo&logoColor=white&style=flat-square)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white&style=flat-square)
+![App Store](https://img.shields.io/badge/App_Store-Available-0D96F6?logo=appstore&logoColor=white&style=flat-square)
+![Play Store](https://img.shields.io/badge/Play_Store-Available-3DDC84?logo=googleplay&logoColor=white&style=flat-square)
 
-## Get started
+React Native mobile application for the Deal Krein platform. Shares a backend API with the web application and extends it with real-time messaging, push notifications, and native device features.
 
-1. Install dependencies
+**App Store:** [Link](your-appstore-link) &nbsp;|&nbsp; **Play Store:** [Link](your-playstore-link) &nbsp;|&nbsp; **Backend:** [Deal-Karo-Backend](https://github.com/arham213/Deal-Karo-Backend) &nbsp;|&nbsp; **Web:** [Deal-Karo-Web](https://github.com/arham213/deal-karo-web)
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+<!-- Add a screenshot or GIF of the app here -->
+<!-- ![App Preview](./docs/screenshot.png) -->
 
-   ```bash
-   npx expo start
-   ```
+## System Overview
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Deal Krein
+├── deal-kroo              # Next.js web application
+├── Deal-Karo-Frontend     # React Native mobile application (this repo)
+└── Deal-Karo-Backend      # Shared Node.js REST API
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## Features
 
-To learn more about developing your project with Expo, look at the following resources:
+- OTP-based authentication and multi-step user onboarding
+- Property listings with search, filtering, and pagination
+- Supports plots, houses, and commercial deals (cash and installment)
+- Real-time messaging via Socket.IO — typing indicators, read/unread state, online presence
+- In-chat image sharing and voice messages
+- Push notifications, haptic feedback, and secure local storage
+- Direct calls between users
+- Property notes, profile management, and account deletion
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## Tech Stack
 
-Join our community of developers creating universal apps.
+| Layer | Technology |
+|---|---|
+| Framework | React Native, Expo, TypeScript |
+| Real-time | Socket.IO Client |
+| Storage | Expo SecureStore |
+| Notifications | Expo Push Notifications |
+| API | REST — shared with web via Deal-Karo-Backend |
+| Distribution | App Store, Play Store |
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## Local Setup
+
+### Prerequisites
+- Node.js 18+
+- Expo CLI
+- [Deal-Karo-Backend](https://github.com/arham213/Deal-Karo-Backend) running locally or remotely *(required — must be running before starting the app)*
+
+```bash
+git clone https://github.com/arham213/Deal-Karo-Frontend.git
+cd Deal-Karo-Frontend
+npm install
+```
+
+```bash
+npx expo start
+```
+
+See the [backend README](https://github.com/arham213/Deal-Karo-Backend#readme) for full backend setup instructions.
+
+---
+
+## Author
+
+[LinkedIn](https://linkedin.com/in/arhamasjid) · arhamasjid213@gmail.com
