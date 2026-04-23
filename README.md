@@ -8,7 +8,7 @@
 
 React Native mobile application for the Deal Krein platform. Shares a backend API with the web application and extends it with real-time messaging, push notifications, and native device features.
 
-**App Store:** [Link](your-appstore-link) &nbsp;|&nbsp; **Play Store:** [Link](your-playstore-link) &nbsp;|&nbsp; **Backend:** [Deal-Karo-Backend](https://github.com/arham213/Deal-Karo-Backend) &nbsp;|&nbsp; **Web:** [Deal-Karo-Web](https://github.com/arham213/deal-karo-web)
+**App Store:** [Link](your-appstore-link) &nbsp;|&nbsp; **Play Store:** [Link](https://play.google.com/store/apps/details?id=com.arham1.dealkaro&pcampaignid=web_share) &nbsp;|&nbsp; **Backend:** [Deal-Karo-Backend](https://github.com/arham213/Deal-Karo-Backend) &nbsp;|&nbsp; **Web:** [Deal-Karo-Web](https://github.com/arham213/deal-karo-web)
 
 ---
 
